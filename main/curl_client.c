@@ -13,6 +13,7 @@
 #include <curl/curl.h>
 #include <string.h>
 #include <stddef.h>
+#include <assert.h>
 #include <freertos/event_groups.h>
 #include "esp32_duktape/curl_client.h"
 #include "sdkconfig.h"
@@ -20,8 +21,8 @@
 static char tag[] = "curl_client";
 
 typedef struct {
-	size_t size;
-	uint8_t *data;
+	size_t size; // The size of the data
+	uint8_t *data; // The data received
 } context_t;
 /**
  * Receive data from a CURL callback.
@@ -46,24 +47,34 @@ static size_t writeData(void *buffer, size_t size, size_t nmemb, void *userp) {
  * URL.  The return is a NULL terminated string that contains
  * that content.  If an error occurred or the file was not found
  * on the server, then NULL is returned.
+ *
+ * The return data is malloced and needs to be freed when done.
  */
 char *curl_client_getContent(const char *url) {
+
 	CURL *curlHandle;
 	CURLcode res;
 	char *retData = NULL;
-	ESP_LOGD(tag, ">> curl_client: %s", url);
+
+	ESP_LOGD(tag, ">> curl_client: %s", url==NULL?"NULL":url);
+	if (url == NULL) {
+		return NULL;
+	}
 
 	curlHandle = curl_easy_init();
 	if(curlHandle) {
 		context_t *context = (context_t *)malloc(sizeof(context_t));
+		assert(context != NULL);
 		context->size = 0;
+		context->data = NULL;
+
 		curl_easy_setopt(curlHandle, CURLOPT_URL, url);
-		/* example.com is redirected, so we tell libcurl to follow redirection */
 		curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, 1L);
-		// Set the callback function
-		curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, writeData);
-		curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, context);
+		curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, writeData); // Write data callback.
+		curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, context); // User data to pass to callback.
 		curl_easy_setopt(curlHandle, CURLOPT_FAILONERROR, 1);
+
+		curl_easy_setopt(curlHandle, CURLOPT_VERBOSE, 1);		// Enable debugging
 
 		/* Perform the request, res will get the return code */
 		res = curl_easy_perform(curlHandle);
@@ -75,15 +86,18 @@ char *curl_client_getContent(const char *url) {
 
 		/* always cleanup */
 		curl_easy_cleanup(curlHandle);
+		curl_global_cleanup();
 
 		if (res == CURLE_OK && context->size > 0) {
 			retData = malloc(context->size + 1);
 			memcpy(retData, context->data, context->size);
 			retData[context->size] = 0;
 		}
+
 		if (context->data != NULL) {
 			free(context->data);
 		}
+
 		free(context);
 	}
 	ESP_LOGD(tag, "<< curl_client");

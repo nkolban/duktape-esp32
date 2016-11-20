@@ -23,6 +23,7 @@
 #include <string.h>
 #include "sdkconfig.h"
 
+#define TELNET_PORT (23)
 
 static char tag[] = "component_telnet";
 
@@ -30,7 +31,8 @@ static char tag[] = "component_telnet";
 // client at a time, this can be a global static.
 static telnet_t *tnHandle;
 
-static void (*receivedDataCallback)(uint8_t *buffer, size_t size);
+static void (*g_receivedDataCallback)(uint8_t *buffer, size_t size);
+static void (*g_newTelnetPartnerCallback)();
 
 struct telnetUserData {
 	int sockfd;
@@ -39,7 +41,7 @@ struct telnetUserData {
 /**
  * Convert a telnet event type to its string representation.
  */
-static char *eventToString(telnet_event_type_t type) {
+static char *telnetEventToString(telnet_event_type_t type) {
 	switch(type) {
 	case TELNET_EV_COMPRESS:
 		return "TELNET_EV_COMPRESS";
@@ -73,7 +75,7 @@ static char *eventToString(telnet_event_type_t type) {
 		return "TELNET_EV_ZMP";
 	}
 	return "Unknown type";
-} // eventToString
+} // telnetEventToString
 
 
 /**
@@ -121,8 +123,8 @@ static void telnetHandler(
 		 * The data receive is in event->data.buffer of size
 		 * event->data.size.
 		 */
-		if (receivedDataCallback != NULL) {
-			receivedDataCallback((uint8_t *)event->data.buffer, (size_t)event->data.size);
+		if (g_receivedDataCallback != NULL) {
+			g_receivedDataCallback((uint8_t *)event->data.buffer, (size_t)event->data.size);
 		}
 		break;
 
@@ -132,6 +134,9 @@ static void telnetHandler(
 } // myTelnetHandler
 
 
+/**
+ * Process the telnet conversation with the partner.
+ */
 static void doTelnet(int partnerSocket) {
 	//ESP_LOGD(tag, ">> doTelnet");
   static const telnet_telopt_t my_telopts[] = {
@@ -149,6 +154,9 @@ static void doTelnet(int partnerSocket) {
 
   tnHandle = telnet_init(my_telopts, telnetHandler, 0, pTelnetUserData);
 
+  if (g_newTelnetPartnerCallback != NULL) {
+  	g_newTelnetPartnerCallback();
+  }
   uint8_t buffer[1024];
   while(1) {
   	//ESP_LOGD(tag, "waiting for data");
@@ -169,15 +177,18 @@ static void doTelnet(int partnerSocket) {
 /**
  * Listen for telnet clients and handle them.
  */
-void telnet_esp32_listenForClients(void (*callbackParam)(uint8_t *buffer, size_t size)) {
+void telnet_esp32_listenForClients(
+	void (*receivedDatacallbackParam)(uint8_t *buffer, size_t size),
+	void (*newTelnetPartnerCallbackParam)()) {
 	//ESP_LOGD(tag, ">> telnet_listenForClients");
-	receivedDataCallback = callbackParam;
+	g_receivedDataCallback = receivedDatacallbackParam;
+	g_newTelnetPartnerCallback = newTelnetPartnerCallbackParam;
 	int serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	struct sockaddr_in serverAddr;
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serverAddr.sin_port = htons(23);
+	serverAddr.sin_port = htons(TELNET_PORT);
 
 	int rc = bind(serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
 	if (rc < 0) {

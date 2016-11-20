@@ -10,7 +10,9 @@ typedef struct {
 } line_record_t;
 
 extern QueueHandle_t line_records_queue;
-void telnet_esp32_listenForClients(void (*callbackParam)(uint8_t *buffer, size_t size));
 void telnet_esp32_sendData(uint8_t *buffer, size_t size);
 int telnet_esp32_vprintf(const char *fmt, va_list va);
+void telnet_esp32_listenForClients(
+	void (*receivedDatacallbackParam)(uint8_t *buffer, size_t size),
+	void (*newTelnetPartnerCallbackParam)());
 #endif

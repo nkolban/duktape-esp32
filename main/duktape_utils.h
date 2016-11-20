@@ -14,5 +14,7 @@ void esp32_duktape_addGlobalFunction(
 		char *functionName,
 		duk_c_function func,
 		duk_int_t numArgs);
-
+void esp32_duktape_set_reset(int value);
+int esp32_duktape_is_reset();
+void esp32_duktape_dump_value_stack(duk_context *ctx);
 #endif /* MAIN_DUKTAPE_UTILS_H_ */

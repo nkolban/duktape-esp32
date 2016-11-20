@@ -1,0 +1,10 @@
+http://23.22.14.18/get
+ESP32.load("http://192.168.1.105/scripts/simple_log.js")
+ESP32.load("http://192.168.1.105/scripts/esp32GetState.js")
+ESP32.load("http://192.168.1.105/scripts/fs_readWebFile.js")
+ESP32.load("http://192.168.1.105/scripts/test_modSearch.js")
+ESP32.load("http://192.168.1.105/scripts/alias.js")
+ESP32.load("http://192.168.1.105/scripts/testHttp.js")
+
+console.log(JSON.stringify(Duktape.modLoaded))
+console.log(JSON.stringify(ESP32.getState()) + "\n");
