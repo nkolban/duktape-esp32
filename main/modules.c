@@ -6,6 +6,8 @@
 #include "modules.h"
 #include "esp32_duktape/curl_client.h"
 #include "esp32_duktape/module_fs.h"
+#include "esp32_duktape/module_gpio.h"
+#include "esp32_duktape/module_timers.h"
 #include "esp32_mongoose.h"
 #include "duktape_utils.h"
 #include "sdkconfig.h"
@@ -52,24 +54,51 @@ static duk_ret_t js_esp32_load(duk_context *ctx) {
 	return 0;
 } //js_esp32_load
 
+typedef struct {
+	char *id;
+	duk_c_function func;
+	int paramCount;
+} functionTableEntry_t;
 
+functionTableEntry_t functionTable[] = {
+		{"startMongoose", startMongoose, 1},
+		{"serverResponseMongoose", serverResponseMongoose, 3},
+		// Must be last entry
+		{NULL, NULL, 0 }
+};
 /**
+ * Retrieve a native function refernce by name.
+ * ESP32.getNativeFunction(nativeFunctionID)
  * The input stack contains:
- * [ 0] - String - nativeFunctionID
+ * [ 0] - String - nativeFunctionID - A string name that is used to lookup a function handle.
  */
 static duk_ret_t js_esp32_getNativeFunction(duk_context *ctx) {
 	ESP_LOGD(tag, ">> js_esp32_getNativeFunction");
+	// Check that the first parameter is a string.
 	if (duk_is_string(ctx, 0)) {
 		const char *nativeFunctionID = duk_get_string(ctx, 0);
-		ESP_LOGD(tag, "- nativeFunctionId: %s", nativeFunctionID);
-		if (strcmp(nativeFunctionID, "startMongoose") == 0) {
-			duk_push_c_function(ctx, startMongoose, 0);
+		ESP_LOGD(tag, "- nativeFunctionId that we are looking for is \"%s\"", nativeFunctionID);
+
+		// Lookup the handler function in a table.
+		functionTableEntry_t *ptr = functionTable;
+		while (ptr->id != NULL) {
+			if (strcmp(nativeFunctionID, ptr->id) == 0) {
+				break;
+			}
+			ptr++; // Not found yet, let's move to the next entry
+		} // while we still have entries in the table
+		// If we found an entry, then set it as the return, otherwise return null.
+		if (ptr->id != NULL) {
+			duk_push_c_function(ctx, ptr->func, ptr->paramCount);
 		} else {
+			ESP_LOGD(tag, "No native found found called %s", nativeFunctionID);
 			duk_push_null(ctx);
 		}
 	} else {
+		ESP_LOGD(tag, "No native function id supplied");
 		duk_push_null(ctx);
 	}
+	// We will have either pushed null or a function reference onto the stack.
 	ESP_LOGD(tag, "<< js_esp32_getNativeFunction");
 	return 1;
 } // js_esp32_getNativeFunction
@@ -138,4 +167,6 @@ void registerModules(duk_context *ctx) {
 	ModuleConsole(ctx);
 	ModuleESP32(ctx);
 	ModuleFS(ctx);
+	ModuleGPIO(ctx);
+	ModuleTIMERS(ctx);
 } // End of registerModules

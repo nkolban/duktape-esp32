@@ -10,5 +10,6 @@
 #include <duktape.h>
 
 duk_ret_t startMongoose(duk_context *ctxParam);
+duk_ret_t serverResponseMongoose(duk_context *ctxParam);
 
 #endif /* MAIN_ESP32_MONGOOSE_H_ */

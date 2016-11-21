@@ -103,14 +103,14 @@ int telnet_esp32_vprintf(const char *fmt, va_list va) {
  */
 static void telnetHandler(
 		telnet_t *thisTelnet,
-		telnet_event_t *event,
+		telnet_event_t *telnetEvent,
 		void *userData) {
 	int rc;
 	//ESP_LOGD(tag, "telnet event: %s", eventToString(event->type));
 	struct telnetUserData *telnetUserData = (struct telnetUserData *)userData;
-	switch(event->type) {
+	switch(telnetEvent->type) {
 	case TELNET_EV_SEND:
-		rc = send(telnetUserData->sockfd, event->data.buffer, event->data.size, 0);
+		rc = send(telnetUserData->sockfd, telnetEvent->data.buffer, telnetEvent->data.size, 0);
 		if (rc < 0) {
 			ESP_LOGE(tag, "send: %d (%s)", errno, strerror(errno));
 		}
@@ -124,7 +124,7 @@ static void telnetHandler(
 		 * event->data.size.
 		 */
 		if (g_receivedDataCallback != NULL) {
-			g_receivedDataCallback((uint8_t *)event->data.buffer, (size_t)event->data.size);
+			g_receivedDataCallback((uint8_t *)telnetEvent->data.buffer, (size_t)telnetEvent->data.size);
 		}
 		break;
 
@@ -176,6 +176,10 @@ static void doTelnet(int partnerSocket) {
 
 /**
  * Listen for telnet clients and handle them.
+ * * receivedDatacallbackParam - A callback function that will received the data and its size
+ *   that has been received from a telnet partner.
+ * * newTelnetPartnerCallbackParam - A callback function that will be invoked when a new
+ *   telnet partner has been accepted.
  */
 void telnet_esp32_listenForClients(
 	void (*receivedDatacallbackParam)(uint8_t *buffer, size_t size),

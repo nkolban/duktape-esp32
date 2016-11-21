@@ -5,6 +5,13 @@ ESP32.load("http://192.168.1.105/scripts/fs_readWebFile.js")
 ESP32.load("http://192.168.1.105/scripts/test_modSearch.js")
 ESP32.load("http://192.168.1.105/scripts/alias.js")
 ESP32.load("http://192.168.1.105/scripts/testHttp.js")
+ESP32.load("http://192.168.1.105/scripts/jumjum.js")
 
 console.log(JSON.stringify(Duktape.modLoaded))
 console.log(JSON.stringify(ESP32.getState()) + "\n");
+
+
+ESP32.load("http://192.168.1.105/scripts/test_modSearch.js");ESP32.load("http://192.168.1.105/scripts/testHttp.js")
+ESP32.load("http://192.168.1.105/scripts/testHttp.js")
+
+_requestReceivedCallback()

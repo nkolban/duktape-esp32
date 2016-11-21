@@ -20,32 +20,6 @@ duk_context *esp32_duk_context;
 
 
 /**
- * Read a line of text from the queue of line records and blocking if none
- * are available.  The line is copied into the passed in buffer and the
- * length of the line read is returned.  How the line is added to the queue
- * is of no importance to the caller of this function.
- */
-size_t readLine(char *buffer, int maxLen) {
-	ESP_LOGD(tag, ">> readline");
-	line_record_t line_record;
-	size_t retSize;
-	BaseType_t rc = xQueueReceive(line_records_queue, &line_record, portMAX_DELAY);
-	if (rc == pdTRUE) {
-		if (line_record.length > maxLen) {
-			line_record.length = maxLen;
-		}
-		memcpy(buffer, line_record.data, line_record.length);
-		free(line_record.data);
-		retSize = line_record.length;
-	} else {
-		retSize = 0;
-	}
-	ESP_LOGD(tag, "<< readline");
-	return retSize;
-} // End of readLine
-
-
-/**
  * Initialize the duktape environment.
  */
 void duktape_init_environment() {
@@ -74,32 +48,75 @@ void duktape_init_environment() {
 	"                           | |\n"
 	"                           |_|\n"
 	" http://duktape.org\n"
-	" ESP32 port/framework: Neil Kolban\n"
+	" ESP32 port/framework: Neil Kolban\n\n"
 	);
 	esp32_duktape_set_reset(0); // Flag the environment as having been reset.
 	esp32_duktape_console("esp32_duktape> "); // Log a prompt.
 } // duktape_init_environment
 
 
+/**
+ * Process an event within the context of JavaScript.  JavaScript is a serialized
+ * language which means that we can't do multi threading or other parallel activities.
+ * This can appear to be a problem as JavaScript also lends itself to async processing.
+ * For example, we might have a network or file operation that takes time and
+ * when complete, invokes a callback to say "we are done".  However, in a serial
+ * world, we must not interrupt what we are currently doing.  Hence we introduce the
+ * notion of events and queues of events.  We postualte the existence of an event
+ * queue which holds events (that happened externally) and are ready for processing.
+ * Since this is also a queue, we have a notion of first in, first out.  When our
+ * JavaScript program is "idle", we can take the next item from the event queue (or
+ * block waiting for an item to arrive should it be empty) and then process that event.
+ * This then repeats forever.
+ *
+ * This routine is the function which processes a single event.  The event types we
+ * have defined so far are:
+ * * ESP32_DUKTAPE_EVENT_COMMAND_LINE - A new user entered text line for processing.
+ * * ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST - A new browser request has arrived for
+ *   us while we are being a web server.
+ */
 void processEvent(esp32_duktape_event_t *pEvent) {
 	switch(pEvent->type) {
-	case ESP32_DUKTAPE_EVENT_COMMAND_LINE: {
-		duk_int_t evalResponse = duk_peval_lstring(esp32_duk_context, pEvent->commandLine.commandLine, pEvent->commandLine.commandLineLength);
-		if (evalResponse != 0) {
+		// Handle a new command line submitted to us.
+		case ESP32_DUKTAPE_EVENT_COMMAND_LINE: {
+			ESP_LOGD(tag, "We are about to eval: %.*s", pEvent->commandLine.commandLineLength, pEvent->commandLine.commandLine);
+			duk_peval_lstring(esp32_duk_context,
+				pEvent->commandLine.commandLine, pEvent->commandLine.commandLineLength);
 			esp32_duktape_console(duk_safe_to_string(esp32_duk_context, -1));
 			esp32_duktape_console("\n");
+
+			duk_pop(esp32_duk_context); // Discard the result from the stack.
+			esp32_duktape_console("esp32_duktape> "); // Put out a prompt.
+			break;
 		}
-		duk_pop(esp32_duk_context); // Discard the result from the stack.
-		esp32_duktape_console("esp32_duktape> "); // Put out a prompt.
-		break;
+
+		// Handle a new externally initiated browser request arriving at us.
+		case ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST:
+			ESP_LOGD(tag, "Process a webserver (inbound) request event ... uri: %s, method: %s",
+					pEvent->httpServerRequest.uri,
+					pEvent->httpServerRequest.method);
+			// Find the global function called _httpServerRequestReceivedCallback and
+			// invoke it.  We pass in any necessary parameters.
+
+			// Push the global object onto the stack
+			// Retrieve the _httpServerRequestReceivedCallback function
+			duk_bool_t rcB = duk_get_global_string(esp32_duk_context, "_httpServerRequestReceivedCallback");
+			if (rcB) {
+				duk_push_string(esp32_duk_context, pEvent->httpServerRequest.uri);
+				duk_push_string(esp32_duk_context, pEvent->httpServerRequest.method);
+				duk_call(esp32_duk_context, 2);
+			}
+
+			// Push that onto the stack
+			// Push the parameters onto the stack
+			// Call the function.
+			break;
+
+		default:
+			break;
 	}
-	case ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST:
-		ESP32_LOGD(tag, "Process a webserver (inbound) request ...");
-		break;
-	default:
-		break;
-	}
-}
+} // processEvent
+
 
 /**
  * Start the duktape processing.
@@ -111,36 +128,19 @@ void processEvent(esp32_duktape_event_t *pEvent) {
  */
 void duktape_task(void *ignore) {
 	ESP_LOGD(tag, ">> duktape_task");
-	char cmd[256];
-	size_t len;
-	int evalResponse; // Response value from a JS eval
+	esp32_duktape_event_t esp32_duktape_event;
 
 	duktape_init_environment();
 
+	//
+	// Master JavaScript loop.
+	//
 	while(1) {
-
-		/*
-		// Wait for an event;
-		// Process an event;
-		 */
-		len = readLine(cmd, sizeof(cmd));
-		//ESP_LOGD(tag, "Passing %.*s to duktape", len, cmd);
-
-		// This is the key execution area.  Here we pass the line to the JS runtime
-		// for execution.
-		evalResponse = duk_peval_lstring(esp32_duk_context, cmd, len);
-		if (evalResponse != 0) {
-			esp32_duktape_console(duk_safe_to_string(esp32_duk_context, -1));
-			esp32_duktape_console("\n");
+		int rc = esp32_duktape_waitForEvent(&esp32_duktape_event);
+		if (rc != 0) {
+			processEvent(&esp32_duktape_event);
+			esp32_duktape_freeEvent(&esp32_duktape_event);
 		}
-		duk_pop(esp32_duk_context);
-
-		esp32_duktape_console("esp32_duktape> ");
-		//("Unhandled JS exception occured: ");
-		//print_native_error(ret_val);
-		//esp32_duktape_console("\n");
-		//ESP_LOGD(tag, "Result is %s", duk_get_string(esp32_duk_context, -1));
-
 
 		// If we have been requested to reset the environment
 		// then do that now.
@@ -149,6 +149,8 @@ void duktape_task(void *ignore) {
 		}
 
 	} // End while loop.
+
+	// We should never reach here ...
 	ESP_LOGD(tag, "<< duktape_task");
 	vTaskDelete(NULL);
 } // End of duktape_task

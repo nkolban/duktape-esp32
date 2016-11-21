@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <freertos/event_groups.h>
 #include "esp32_duktape/curl_client.h"
+#include "esp32_duktape/duktape_event.h"
 #include "sdkconfig.h"
 
 static char tag[] = "curl_client";

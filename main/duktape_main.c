@@ -9,11 +9,10 @@
 #include <string.h>
 #include "esp32_specific.h"
 #include "telnet.h"
+#include "esp32_duktape/duktape_event.h"
 #include "connection_info.h"
 #include "duktape_task.h"
 #include "sdkconfig.h"
-
-QueueHandle_t line_records_queue;
 
 char tag[] = "duktape_main";
 
@@ -23,12 +22,13 @@ char tag[] = "duktape_main";
 static void recvData(uint8_t *buffer, size_t size) {
 	ESP_LOGD(tag, "We received: %.*s", size, buffer);
 	// We have received a line of data from the telnet client, now we want
-	// to present it to Duktape for processing.
-	line_record_t line_record;
-	line_record.length = size;
-	line_record.data = malloc(size);
-	memcpy(line_record.data, buffer, size);
-	xQueueSendToBack(line_records_queue, &line_record, portMAX_DELAY);
+	// to present it to Duktape for processing.  We do this by creating an event
+	// and placing it on the event processing queue.  The type of the event will be
+	// ESP32_DUKTAPE_EVENT_COMMAND_LINE which will contain the data and length.
+	// The data will eventually have to be released.
+
+	esp32_duktape_event_t esp32_duktape_event;
+	newCommandLineEvent(&esp32_duktape_event, (char *)buffer, size);
 } // recvData
 
 static void newTelnetPartner() {
@@ -57,7 +57,7 @@ static esp_err_t wifiEventHandler(void *ctx, system_event_t *event)
 } // wifiEventHandler
 
 static void init() {
-	line_records_queue = xQueueCreate(10, sizeof(line_record_t));
+	esp32_duktape_initEvents();
 }
 
 /**
