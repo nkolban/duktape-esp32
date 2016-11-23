@@ -2621,7 +2621,7 @@ struct mg_connection *mg_next(struct mg_mgr *s, struct mg_connection *conn) {
 void mg_broadcast(struct mg_mgr *mgr, mg_event_handler_t cb, void *data,
                   size_t len) {
   struct ctl_msg ctl_msg;
-
+  printf("Mongoose Debug C\n");
   /*
    * Mongoose manager has a socketpair, `struct mg_mgr::ctl`,
    * where `mg_broadcast()` pushes the message.
@@ -2635,11 +2635,16 @@ void mg_broadcast(struct mg_mgr *mgr, mg_event_handler_t cb, void *data,
 
     ctl_msg.callback = cb;
     memcpy(ctl_msg.message, data, len);
+    printf("Mongoose Debug D\n");
     dummy = MG_SEND_FUNC(mgr->ctl[0], (char *) &ctl_msg,
                          offsetof(struct ctl_msg, message) + len, 0);
+    printf("Mongoose Debug E\n");
     dummy = MG_RECV_FUNC(mgr->ctl[0], (char *) &len, 1, 0);
+    printf("Mongoose Debug F\n");
     (void) dummy; /* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=25509 */
+    printf("Mongoose Debug B\n");
   }
+  printf("Mongoose Debug A\n");
 }
 #endif /* MG_DISABLE_SOCKETPAIR */
 
@@ -3191,6 +3196,7 @@ void mg_mgr_handle_conn(struct mg_connection *nc, int fd_flags, double now) {
 
 #ifndef MG_DISABLE_SOCKETPAIR
 static void mg_mgr_handle_ctl_sock(struct mg_mgr *mgr) {
+	printf("mg_mgr_handle_ctl_sock - debug A");
   struct ctl_msg ctl_msg;
   int len =
       (int) MG_RECV_FUNC(mgr->ctl[1], (char *) &ctl_msg, sizeof(ctl_msg), 0);
@@ -3384,21 +3390,33 @@ int mg_socketpair(sock_t sp[2], int sock_type) {
   (void) memset(&sa, 0, sizeof(sa));
   sa.sin.sin_family = AF_INET;
   sa.sin.sin_port = htons(0);
-  sa.sin.sin_addr.s_addr = htonl(0x7f000001); /* 127.0.0.1 */
+  //sa.sin.sin_addr.s_addr = htonl(0x7f000001); /* 127.0.0.1 */
+  inet_pton(AF_INET, "127.0.0.1", &sa.sin.sin_addr.s_addr);
+  uint32_t x = htonl(0x7f000001);
+  printf("mg_socketpair: 0x%x 0x%x\n", x, sa.sin.sin_addr.s_addr);
 
   if ((sock = socket(AF_INET, sock_type, 0)) == INVALID_SOCKET) {
+  	printf("mg_socketpair debug C - failed\n");
   } else if (bind(sock, &sa.sa, len) != 0) {
+  	printf("mg_socketpair debug D - failed\n");
   } else if (sock_type == SOCK_STREAM && listen(sock, 1) != 0) {
+  	printf("mg_socketpair debug E - failed\n");
   } else if (getsockname(sock, &sa.sa, &len) != 0) {
+  	printf("mg_socketpair debug F - failed\n");
   } else if ((sp[0] = socket(AF_INET, sock_type, 0)) == INVALID_SOCKET) {
+  	printf("mg_socketpair debug G - failed\n");
   } else if (connect(sp[0], &sa.sa, len) != 0) {
+  	printf("mg_socketpair debug H - failed\n");
   } else if (sock_type == SOCK_DGRAM &&
              (getsockname(sp[0], &sa.sa, &len) != 0 ||
               connect(sock, &sa.sa, len) != 0)) {
+  	printf("mg_socketpair debug I - failed\n");
   } else if ((sp[1] = (sock_type == SOCK_DGRAM ? sock
                                                : accept(sock, &sa.sa, &len))) ==
              INVALID_SOCKET) {
+  	printf("mg_socketpair debug J - failed\n");
   } else {
+  	printf("mg_socketpair debug A\n");
     mg_set_close_on_exec(sp[0]);
     mg_set_close_on_exec(sp[1]);
     if (sock_type == SOCK_STREAM) closesocket(sock);
@@ -3406,6 +3424,7 @@ int mg_socketpair(sock_t sp[2], int sock_type) {
   }
 
   if (!ret) {
+  	printf("mg_socketpair debug B - failed\n");
     if (sp[0] != INVALID_SOCKET) closesocket(sp[0]);
     if (sp[1] != INVALID_SOCKET) closesocket(sp[1]);
     if (sock != INVALID_SOCKET) closesocket(sock);

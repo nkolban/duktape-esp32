@@ -61,8 +61,8 @@ typedef struct {
 } functionTableEntry_t;
 
 functionTableEntry_t functionTable[] = {
-		{"startMongoose", startMongoose, 1},
-		{"serverResponseMongoose", serverResponseMongoose, 3},
+		{"startMongoose", js_startMongoose, 1},
+		{"serverResponseMongoose", js_serverResponseMongoose, 3},
 		// Must be last entry
 		{NULL, NULL, 0 }
 };

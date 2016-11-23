@@ -82,11 +82,15 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 			ESP_LOGD(tag, "We are about to eval: %.*s", pEvent->commandLine.commandLineLength, pEvent->commandLine.commandLine);
 			duk_peval_lstring(esp32_duk_context,
 				pEvent->commandLine.commandLine, pEvent->commandLine.commandLineLength);
-			esp32_duktape_console(duk_safe_to_string(esp32_duk_context, -1));
-			esp32_duktape_console("\n");
+
+			// If we executed from a keyboard, send keyboard user response.
+			if (pEvent->commandLine.fromKeyboard) {
+				esp32_duktape_console(duk_safe_to_string(esp32_duk_context, -1));
+				esp32_duktape_console("\n");
+				esp32_duktape_console("esp32_duktape> "); // Put out a prompt.
+			}
 
 			duk_pop(esp32_duk_context); // Discard the result from the stack.
-			esp32_duktape_console("esp32_duktape> "); // Put out a prompt.
 			break;
 		}
 

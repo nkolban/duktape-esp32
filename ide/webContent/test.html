@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!--
+ESP32-Duktape
+
+The layout widget used in this project is:  http://layout.jquery-dev.com/documentation.cfm
+The JavaScript editor used in this project is: https://ace.c9.io
+
+Neil Kolban, 2016
+
+ -->
+<html lang="en">
+<head>
+<title>ESP32 - Duktape</title>
+<style>
+#editor {
+	width: 100%;
+	height: 95%;
+	border-style: solid;
+	border-width: 1px;
+	border-color: black;
+}
+.console {
+	font-family: monospace;
+	width: 100%;
+	height: 100%;
+	resize: none;
+}
+
+.bottomBar {
+	margin-bottom: 4px;
+	margin-top: 4px;
+	margin-left:2px;
+	margin-right: 2px;
+	background-color: #303030;
+	padding: 8px;
+	border-radius: 10px;
+}
+
+body {
+	margin: 0px;
+}
+
+html {
+	height: 100%;
+}
+</style>
+<!-- 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+-->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.js"></script>
+<link rel="stylesheet" href="jquery_layout/jquery_layout.css">
+<script src="jquery_layout/jquery_layout.js"></script>
+<script src="./ace-builds/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="ide.js"></script>
+
+</head>
+<body style="height: 100%;">
+
+
+<div style="display:flex; flex-direction: column; height: 100%;">
+	<div class="bottomBar" style="color: white; font-size: large;">
+	ESP32-Duktape
+	</div>
+	<div id="c1" style="width: 100%; flex-grow: 1;">
+		<div class="ui-layout-center">
+			<div id="editor">console.log("Hello World\n");</div>
+		</div>
+		<div class="ui-layout-south">
+			<div style="height: 100%;">
+				<textarea readonly disabled id="console" class="console"></textarea>
+			</div>
+		</div>
+	</div>
+
+	<div class="bottomBar">
+		<button id="run" title="Run the script in the editor">Run</button>
+		<button id="clearConsole" title="Clear the console">Clear</button>
+		<button id="settings" title="Open the settings dialog">Settings</button>
+	</div>
+</div>
+
+<!--
+Define the settings dialog format. 
+-->
+<div id="settingsDialog" title="Settings">
+ESP32 Connection details:
+	<table>
+		<tr>
+			<td>Host:</td>
+			<td><input id="settingsHost" type="text" placeholder="host"></td>
+		</tr>
+		<tr>
+			<td>Port:</td>
+			<td><input id="settingsPort" type="number" placeholder="port"></td>
+		</tr>
+	</table>
+</div>
+
+</body>
+</html>

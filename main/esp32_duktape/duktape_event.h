@@ -12,12 +12,16 @@ enum {
 	ESP32_DUKTAPE_EVENT_COMMAND_LINE,
 	ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST
 };
+
+// !!! IMPORTANT !!!
+// All event types MUST start with an int type
 typedef union {
 	int type;
 	struct {
 		int type;
 		char *commandLine;
 		int commandLineLength;
+		int fromKeyboard;
 	} commandLine;
 	struct {
 		int type;
@@ -27,9 +31,8 @@ typedef union {
 	} httpServerRequest;
 } esp32_duktape_event_t;
 
-esp32_duktape_event_t *newCommandLineEvent(esp32_duktape_event_t *pEvent, char *commandData, size_t commandLength);
-esp32_duktape_event_t *newHTTPServerRequestEvent(
-		esp32_duktape_event_t *pEvent,
+void newCommandLineEvent(char *commandData, size_t commandLength, int fromKeyboard);
+void newHTTPServerRequestEvent(
 		char *uri,
 		char *method
 	);

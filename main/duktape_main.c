@@ -10,6 +10,7 @@
 #include "esp32_specific.h"
 #include "telnet.h"
 #include "esp32_duktape/duktape_event.h"
+#include "esp32_mongoose.h"
 #include "connection_info.h"
 #include "duktape_task.h"
 #include "sdkconfig.h"
@@ -27,8 +28,7 @@ static void recvData(uint8_t *buffer, size_t size) {
 	// ESP32_DUKTAPE_EVENT_COMMAND_LINE which will contain the data and length.
 	// The data will eventually have to be released.
 
-	esp32_duktape_event_t esp32_duktape_event;
-	newCommandLineEvent(&esp32_duktape_event, (char *)buffer, size);
+	newCommandLineEvent((char *)buffer, size, 1 /* from keyboard */);
 } // recvData
 
 static void newTelnetPartner() {
@@ -50,8 +50,10 @@ static void telnetTask(void *data) {
  */
 static esp_err_t wifiEventHandler(void *ctx, system_event_t *event)
 {
+	// We have got an IP address!!
 	if (event->event_id == SYSTEM_EVENT_STA_GOT_IP) {
 		xTaskCreatePinnedToCore(&telnetTask, "telnetTask", 8048, NULL, 5, NULL, 0);
+		startMongooseServer();
 	}
   return ESP_OK;
 } // wifiEventHandler

@@ -1,5 +1,6 @@
 #include <duktape.h>
 #include <esp_log.h>
+#include "esp32_mongoose.h"
 #include "telnet.h"
 #include "sdkconfig.h"
 
@@ -30,6 +31,7 @@ void esp32_duktape_set_reset(int value) {
  */
 void esp32_duktape_console(const char *message) {
 	telnet_esp32_sendData((uint8_t *)message, strlen(message));
+	websocket_console_sendData(message);
 	ESP_LOGD(tag, "-> %s", message);
 } // esp32_duktape_console
 

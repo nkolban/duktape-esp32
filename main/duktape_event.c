@@ -48,29 +48,35 @@ void esp32_duktape_freeEvent(esp32_duktape_event_t *pEvent) {
 	}
 } // esp32_duktape_freeEvent
 
-
-esp32_duktape_event_t *newCommandLineEvent(
-		esp32_duktape_event_t *pEvent,
+/**
+ * Post a new command line event.  The commandData is expected to have been
+ * malloced() and should NOT be freed by the caller.  It will be freed
+ * when the event is processed.
+ */
+void newCommandLineEvent(
 		char *commandData,
-		size_t commandLength
+		size_t commandLength,
+		int fromKeyboard
 	) {
-	pEvent->commandLine.type = ESP32_DUKTAPE_EVENT_COMMAND_LINE;
-	pEvent->commandLine.commandLine = malloc(commandLength);
-	memcpy(pEvent->commandLine.commandLine, commandData, commandLength);
-	pEvent->commandLine.commandLineLength = commandLength;
-	postEvent(pEvent);
-	return pEvent;
+	esp32_duktape_event_t event;
+
+	event.commandLine.type = ESP32_DUKTAPE_EVENT_COMMAND_LINE;
+	event.commandLine.commandLine = malloc(commandLength);
+	memcpy(event.commandLine.commandLine, commandData, commandLength);
+	event.commandLine.commandLineLength = commandLength;
+	event.commandLine.fromKeyboard = fromKeyboard;
+	postEvent(&event);
 } //newCommandLineEvent
 
 
-esp32_duktape_event_t *newHTTPServerRequestEvent(
-		esp32_duktape_event_t *pEvent,
+void newHTTPServerRequestEvent(
 		char *uri,
 		char *method
 	) {
-	pEvent->httpServerRequest.type = ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST;
-	pEvent->httpServerRequest.method = method;
-	pEvent->httpServerRequest.uri = uri;
-	postEvent(pEvent);
-	return pEvent;
+	esp32_duktape_event_t event;
+
+	event.httpServerRequest.type = ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST;
+	event.httpServerRequest.method = method;
+	event.httpServerRequest.uri = uri;
+	postEvent(&event);
 } // newHTTPServerRequestEvent
