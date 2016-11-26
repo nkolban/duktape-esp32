@@ -1,6 +1,15 @@
 #Modules
 Built into the solution are a variety of Modules.
 
+##Globals
+These are functions that are in the global environment.
+
+###setInterval
+Not yet implemented.
+
+###setTimeout
+Not yet implemented.
+
 ##console
 ###log
 Log a text string to the console.
@@ -19,7 +28,7 @@ Syntax:
 
 
 ##ESP32
-##getNativeFinction
+###getNativeFunction
 Retrieve a built-in native function by name.
 
 Syntax:
@@ -111,3 +120,7 @@ wifi.scan(function(list) {
    print(JSON.stringify(list));
 });
 ```
+
+##RMT
+###getState
+###txConfig

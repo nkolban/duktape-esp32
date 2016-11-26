@@ -55,10 +55,16 @@ $(document).ready(function() {
 	// Create the page layout.
 	$("#c1").layout({
 		applyDefaultStyles: true,
+		// The center pane is the editor.
 		center: {
 			onresize: function() {
 				editor.resize();
 			}
+		},
+		// The south pane is the console.
+		south: {
+			size: 200, // Set its initial height.
+			closable: true // Flag the console pane as closable.
 		}
 	});
 
