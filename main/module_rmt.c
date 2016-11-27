@@ -80,6 +80,101 @@ static duk_ret_t js_rmt_getState(duk_context *ctx) {
 	return 1;
 } // js_rmt_getState
 
+static void setItem(uint8_t level, uint16_t duration, int item, rmt_item32_t *itemArray) {
+	rmt_item32_t *ptr = &itemArray[item/2];
+	if (item%2 == 0) {
+		ptr->duration0 = duration;
+		ptr->level0 = level;
+	} else {
+		ptr->duration1 = duration;
+		ptr->level1 = level;
+	}
+} // setItem
+
+
+/**
+ * Write items into the output stream.  This call will block
+ * until the transmission is complete.
+ * [0] - channel
+ * [1] - array of items.  Each item is an object of the form:
+ * {
+ *    level: <boolean> - The output signal level.
+ *    duration: <number> - The duration of this signal.
+ * }
+ */
+static duk_ret_t js_rmt_write(duk_context *ctx) {
+	rmt_channel_t channel;
+	duk_size_t length;
+	duk_uarridx_t i;
+	bool waitForWrite = 1;
+
+	if (!duk_is_number(ctx, 0)) {
+		ESP_LOGD(tag, "jms_rmt_write - param 1 is not a number")
+		return 0;
+	}
+	channel = duk_get_int(ctx, 0); // Get the channel number from parameter 0.
+	if (channel <0 || channel >= RMT_CHANNEL_MAX) {
+		ESP_LOGD(tag, "jms_rmt_write - channel is out of range")
+		return 0;
+	}
+
+	if (!duk_is_array(ctx, 1)) {
+		ESP_LOGD(tag, "jms_rmt_write - param 2 is not an array")
+		return 0;
+	}
+	length = duk_get_length(ctx, 1);
+	/*
+	duk_get_prop_string(ctx, 1, "length");
+	length = duk_get_int(ctx, -1);
+	duk_pop(ctx); // Pop the level
+	*/
+
+	ESP_LOGD(tag, "Length of array is %d", length);
+	if (length == 0) {
+		ESP_LOGD(tag, "jms_rmt_write - length of items is 0")
+		return 0;
+	}
+
+	// We are working with an array of objects where each object contains:
+	// - level: <boolean> - signal level
+	// - duration: <number> - duration of level in RMT ticks
+
+	// An RMT_item is composed of 4 fields:
+	// * duration0
+	// * level0
+	// * duration1
+	// * level1
+	// The last entry must have a duration of 0 which means an extra entry.
+	// The number of items we need is length + 1
+
+	rmt_item32_t *itemArray = malloc(sizeof(rmt_item32_t) * (length + 1));
+
+	for (i=0; i<length; i++) {
+		// Get each of the items and work with it.
+		duk_get_prop_index(ctx, 1, i);
+
+		duk_get_prop_string(ctx, -1, "level");
+		uint8_t level = duk_get_boolean(ctx, -1);
+		duk_pop(ctx); // Pop the level
+
+		duk_get_prop_string(ctx, -1, "duration");
+		uint16_t duration = duk_get_int(ctx, -1);
+		duk_pop(ctx); // Pop the duration
+
+		duk_pop(ctx); // Pop the item object
+
+		setItem(level, duration, i, itemArray);
+
+		ESP_LOGD(tag, "item: %d - level=%d, duration=%d", i, level, duration);
+	}
+	setItem(0, 0, length, itemArray); // Set the trailer
+	ESP_ERROR_CHECK(rmt_driver_install(channel, 0, 19));
+	ESP_ERROR_CHECK(rmt_write_items(channel, itemArray, length+1, waitForWrite));
+	ESP_ERROR_CHECK(rmt_driver_uninstall(channel));
+	free(itemArray);
+	return 0;
+} // js_rmt_write
+
 
 /**
  * Configure a channel.
@@ -158,6 +253,7 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 	config.tx_config.idle_level = idleLevel;
 	ESP_ERROR_CHECK(rmt_config(&config));
 
+
 	ESP_LOGD(tag, "<< js_rmt_txConfig");
   return 1;
 } // js_fs_openSync
@@ -172,10 +268,13 @@ void ModuleRMT(duk_context *ctx) {
 	duk_idx_t idx = duk_push_object(ctx); // Create new RMT object
 
 	duk_push_c_function(ctx, js_rmt_txConfig, 2);
-	duk_put_prop_string(ctx, idx, "txConfig"); // Add txConfig to new RS
+	duk_put_prop_string(ctx, idx, "txConfig"); // Add txConfig to new RMT
 
 	duk_push_c_function(ctx, js_rmt_getState, 1);
-	duk_put_prop_string(ctx, idx, "getState"); // Add getState to new RS
+	duk_put_prop_string(ctx, idx, "getState"); // Add getState to new RMT
+
+	duk_push_c_function(ctx, js_rmt_write, 2);
+	duk_put_prop_string(ctx, idx, "write"); // Add write to new RMT
 
 	duk_put_prop_string(ctx, 0, "RMT"); // Add RMT to global
 } // ModuleFS

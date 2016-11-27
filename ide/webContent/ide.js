@@ -72,7 +72,7 @@ $(document).ready(function() {
 	var editor = ace.edit("editor");
 	editor.setTheme("ace/theme/eclipse");
 	editor.getSession().setMode("ace/mode/javascript");
-	editor.setFontSize(14);
+	editor.setFontSize(16);
 	editor.setOption("showPrintMargin", false);
 	
 	// Handle the run button
@@ -101,6 +101,7 @@ $(document).ready(function() {
 	}).click(function() {
 		$("#settingsHost").val(settings.esp32_host);
 		$("#settingsPort").val(settings.esp32_port);
+		$("#fontSize").val(editor.getFontSize());
 		$("#settingsDialog").dialog("open");
 	});
 	
@@ -114,6 +115,10 @@ $(document).ready(function() {
 				click: function() {
 					settings.esp32_host = $("#settingsHost").val();
 					settings.esp32_port = $("#settingsPort").val();
+					//editor.setFontSize($("#fontSize").val());
+					editor.setOptions({
+						fontSize: $("#fontSize").val + "pt"
+					});
 					$(this).dialog("close");
 				}
 			},

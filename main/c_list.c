@@ -1,5 +1,5 @@
 #include <stdlib.h>
-
+#include <assert.h>
 #include "c_list.h"
 
 /**
@@ -32,8 +32,12 @@ void list_deleteList(list_t *pList, int withFree) {
 	}
 } // list_deleteList
 
+
 /**
  * Insert a new item at the end of the list.
+ * The value is set to the value of the new entry.
+ * The new entry is malloced().
+ *
  *[A] -> [endOLD]    ------>   [A] -> [endOLD] -> [X]
  *
  */
@@ -45,6 +49,10 @@ void list_insert(list_t *pList, void *value) {
 } // list_insert
 
 /**
+ * Insert a new list entry after the entry supplied as a
+ * parameter.  The value is set to the value of the new entry.
+ * The new entry is malloced().
+ *
  * [pEntry] -> [B]    ------>   [pEntry] -> [X] -> [B]
  *
  */
@@ -123,8 +131,12 @@ list_t *list_next(list_t *pList) {
 	return (pList->next);
 } // list_next
 
-
+/**
+ * Retrieve the first item in the list, may be NULL.  Subsequent items can be
+ * retrieved with list_next().
+ */
 list_t *list_first(list_t *pList) {
+	assert(pList->prev == NULL); // Sanity check to make sure this is the first.
 	return pList->next;
 } // list_first
 

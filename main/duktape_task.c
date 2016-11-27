@@ -7,6 +7,7 @@
 #include <esp_log.h>
 #include <duktape.h>
 #include "esp32_duktape/duktape_event.h"
+#include "esp32_duktape/module_timers.h"
 #include "modules.h"
 #include "telnet.h"
 #include "duktape_utils.h"
@@ -95,7 +96,7 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 		}
 
 		// Handle a new externally initiated browser request arriving at us.
-		case ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST:
+		case ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST: {
 			ESP_LOGD(tag, "Process a webserver (inbound) request event ... uri: %s, method: %s",
 					pEvent->httpServerRequest.uri,
 					pEvent->httpServerRequest.method);
@@ -115,10 +116,27 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 			// Push the parameters onto the stack
 			// Call the function.
 			break;
+		}
+
+		case ESP32_DUKTAPE_EVENT_TIMER_ADDED: {
+			ESP_LOGD(tag, "Process a timer added event");
+			break;
+		}
+
+		case ESP32_DUKTAPE_EVENT_TIMER_FIRED: {
+			ESP_LOGD(tag, "Process a timer fired event: %lu", pEvent->timerFired.id);
+			timers_runTimer(esp32_duk_context, pEvent->timerFired.id);
+			break;
+		}
+
+		case ESP32_DUKTAPE_EVENT_TIMER_CLEARED: {
+			ESP_LOGD(tag, "Process a timer cleared event");
+			break;
+		}
 
 		default:
 			break;
-	}
+	} // End of switch
 } // processEvent
 
 

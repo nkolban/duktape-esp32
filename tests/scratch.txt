@@ -15,3 +15,6 @@ ESP32.load("http://192.168.1.105/scripts/test_modSearch.js");ESP32.load("http://
 ESP32.load("http://192.168.1.105/scripts/testHttp.js")
 
 _requestReceivedCallback()
+
+setTimeout(function() {}, 1000);
+setInterval(function() {}, 1000);

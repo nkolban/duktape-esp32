@@ -55,6 +55,8 @@
 #if !defined(DUK_CONFIG_H_INCLUDED)
 #define DUK_CONFIG_H_INCLUDED
 
+#define DUK_USE_DATE_GET_NOW(ctx) esp32_duktape_get_now()
+#define DUK_USE_DATE_GET_LOCAL_TZOFFSET(d)  0
 /*
  *  Intermediate helper defines
  */

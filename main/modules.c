@@ -8,6 +8,7 @@
 #include "esp32_duktape/module_fs.h"
 #include "esp32_duktape/module_gpio.h"
 #include "esp32_duktape/module_timers.h"
+#include "esp32_duktape/module_rmt.h"
 #include "esp32_mongoose.h"
 #include "duktape_utils.h"
 #include "sdkconfig.h"
@@ -116,16 +117,13 @@ static duk_ret_t js_esp32_reset(duk_context *ctx) {
  * ESP32.getState()
  * Return an object that describes the state of the ESP32 environment.
  * - heapSize - The available heap size.
- * - sdkVersion - The version of the SDK.
  */
 static duk_ret_t js_esp32_getState(duk_context *ctx) {
 	duk_push_object(ctx); // Create new getState object
 
-	duk_push_number(ctx, (double)system_get_free_heap_size());
+	duk_push_number(ctx, (double)esp_get_free_heap_size());
 	duk_put_prop_string(ctx, -2, "heapSize"); // Add heapSize to new getState
 
-	duk_push_string(ctx, system_get_sdk_version());
-	duk_put_prop_string(ctx, -2, "sdkVersion"); // Add heapSize to new getState
 	return 1;
 } // js_esp32_getState
 
@@ -141,6 +139,10 @@ static void ModuleConsole(duk_context *ctx) {
 	duk_put_prop_string(ctx, -2, "console"); // Add console to global
 } // ModuleConsole
 
+
+/**
+ * Register the ESP32 module with its functions.
+ */
 static void ModuleESP32(duk_context *ctx) {
 	duk_push_global_object(ctx);
 	duk_push_object(ctx); // Create new ESP32 object
@@ -160,8 +162,10 @@ static void ModuleESP32(duk_context *ctx) {
 	duk_put_prop_string(ctx, -2, "ESP32"); // Add ESP32 to global
 } // ModuleESP32
 
+
 /**
- * Register the static modules.
+ * Register the static modules.  These are modules that will ALWAYS
+ * bein the global address space/scope.
  */
 void registerModules(duk_context *ctx) {
 	ModuleConsole(ctx);
@@ -169,4 +173,5 @@ void registerModules(duk_context *ctx) {
 	ModuleFS(ctx);
 	ModuleGPIO(ctx);
 	ModuleTIMERS(ctx);
+	ModuleRMT(ctx);
 } // End of registerModules

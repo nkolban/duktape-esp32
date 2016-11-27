@@ -1,5 +1,6 @@
 #include <duktape.h>
 #include <esp_log.h>
+#include <sys/time.h>
 #include "esp32_mongoose.h"
 #include "telnet.h"
 #include "sdkconfig.h"
@@ -8,6 +9,7 @@ static char tag[] = "duktape_utils";
 
 // Global flag for whether or not a reset has been request.
 static int g_reset = 0;
+
 
 /**
  * Determine whether or not a reset has been requested.
@@ -52,7 +54,7 @@ void esp32_duktape_addGlobalFunction(
 
 /**
  * Dump the value stack to the debug stream.  This is used
- * exclsuively for debugging purposes.
+ * exclusively for debugging purposes.
  */
 void esp32_duktape_dump_value_stack(duk_context *ctx) {
 	duk_idx_t topIdx = duk_get_top(ctx);
@@ -97,3 +99,19 @@ void esp32_duktape_dump_value_stack(duk_context *ctx) {
 		} // End of switch
 	} // End of for loop
 } // dumpValueStack
+
+
+/**
+ * This function must return the number of milliseconds since the 1970
+ * epoch.  We use getttimeofday() provided by the environment.  The name
+ * of the function must be specified in duk_config.h ... for example:
+ *
+ * #define DUK_USE_DATE_GET_NOW(ctx) esp32_duktape_get_now()
+ * #define DUK_USE_DATE_GET_LOCAL_TZOFFSET(d)  0
+ */
+duk_double_t esp32_duktape_get_now() {
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	duk_double_t ret = floor(tv.tv_sec * 1000 + tv.tv_usec/1000);
+	return ret;
+} // esp32_duktape_get_now

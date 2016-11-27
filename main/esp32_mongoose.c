@@ -131,14 +131,14 @@ static void mongoose_event_handler(struct mg_connection *nc, int ev, void *evDat
 			else if (strcmp(method, "POST") == 0 && strcmp(uri, "/run") ==0) {
 				// A Run request
 				char *body = mgStrToStr(message->body);
-				newCommandLineEvent(body, strlen(body), 0 /* NOT from keyboard */);
+				event_newCommandLineEvent(body, strlen(body), 0 /* NOT from keyboard */);
 				free(body);
 				free(uri);
 				free(method);
 				mg_send_head(nc, 200, 0, "Access-Control-Allow-Origin: *");
 				nc->flags |= MG_F_SEND_AND_CLOSE;
 			}	else {
-				newHTTPServerRequestEvent(uri, method);
+				event_newHTTPServerRequestEvent(uri, method);
 			}
 			break;
 		} // End of MG_EV_HTTP_REQUEST

@@ -123,4 +123,54 @@ wifi.scan(function(list) {
 
 ##RMT
 ###getState
+Retrieve the state of a give channel.
+
+Syntax:
+
+`getState(channel)`
+
+An object is returned which contains the state of the channel as understood by the ESP32:
+```
+{
+   channel: <number> - The channel id.
+   loopEnabled: <boolean> - Whether or not the TX loop is enabled.
+   clockDiv: <number> - The clock divisor.
+   memBlocks: <number> - The memory blocks being used.
+   idleLevel: <number> - The idle level.
+   memoryOwner: <String> - The memory owner "TX" or "RX"
+}
+```
+
 ###txConfig
+Configure a RMT channel for transmission.
+
+Syntax:
+
+`txConfig(channel, options)`
+
+The options is an object with the following properties:
+
+```
+{
+   gpio: <number> - GPIO pin to use.
+   memBlocks: <number> - Memory blocks to use. [Default=1]
+   idleLevel: <boolean> - Idle value to use. [Default=false]
+   clockDiv: <number> - Clock divider. [Default=1]
+ }
+ ```
+ 
+###write
+Write items into the output stream.  We wait until the output has completed.
+
+Syntax:
+ 
+`write(channel, arrayOfItems)`
+ 
+The arrayOfItems is an array of item objects where each item object contains
+```
+{
+   level: <boolean> - The output signal level.
+   duration: <number> - The duration of this signal.
+}
+```
+

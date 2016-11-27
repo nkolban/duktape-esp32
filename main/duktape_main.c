@@ -28,7 +28,7 @@ static void recvData(uint8_t *buffer, size_t size) {
 	// ESP32_DUKTAPE_EVENT_COMMAND_LINE which will contain the data and length.
 	// The data will eventually have to be released.
 
-	newCommandLineEvent((char *)buffer, size, 1 /* from keyboard */);
+	event_newCommandLineEvent((char *)buffer, size, 1 /* from keyboard */);
 } // recvData
 
 static void newTelnetPartner() {
@@ -100,6 +100,9 @@ void app_main(void)
 	xTaskCreatePinnedToCore(&duktape_task, "duktape_task", 10*1024, NULL, 5, NULL, 0);
 } // app_main
 
+/**
+ * Hack fix for ESP-IDF issue https://github.com/espressif/esp-idf/issues/83
+ */
 double __ieee754_remainder(double x, double y) {
-	return 0;
-}
+	return x - y * floor(x/y);
+} // __ieee754_remainder
