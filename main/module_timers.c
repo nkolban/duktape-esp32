@@ -45,7 +45,7 @@ static char tag[] = "module_timers";
 
 static uint32_t g_nextId = 0; // The next timer id
 
-static list_t *timerList; // The list of timer records.
+static list_t *timerList = NULL; // The list of timer records.
 
 /**
  * Determine whether or not timeVal a is sooner than timeVal b.  If it is
@@ -93,6 +93,9 @@ static void deleteTimer(duk_context *ctx, unsigned long id) {
 	// <empty>
 	duk_pop_2(ctx);
 
+	list_deleteList(timerList, 1 /* with free */);
+	timerList = list_createList();
+	/*
 	list_t *pListRecord = list_first(timerList);
 	while(pListRecord != NULL) {
 		if (((timer_record_t *)pListRecord->value)->id == id) {
@@ -101,6 +104,7 @@ static void deleteTimer(duk_context *ctx, unsigned long id) {
 		}
 		pListRecord = list_next(pListRecord);
 	} // End while
+	*/
 } // deleteTimer
 
 
@@ -202,28 +206,29 @@ static duk_ret_t js_timers_clearTimeout(duk_context *ctx) {
  * [0] - function - Callback function.
  * [1] - number - Delay in milliseconds.
  */
-static void setTimer(duk_context *ctx, bool isInterval) {
+static unsigned long setTimer(duk_context *ctx, bool isInterval) {
 
 	if (!duk_is_object(ctx, 0)) {
 		ESP_LOGE(tag, "setTimer: No function passed.");
-		return;
+		return -1;
 	}
-
 
 	if (!duk_is_number(ctx, 1)) {
 		ESP_LOGE(tag, "setTimer: No interval passed.");
-		return;
+		return -1;
 	}
 
-	unsigned long id = g_nextId++;
+	unsigned long id = g_nextId++; // Allocate the id for the new timer.
+
+	// We want to add the function that is at ctx[0] to the property of the
+	// <heapStash>.timers object with the name of the "id"
 
 	// [0] - function
 	// [1] - number
 	// [2] - heap stash
 	duk_push_heap_stash(ctx);
-	// We want to add the function that is at ctx[0] to the property of the
-	// <heapStash>.timers
-	//
+
+
 	// [0] - function
 	// [1] - number
 	// [2] - heap stash
@@ -268,7 +273,8 @@ static void setTimer(duk_context *ctx, bool isInterval) {
 	list_insert(timerList, pTimerRecord); // Insert the timer into the list.
 
 	event_newTimerAddedEvent(id);
-	duk_push_int(ctx, id);
+
+	return id;
 } // setTimer
 
 
@@ -279,9 +285,10 @@ static void setTimer(duk_context *ctx, bool isInterval) {
  */
 static duk_ret_t js_timers_setInterval(duk_context *ctx) {
 	ESP_LOGD(tag, ">> js_timers_setInterval");
-	setTimer(ctx, 1);
+	unsigned long id = setTimer(ctx, 1);
+	duk_push_number(ctx, id);
 	ESP_LOGD(tag, "<< js_timers_setInterval");
-	return 0;
+	return 1;
 } // js_timers_setInterval
 
 
@@ -292,7 +299,8 @@ static duk_ret_t js_timers_setInterval(duk_context *ctx) {
  */
 static duk_ret_t js_timers_setTimeout(duk_context *ctx) {
 	ESP_LOGD(tag, ">> js_timers_setTimeout");
-	setTimer(ctx, 0);
+	unsigned long id = setTimer(ctx, 0);
+	duk_push_number(ctx, id);
 	ESP_LOGD(tag, "<< js_timers_setTimeout");
 	return 1;
 } // js_timers_setTimeout
@@ -321,13 +329,15 @@ void timers_runTimer(duk_context *ctx, unsigned long id) {
 	duk_push_int(ctx, id);
 
 	// [0] - heap stash
-	// [1] - timers
-	// [2] - retVal
+	// [1] - timers (-2)
+	// [2] - retVal (-1)
+	// Call the function in the timers object which has a property name of "id".
 	duk_call_prop(ctx, -2, 0);
 
 	// <empty>
 	duk_pop_3(ctx);
 
+	// Get the timer record by its Id.
 	timer_record_t *pTimerRecord = getById(id);
 	if (pTimerRecord == NULL) {
 		ESP_LOGE(tag, "Failed to find timer record in list of records; id=%lu", id);
@@ -347,6 +357,8 @@ void timers_runTimer(duk_context *ctx, unsigned long id) {
 		pTimerRecord->wakeTime = timeval_add(&now, &pTimerRecord->duration);
 		//pTimerRecord->wakeTime = timeval_add(&pTimerRecord->wakeTime, &pTimerRecord->duration);
 	} else {
+		// Since we were not an interval timer and hence were a timeout timer, we have
+		// had our one shot at running and we can now be deleted.
 		deleteTimer(ctx, id);
 	}
 } // timers_runTimer
@@ -357,27 +369,55 @@ void timers_runTimer(duk_context *ctx, unsigned long id) {
  * timers environment.
  */
 void ModuleTIMERS(duk_context *ctx) {
+	// If the list is not already empty, empty it now.
+	if (timerList != NULL) {
+		list_deleteList(timerList, 1 /* with free */);
+	}
 	timerList = list_createList();
 
+	// [0] - Global object
 	duk_push_global_object(ctx);
 
+	// [0] - Global object
+	// [1] - C function - js_timers_clearInterval
 	duk_push_c_function(ctx, js_timers_clearInterval, 1);
+
+	// [0] - Global object
 	duk_put_prop_string(ctx, -2, "clearInterval"); // Add clearInterval to global
 
+	// [0] - Global object
+	// [1] - C function - js_timers_clearTimeout
 	duk_push_c_function(ctx, js_timers_clearTimeout, 1);
+
+	// [0] - Global object
 	duk_put_prop_string(ctx, -2, "clearTimeout"); // Add clearTimeout to global
 
+	// [0] - Global object
+	// [1] - C function - js_timers_setInterval
 	duk_push_c_function(ctx, js_timers_setInterval, 2);
+
+	// [0] - Global object
 	duk_put_prop_string(ctx, -2, "setInterval"); // Add setInterval to global
 
+	// [0] - Global object
+	// [1] - C function - js_timers_setTimeout
 	duk_push_c_function(ctx, js_timers_setTimeout, 2);
+
+	// [0] - Global object
 	duk_put_prop_string(ctx, -2, "setTimeout"); // Add setTimeout to global
 
 	duk_pop(ctx); // Pop the global object
 
 	// Create the empty timers object in the heap stash.
+	// [0] - heap stash
 	duk_push_heap_stash(ctx); // Push the heap stash onto the value stack.
+
+	// [0] - heap stash
+	// [1] - new object
 	duk_push_object(ctx); // Push a new object onto the value stack.
+
+	// [0] - heap stash
 	duk_put_prop_string(ctx, -2, "timers"); // Set the new object as "timers" in the heap stash object.
+
 	duk_pop(ctx); // Pop the heap stash object
 } // ModuleTIMERS

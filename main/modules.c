@@ -9,8 +9,10 @@
 #include "esp32_duktape/module_gpio.h"
 #include "esp32_duktape/module_timers.h"
 #include "esp32_duktape/module_rmt.h"
+#include "esp32_duktape/module_wifi.h"
 #include "esp32_mongoose.h"
 #include "duktape_utils.h"
+#include "duk_trans_socket.h"
 #include "sdkconfig.h"
 
 static char tag[] = "modules";
@@ -21,13 +23,16 @@ static char tag[] = "modules";
 static duk_ret_t js_console_log(duk_context *ctx) {
 	ESP_LOGD(tag, "js_console_log called");
 	switch(duk_get_type(ctx, -1)) {
-	case DUK_TYPE_STRING:
-		esp32_duktape_console(duk_get_string(ctx, -1));
-		break;
-	default:
-		duk_to_string(ctx, -1);
-		esp32_duktape_console(duk_get_string(ctx, -1));
-		break;
+		case DUK_TYPE_STRING: {
+			esp32_duktape_console(duk_get_string(ctx, -1));
+			break;
+		}
+
+		default: {
+			duk_to_string(ctx, -1);
+			esp32_duktape_console(duk_get_string(ctx, -1));
+			break;
+		}
 	}
   return 0;
 } // js_console_log
@@ -62,7 +67,7 @@ typedef struct {
 } functionTableEntry_t;
 
 functionTableEntry_t functionTable[] = {
-		{"startMongoose", js_startMongoose, 1},
+		{"startMongoose",          js_startMongoose, 1},
 		{"serverResponseMongoose", js_serverResponseMongoose, 3},
 		// Must be last entry
 		{NULL, NULL, 0 }
@@ -119,9 +124,14 @@ static duk_ret_t js_esp32_reset(duk_context *ctx) {
  * - heapSize - The available heap size.
  */
 static duk_ret_t js_esp32_getState(duk_context *ctx) {
+	// [0] - New object
 	duk_push_object(ctx); // Create new getState object
 
+	// [0] - New object
+	// [1] - heap size
 	duk_push_number(ctx, (double)esp_get_free_heap_size());
+
+	// [0] - New object
 	duk_put_prop_string(ctx, -2, "heapSize"); // Add heapSize to new getState
 
 	return 1;
@@ -129,14 +139,50 @@ static duk_ret_t js_esp32_getState(duk_context *ctx) {
 
 
 /**
+ * Attach the debugger.
+ */
+static duk_ret_t js_esp32_debug(duk_context *ctx) {
+	ESP_LOGD(tag, ">> js_esp32_debug");
+	duk_trans_socket_init();
+	duk_trans_socket_waitconn();
+	ESP_LOGD(tag, "Debugger reconnected, call duk_debugger_attach()");
+
+	duk_debugger_attach(ctx,
+		duk_trans_socket_read_cb,
+		duk_trans_socket_write_cb,
+		duk_trans_socket_peek_cb,
+		duk_trans_socket_read_flush_cb,
+		duk_trans_socket_write_flush_cb,
+		NULL,
+		NULL);
+	ESP_LOGD(tag, "<< js_esp32_debug");
+	return 0;
+} // js_esp32_debug
+
+/**
  * Define the static module called "ModuleConsole".
  */
 static void ModuleConsole(duk_context *ctx) {
+	// [0] Global Object
 	duk_push_global_object(ctx);
+
+	// [0] Global Object
+	// [1] New object
 	duk_push_object(ctx); // Create new console object
+
+	// [0] Global Object
+	// [1] New object
+	// [2] c-function - js_console_log
 	duk_push_c_function(ctx, js_console_log, 1);
+
+	// [0] Global Object
+	// [1] New object
 	duk_put_prop_string(ctx, -2, "log"); // Add log to new console
+
+	// [0] Global Object
 	duk_put_prop_string(ctx, -2, "console"); // Add console to global
+
+	duk_pop(ctx);
 } // ModuleConsole
 
 
@@ -144,22 +190,62 @@ static void ModuleConsole(duk_context *ctx) {
  * Register the ESP32 module with its functions.
  */
 static void ModuleESP32(duk_context *ctx) {
+	// [0] - Global object
 	duk_push_global_object(ctx);
+
+	// [0] - Global object
+	// [1] - New object
 	duk_push_object(ctx); // Create new ESP32 object
 
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_load
 	duk_push_c_function(ctx, js_esp32_load, 1);
+
+	// [0] - Global object
+	// [1] - New object
 	duk_put_prop_string(ctx, -2, "load"); // Add load to new ESP32
 
-	duk_push_c_function(ctx, js_esp32_reset, 1);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_reset
+	duk_push_c_function(ctx, js_esp32_reset, 0);
+
+	// [0] - Global object
+	// [1] - New object
 	duk_put_prop_string(ctx, -2, "reset"); // Add reset to new ESP32
 
-	duk_push_c_function(ctx, js_esp32_getState, 1);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_getState
+	duk_push_c_function(ctx, js_esp32_getState, 0);
+
+	// [0] - Global object
+	// [1] - New object
 	duk_put_prop_string(ctx, -2, "getState"); // Add reset to new ESP32
 
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_getNativeFunction
 	duk_push_c_function(ctx, js_esp32_getNativeFunction, 1);
+
+	// [0] - Global object
+	// [1] - New object
 	duk_put_prop_string(ctx, -2, "getNativeFunction"); // Add getNativeFunction to new ESP32
 
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_debug
+	duk_push_c_function(ctx, js_esp32_debug, 0);
+
+	// [0] - Global object
+	// [1] - New object
+	duk_put_prop_string(ctx, -2, "debug"); // Add debug to new ESP32
+
+	// [0] - Global object
 	duk_put_prop_string(ctx, -2, "ESP32"); // Add ESP32 to global
+
+	duk_pop(ctx);
 } // ModuleESP32
 
 
@@ -173,5 +259,6 @@ void registerModules(duk_context *ctx) {
 	ModuleFS(ctx);
 	ModuleGPIO(ctx);
 	ModuleTIMERS(ctx);
+	ModuleWIFI(ctx);
 	ModuleRMT(ctx);
 } // End of registerModules

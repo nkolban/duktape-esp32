@@ -60,8 +60,9 @@ html {
 
 
 <div style="display:flex; flex-direction: column; height: 100%;">
-	<div class="bottomBar" style="color: white; font-size: large;">
-	ESP32-Duktape
+	<div class="bottomBar" style="color: white; font-size: large; display: flex;">
+	<span style="flex-grow: 1;">ESP32-Duktape</span>
+	<span id="info">Info</span>
 	</div>
 	<div id="c1" style="width: 100%; flex-grow: 1;">
 		<div class="ui-layout-center">
@@ -85,8 +86,11 @@ html {
 Define the settings dialog format. 
 -->
 <div id="settingsDialog" title="Settings">
-ESP32 Connection details:
+
 	<table>
+		<tr>
+			<td colspan="2">ESP32 Connection details:</td>
+		</tr>
 		<tr>
 			<td>Host:</td>
 			<td><input id="settingsHost" type="text" placeholder="host"></td>
@@ -96,8 +100,50 @@ ESP32 Connection details:
 			<td><input id="settingsPort" type="number" placeholder="port"></td>
 		</tr>
 		<tr>
+			<td colspan="2">Appearance:</td>
+		</tr>
+		<tr>
 			<td>Font size:</td>
 			<td><input id="fontSize" type="number" placeholder="size"></td>
+		</tr>
+		<tr>
+			<td>Theme:</td>
+			<td><select id="theme">
+			<option value="ambiance">Ambiance</option>
+			<option value="chaos">Chaos</option>
+			<option value="chrome">Chrome</option>
+			<option value="clouds">Clouds</option>
+			<option value="clouds_midnight">Clouds Midnight</option>
+			<option value="cobalt">Cobalt</option>
+			<option value="crimson_editor">Crimson Editor</option>	
+			<option value="dawn">Dawn</option>	
+			<option value="dreamweaver">Dreamweaver</option>	
+			<option value="eclipse">Eclipse</option>	
+			<option value="github">Github</option>
+			<option value="idle_fingers">Idle Fingers</option>		
+			<option value="iplastic">Iplastic</option>		
+			<option value="katzenmilch">Katzenmilch</option>	
+			<option value="kr_theme">KR Theme</option>		
+			<option value="kurior">Kurior</option>		
+			<option value="merbivore">Merbivore</option>
+			<option value="merbivore_soft">Merbivore Soft</option>		
+			<option value="mono_industrial">Mono Industrial</option>		
+			<option value="monokai">Monokai</option>
+			<option value="pastel_on_dark">Pastel On Dark</option>		
+			<option value="solarized_dark">Solarized Dark</option>		
+			<option value="solarized_light">Solarized Light</option>																																												<option value="github">Github</option>		
+			<option value="sqlserver">Sqlserver</option>		
+			<option value="terminal">Terminal</option>
+			<option value="textmate">Textmate</option>		
+			<option value="tomorrow">Tomorrow</option>
+			<option value="tomorrow_night">Tomorrow Night</option>		
+			<option value="tomorrow_night_blue">Tomorrow Night Blue</option>
+			<option value="tomorrow_night_bright">Tomorrow Night Bright</option>		
+			<option value="tomorrow_night_eighties">Tomorrow Night Eighties</option>
+			<option value="twilight">Twilight</option>		
+			<option value="vibrant_ink">Vibrant Ink</option>
+			<option value="xcode">Xcode</option>																				
+			</select></td>
 		</tr>
 	</table>
 </div>

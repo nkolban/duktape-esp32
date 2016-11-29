@@ -7,6 +7,7 @@
 #include <nvs_flash.h>
 #include <lwip/sockets.h>
 #include <string.h>
+#include "bootwifi.h"
 #include "esp32_specific.h"
 #include "telnet.h"
 #include "esp32_duktape/duktape_event.h"
@@ -46,58 +47,45 @@ static void telnetTask(void *data) {
 } // newTelnetPartner
 
 /**
- * WiFi Event handler
+ * An ESP32 WiFi event handler.
+ * The types of events that can be received here are:
+ *
+ * SYSTEM_EVENT_AP_PROBEREQRECVED
+ * SYSTEM_EVENT_AP_STACONNECTED
+ * SYSTEM_EVENT_AP_STADISCONNECTED
+ * SYSTEM_EVENT_AP_START
+ * SYSTEM_EVENT_AP_STOP
+ * SYSTEM_EVENT_SCAN_DONE
+ * SYSTEM_EVENT_STA_AUTHMODE_CHANGE
+ * SYSTEM_EVENT_STA_CONNECTED
+ * SYSTEM_EVENT_STA_DISCONNECTED
+ * SYSTEM_EVENT_STA_GOT_IP
+ * SYSTEM_EVENT_STA_START
+ * SYSTEM_EVENT_STA_STOP
+ * SYSTEM_EVENT_WIFI_READY
  */
-static esp_err_t wifiEventHandler(void *ctx, system_event_t *event)
-{
-	// We have got an IP address!!
-	if (event->event_id == SYSTEM_EVENT_STA_GOT_IP) {
-		xTaskCreatePinnedToCore(&telnetTask, "telnetTask", 8048, NULL, 5, NULL, 0);
-		startMongooseServer();
-	}
-  return ESP_OK;
-} // wifiEventHandler
+static esp_err_t esp32_wifi_eventHandler(void *ctx, system_event_t *event) {
+	// Your event handling code here...
+	return ESP_OK;
+}
 
 static void init() {
+	// At this point we should have a WiFi network
+	esp_event_loop_set_cb(esp32_wifi_eventHandler, NULL);
 	esp32_duktape_initEvents();
-}
+	setupVFS(); // Setup the Virtual File System.
+	//setupWebVFS("/web", "http://192.168.1.105");
+	xTaskCreatePinnedToCore(&telnetTask, "telnetTask", 8048, NULL, 5, NULL, 0);
+	startMongooseServer();
+	xTaskCreatePinnedToCore(&duktape_task, "duktape_task", 10*1024, NULL, 5, NULL, 0);
+} // init
 
 /**
  * Main entry point into the application.
  */
 void app_main(void)
 {
-	nvs_flash_init();
-	tcpip_adapter_init();
-
-	tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA); // Don't run a DHCP client
-	tcpip_adapter_ip_info_t ipInfo;
-
-	inet_pton(AF_INET, DEVICE_IP, &ipInfo.ip);
-	inet_pton(AF_INET, DEVICE_GW, &ipInfo.gw);
-	inet_pton(AF_INET, DEVICE_NETMASK, &ipInfo.netmask);
-	tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &ipInfo);
-
-	init();
-	ESP_ERROR_CHECK(esp_event_loop_init(wifiEventHandler, NULL));
-	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-	ESP_ERROR_CHECK(esp_wifi_init(&cfg) );
-	ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-	wifi_config_t sta_config = {
-		.sta = {
-			.ssid      = AP_TARGET_SSID,
-			.password  = AP_TARGET_PASSWORD,
-			.bssid_set = 0
-		}
-	};
-	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
-	ESP_ERROR_CHECK(esp_wifi_start());
-	ESP_ERROR_CHECK(esp_wifi_connect());
-
-	setupVFS(); // Setup the Virtual File System.
-	setupWebVFS("/web", "http://192.168.1.105");
-	xTaskCreatePinnedToCore(&duktape_task, "duktape_task", 10*1024, NULL, 5, NULL, 0);
+	bootWiFi(init);
 } // app_main
 
 /**

@@ -75,6 +75,9 @@ void duktape_init_environment() {
  * * ESP32_DUKTAPE_EVENT_COMMAND_LINE - A new user entered text line for processing.
  * * ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST - A new browser request has arrived for
  *   us while we are being a web server.
+ * * ESP32_DUKTAPE_EVENT_TIMER_ADDED - A timer has been added.
+ * * ESP32_DUKTAPE_EVENT_TIMER_CLEARED - A timer has been cleared.
+ * * ESP32_DUKTAPE_EVENT_TIMER_FIRED - A timer has been fired.
  */
 void processEvent(esp32_duktape_event_t *pEvent) {
 	switch(pEvent->type) {

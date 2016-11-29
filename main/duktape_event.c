@@ -35,22 +35,31 @@ void esp32_duktape_initEvents() {
 
 /**
  * Wait for an event blocking if there isn't one on the event queue ready
- * for processing.
+ * for processing.  We also handle here the concept of timers.  We block here
+ * until an event occurs or else a timeout expires and the timeout is the time
+ * of the next timer to wake up.
  *
  * We return 0 to indicate that no event was caught.
  */
 int esp32_duktape_waitForEvent(esp32_duktape_event_t *pEvent) {
 	BaseType_t waitDelay = portMAX_DELAY;
+
+	// Get the next timer to expire (if there is one) and, define the blocking period
+	// to be the time when we must wake up to process it.
 	timer_record_t *pTimerRecord = timers_getNextTimer();
 	if (pTimerRecord != NULL) {
 		waitDelay = timeval_durationFromNow(&pTimerRecord->wakeTime) / portTICK_PERIOD_MS;
 	}
+
+	// Ask FreeRTOS to block us until either the timer expires or a new event
+	// is added to the event queue.
 	BaseType_t rc = xQueueReceive(esp32_duktape_event_queue, pEvent, waitDelay);
+
+	// If the rc is false, then we did NOT get a new event which means that we
+	// timed out.
 	if (rc == pdFALSE) {
-		// OOOoh!! Did a timer expire!?
-		ESP_LOGD(tag, "We think a timer expired!");
 		assert(pTimerRecord != NULL); // If it is NULL, why did we wake up?
-		event_newTimerFiredEvent(pTimerRecord->id);
+		event_newTimerFiredEvent(pTimerRecord->id); // Post an event that a timer fired.
 	}
 	return (int)rc;
 } // esp32_duktape_waitForEvent
@@ -73,18 +82,31 @@ void esp32_duktape_freeEvent(esp32_duktape_event_t *pEvent) {
 		// Nothing to do for this event type.
 		return;
 	}
+
+	if (pEvent->type == ESP32_DUKTAPE_EVENT_TIMER_CLEARED) {
+		// Nothing to do for this event type.
+		return;
+	}
+
+	if (pEvent->type == ESP32_DUKTAPE_EVENT_TIMER_FIRED) {
+		// Nothing to do for this event type.
+		return;
+	}
+
+	ESP_LOGD(tag, "We have been asked to free an event of type %d but don't know how",
+		pEvent->type);
 } // esp32_duktape_freeEvent
 
 
 /**
  * Post a new command line event.  The commandData is expected to have been
  * malloced() and should NOT be freed by the caller.  It will be freed
- * when the event is processed.
+ * when the event has completed being processed.
  */
 void event_newCommandLineEvent(
-		char *commandData,
-		size_t commandLength,
-		int fromKeyboard
+		char *commandData, // The data received from the command input.
+		size_t commandLength, // The length of the data received.
+		int fromKeyboard // True if it came from the keyboard
 	) {
 	esp32_duktape_event_t event;
 
@@ -93,7 +115,8 @@ void event_newCommandLineEvent(
 	memcpy(event.commandLine.commandLine, commandData, commandLength);
 	event.commandLine.commandLineLength = commandLength;
 	event.commandLine.fromKeyboard = fromKeyboard;
-	postEvent(&event);
+
+	postEvent(&event); // Post the event.
 } //newCommandLineEvent
 
 
@@ -110,6 +133,7 @@ void event_newHTTPServerRequestEvent(
 	event.httpServerRequest.type = ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST;
 	event.httpServerRequest.method = method;
 	event.httpServerRequest.uri = uri;
+
 	postEvent(&event);
 } // newHTTPServerRequestEvent
 
@@ -125,6 +149,9 @@ void event_newTimerAddedEvent(unsigned long id) {
 } // event_newTimerAddedEvent
 
 
+/**
+ * Indicate that a timer was cleared.
+ */
 void event_newTimerClearedEvent(unsigned long id) {
 	esp32_duktape_event_t event;
 	event.type = ESP32_DUKTAPE_EVENT_TIMER_CLEARED;
@@ -132,6 +159,9 @@ void event_newTimerClearedEvent(unsigned long id) {
 } // event_newTimerClearedEvent
 
 
+/**
+ * indicate that a timer has fired.
+ */
 void event_newTimerFiredEvent(unsigned long id) {
 	esp32_duktape_event_t event;
 	event.type = ESP32_DUKTAPE_EVENT_TIMER_FIRED;

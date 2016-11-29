@@ -58,28 +58,70 @@ static duk_ret_t js_rmt_getState(duk_context *ctx) {
 	rmt_get_status(channel, &status);
 	rmt_get_source_clk(channel, &srcClk);
 
+	// [0] - Channel
+	// [1] - New object
 	duk_idx_t idx = duk_push_object(ctx);
 
+	// [0] - Channel
+	// [1] - New object
+	// [2] - Channel
 	duk_push_int(ctx, channel);
+
+	// [0] - Channel
+	// [1] - New object
 	duk_put_prop_string(ctx, idx, "channel");
 
+	// [0] - Channel
+	// [1] - New object
+	// [2] - loopEnabled
 	duk_push_boolean(ctx, loop_en);
+
+	// [0] - Channel
+	// [1] - New object
 	duk_put_prop_string(ctx, idx, "loopEnabled");
 
+	// [0] - Channel
+	// [1] - New object
+	// [2] - clockDiv
 	duk_push_int(ctx, div_cnt);
+
+	// [0] - Channel
+	// [1] - New object
 	duk_put_prop_string(ctx, idx, "clockDiv");
 
+	// [0] - Channel
+	// [1] - New object
+	// [2] - memBlocks
 	duk_push_int(ctx, memNum);
+
+	// [0] - Channel
+	// [1] - New object
 	duk_put_prop_string(ctx, idx, "memBlocks");
 
+	// [0] - Channel
+	// [1] - New object
+	// [2] - idleLevel
 	duk_push_int(ctx, 0); // FIX
+
+	// [0] - Channel
+	// [1] - New object
 	duk_put_prop_string(ctx, idx, "idleLevel");
 
+	// [0] - Channel
+	// [1] - New object
+	// [2] - memoryOwner
 	duk_push_string(ctx, owner==RMT_MEM_OWNER_TX?"TX":"RX");
+
+	// [0] - Channel
+	// [1] - New object
 	duk_put_prop_string(ctx, idx, "memoryOwner");
 	return 1;
 } // js_rmt_getState
 
+
+/**
+ * Set the item value.
+ */
 static void setItem(uint8_t level, uint16_t duration, int item, rmt_item32_t *itemArray) {
 	rmt_item32_t *ptr = &itemArray[item/2];
 	if (item%2 == 0) {
@@ -187,6 +229,7 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
  * 		idleLevel: <boolean> - Idle value to use.
  * 		clockDiv: <number> - Clock divider.
  * }
+ *
  * [0] - number - Channel
  * [1] - object - Configuration
  */
@@ -255,7 +298,7 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 
 
 	ESP_LOGD(tag, "<< js_rmt_txConfig");
-  return 1;
+  return 0;
 } // js_fs_openSync
 
 
