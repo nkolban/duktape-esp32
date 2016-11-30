@@ -1,0 +1,1 @@
+WIFI.scan(function(data) { console.log(JSON.stringify(data));})

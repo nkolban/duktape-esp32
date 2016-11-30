@@ -13,7 +13,8 @@ enum {
 	ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST,
 	ESP32_DUKTAPE_EVENT_TIMER_ADDED,
 	ESP32_DUKTAPE_EVENT_TIMER_FIRED,
-	ESP32_DUKTAPE_EVENT_TIMER_CLEARED
+	ESP32_DUKTAPE_EVENT_TIMER_CLEARED,
+	ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED
 };
 
 // !!! IMPORTANT !!!
@@ -50,6 +51,7 @@ void event_newTimerClearedEvent(unsigned long id);
 void event_newCommandLineEvent(char *commandData, size_t commandLength, int fromKeyboard);
 void event_newHTTPServerRequestEvent(char *uri, char *method);
 void event_newTimerFiredEvent(unsigned long id);
+void event_newWifiScanCompletedEvent();
 
 void esp32_duktape_initEvents();
 int esp32_duktape_waitForEvent();

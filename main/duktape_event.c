@@ -79,17 +79,22 @@ void esp32_duktape_freeEvent(esp32_duktape_event_t *pEvent) {
 		return;
 	}
 	if (pEvent->type == ESP32_DUKTAPE_EVENT_TIMER_ADDED) {
-		// Nothing to do for this event type.
+		// Nothing clean up for this event type.
 		return;
 	}
 
 	if (pEvent->type == ESP32_DUKTAPE_EVENT_TIMER_CLEARED) {
-		// Nothing to do for this event type.
+		// Nothing clean up for this event type.
 		return;
 	}
 
 	if (pEvent->type == ESP32_DUKTAPE_EVENT_TIMER_FIRED) {
-		// Nothing to do for this event type.
+		// Nothing clean up for this event type.
+		return;
+	}
+
+	if (pEvent->type == ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED) {
+		// Nothing to clean up for this event type.
 		return;
 	}
 
@@ -168,3 +173,9 @@ void event_newTimerFiredEvent(unsigned long id) {
 	event.timerFired.id = id;
 	postEvent(&event);
 } // newTimerFiredEvent
+
+void event_newWifiScanCompletedEvent() {
+	esp32_duktape_event_t event;
+	event.type = ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED;
+	postEvent(&event);
+} // event_newWifiScanCompletedEvent

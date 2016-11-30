@@ -34,7 +34,7 @@ void esp32_duktape_set_reset(int value) {
 void esp32_duktape_console(const char *message) {
 	telnet_esp32_sendData((uint8_t *)message, strlen(message));
 	websocket_console_sendData(message);
-	ESP_LOGD(tag, "-> %s", message);
+	ESP_LOGD(tag, "Console: %s", message);
 } // esp32_duktape_console
 
 
@@ -59,7 +59,7 @@ void esp32_duktape_addGlobalFunction(
 void esp32_duktape_dump_value_stack(duk_context *ctx) {
 	duk_idx_t topIdx = duk_get_top(ctx);
 	duk_idx_t i;
-	ESP_LOGD(tag, "Stack dump of %d items", topIdx);
+	ESP_LOGD(tag, ">> Stack dump of %d items", topIdx);
 	for(i=0; i<topIdx; i++) {
 		duk_int_t type = duk_get_type(ctx, i);
 		switch(type) {
@@ -81,9 +81,19 @@ void esp32_duktape_dump_value_stack(duk_context *ctx) {
 		case DUK_TYPE_NUMBER:
 			ESP_LOGD(tag, "[%2d] NUMBER = %f", i, duk_get_number(ctx, i));
 			break;
-		case DUK_TYPE_OBJECT:
-			ESP_LOGD(tag, "[%2d] OBJECT", i);
+
+		case DUK_TYPE_OBJECT:{
+			if (duk_is_function(ctx, i)) {
+				ESP_LOGD(tag, "[%2d] OBJECT - Function", i);
+			} else {
+				duk_dup(ctx, i);
+				const char *json = duk_json_encode(ctx, -1);
+				ESP_LOGD(tag, "[%2d] OBJECT - %s", i, json!=NULL?json:"NULL");
+				duk_pop(ctx);
+			}
 			break;
+		}
+
 		case DUK_TYPE_POINTER:
 			ESP_LOGD(tag, "[%2d] POINTER", i);
 			break;
@@ -98,6 +108,7 @@ void esp32_duktape_dump_value_stack(duk_context *ctx) {
 			break;
 		} // End of switch
 	} // End of for loop
+	ESP_LOGD(tag, "<< End stack dump.")
 } // dumpValueStack
 
 

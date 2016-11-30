@@ -272,13 +272,14 @@ static esp_err_t esp32_wifi_eventHandler(void *ctx, system_event_t *event) {
 			if (!g_mongooseStarted)
 			{
 				g_mongooseStarted = 1;
-				xTaskCreatePinnedToCore(&mongooseTask, "mongoose_task", 2048, NULL, 5, NULL, 0);
+				xTaskCreatePinnedToCore(&mongooseTask, "bootwifi_mongoose_task", 8000, NULL, 5, NULL, 0);
 			}
 			break;
 		} // SYSTEM_EVENT_AP_START
 
 		// If we fail to connect to an access point as a station, become an access point.
 		case SYSTEM_EVENT_STA_DISCONNECTED: {
+			ESP_LOGD(tag, "Station disconnected started");
 			// We think we tried to connect as a station and failed! ... become
 			// an access point.
 			becomeAccessPoint();
@@ -288,10 +289,10 @@ static esp_err_t esp32_wifi_eventHandler(void *ctx, system_event_t *event) {
 		// If we connected as a station then we are done and we can stop being a
 		// web server.
 		case SYSTEM_EVENT_STA_GOT_IP: {
-			ESP_LOGD(tag, " *******************************************");
+			ESP_LOGD(tag, "********************************************");
 			ESP_LOGD(tag, "* We are now connected and ready to do work!")
 			ESP_LOGD(tag, "* - Our IP address is: " IPSTR, IP2STR(&event->event_info.got_ip.ip_info.ip));
-			ESP_LOGD(tag, " *******************************************");
+			ESP_LOGD(tag, "********************************************");
 			g_mongooseStopRequest = 1; // Stop mongoose (if it is running).
 			// Invoke the callback if Mongoose has NOT been started ... otherwise
 			// we will invoke the callback when mongoose has ended.
@@ -327,7 +328,8 @@ static int getConnectionInfo(connection_info_t *pConnectionInfo) {
 
 	// Get the version that the data was saved against.
 	err = nvs_get_u32(handle, KEY_VERSION, &version);
-	if (err == ESP_ERR_NVS_NOT_FOUND) {
+	if (err != ESP_OK) {
+		ESP_LOGD(tag, "No version record found (%d).", err);
 		nvs_close(handle);
 		return -1;
 	}
@@ -341,16 +343,25 @@ static int getConnectionInfo(connection_info_t *pConnectionInfo) {
 
 	size = sizeof(connection_info_t);
 	err = nvs_get_blob(handle, KEY_CONNECTION_INFO, pConnectionInfo, &size);
-	if (err == ESP_ERR_NVS_NOT_FOUND) {
+	if (err != ESP_OK) {
+		ESP_LOGD(tag, "No connection record found (%d).", err);
 		nvs_close(handle);
 		return -1;
 	}
-	if (err != 0) {
+	if (err != ESP_OK) {
 		ESP_LOGE(tag, "nvs_open: %x", err);
 		nvs_close(handle);
 		return -1;
 	}
+
+	// Cleanup
 	nvs_close(handle);
+
+	// Do a sanity check on the SSID
+	if (strlen(pConnectionInfo->ssid) == 0) {
+		ESP_LOGD(tag, "NULL ssid detected");
+		return -1;
+	}
 	return 0;
 } // getConnectionInfo
 
@@ -373,10 +384,12 @@ static void saveConnectionInfo(connection_info_t *pConnectionInfo) {
  * Become a station connecting to an existing access point.
  */
 static void becomeStation(connection_info_t *pConnectionInfo) {
-	ESP_LOGD(tag, "- Connecting to access point %s ...", pConnectionInfo->ssid);
+	ESP_LOGD(tag, "- Connecting to access point \"%s\" ...", pConnectionInfo->ssid);
+	assert(strlen(pConnectionInfo->ssid) > 0);
 
 	// If we have a static IP address information, use that.
-	if (pConnectionInfo->ipInfo.ip.addr == 0) {
+	if (pConnectionInfo->ipInfo.ip.addr != 0) {
+		ESP_LOGD(tag, " - using a static IP address of " IPSTR, IP2STR(&pConnectionInfo->ipInfo.ip));
 		tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA);
 		tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &pConnectionInfo->ipInfo);
 	} else {

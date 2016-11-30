@@ -3,6 +3,7 @@
 #include <esp_system.h>
 #include <duktape.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "modules.h"
 #include "esp32_duktape/curl_client.h"
 #include "esp32_duktape/module_fs.h"
@@ -163,26 +164,30 @@ static duk_ret_t js_esp32_debug(duk_context *ctx) {
  * Define the static module called "ModuleConsole".
  */
 static void ModuleConsole(duk_context *ctx) {
-	// [0] Global Object
-	duk_push_global_object(ctx);
 
+	duk_push_global_object(ctx);
+	// [0] Global Object
+
+	duk_push_object(ctx); // Create new console object
 	// [0] Global Object
 	// [1] New object
-	duk_push_object(ctx); // Create new console object
 
+	duk_push_c_function(ctx, js_console_log, 1);
 	// [0] Global Object
 	// [1] New object
 	// [2] c-function - js_console_log
-	duk_push_c_function(ctx, js_console_log, 1);
 
+
+	duk_put_prop_string(ctx, -2, "log"); // Add log to new console
 	// [0] Global Object
 	// [1] New object
-	duk_put_prop_string(ctx, -2, "log"); // Add log to new console
 
-	// [0] Global Object
+
 	duk_put_prop_string(ctx, -2, "console"); // Add console to global
+	// [0] Global Object
 
 	duk_pop(ctx);
+	// <stack empty>
 } // ModuleConsole
 
 
@@ -190,62 +195,64 @@ static void ModuleConsole(duk_context *ctx) {
  * Register the ESP32 module with its functions.
  */
 static void ModuleESP32(duk_context *ctx) {
-	// [0] - Global object
 	duk_push_global_object(ctx);
+	// [0] - Global object
 
+	duk_push_object(ctx); // Create new ESP32 object
 	// [0] - Global object
 	// [1] - New object
-	duk_push_object(ctx); // Create new ESP32 object
 
+	duk_push_c_function(ctx, js_esp32_load, 1);
 	// [0] - Global object
 	// [1] - New object
 	// [2] - c-function - js_esp32_load
-	duk_push_c_function(ctx, js_esp32_load, 1);
 
+	duk_put_prop_string(ctx, -2, "load"); // Add load to new ESP32
 	// [0] - Global object
 	// [1] - New object
-	duk_put_prop_string(ctx, -2, "load"); // Add load to new ESP32
 
+	duk_push_c_function(ctx, js_esp32_reset, 0);
 	// [0] - Global object
 	// [1] - New object
 	// [2] - c-function - js_esp32_reset
-	duk_push_c_function(ctx, js_esp32_reset, 0);
 
+
+	duk_put_prop_string(ctx, -2, "reset"); // Add reset to new ESP32
 	// [0] - Global object
 	// [1] - New object
-	duk_put_prop_string(ctx, -2, "reset"); // Add reset to new ESP32
 
+	duk_push_c_function(ctx, js_esp32_getState, 0);
 	// [0] - Global object
 	// [1] - New object
 	// [2] - c-function - js_esp32_getState
-	duk_push_c_function(ctx, js_esp32_getState, 0);
 
+	duk_put_prop_string(ctx, -2, "getState"); // Add reset to new ESP32
 	// [0] - Global object
 	// [1] - New object
-	duk_put_prop_string(ctx, -2, "getState"); // Add reset to new ESP32
 
+	duk_push_c_function(ctx, js_esp32_getNativeFunction, 1);
 	// [0] - Global object
 	// [1] - New object
 	// [2] - c-function - js_esp32_getNativeFunction
-	duk_push_c_function(ctx, js_esp32_getNativeFunction, 1);
 
+	duk_put_prop_string(ctx, -2, "getNativeFunction"); // Add getNativeFunction to new ESP32
 	// [0] - Global object
 	// [1] - New object
-	duk_put_prop_string(ctx, -2, "getNativeFunction"); // Add getNativeFunction to new ESP32
 
+	duk_push_c_function(ctx, js_esp32_debug, 0);
 	// [0] - Global object
 	// [1] - New object
 	// [2] - c-function - js_esp32_debug
-	duk_push_c_function(ctx, js_esp32_debug, 0);
 
+	duk_put_prop_string(ctx, -2, "debug"); // Add debug to new ESP32
 	// [0] - Global object
 	// [1] - New object
-	duk_put_prop_string(ctx, -2, "debug"); // Add debug to new ESP32
 
-	// [0] - Global object
 	duk_put_prop_string(ctx, -2, "ESP32"); // Add ESP32 to global
+	// [0] - Global object
 
 	duk_pop(ctx);
+	// <Empty stack>
 } // ModuleESP32
 
 
@@ -254,11 +261,19 @@ static void ModuleESP32(duk_context *ctx) {
  * bein the global address space/scope.
  */
 void registerModules(duk_context *ctx) {
+	duk_idx_t top = duk_get_top(ctx);
 	ModuleConsole(ctx);
+	assert(top == duk_get_top(ctx));
 	ModuleESP32(ctx);
+	assert(top == duk_get_top(ctx));
 	ModuleFS(ctx);
+	assert(top == duk_get_top(ctx));
 	ModuleGPIO(ctx);
+	assert(top == duk_get_top(ctx));
 	ModuleTIMERS(ctx);
+	assert(top == duk_get_top(ctx));
 	ModuleWIFI(ctx);
+	assert(top == duk_get_top(ctx));
 	ModuleRMT(ctx);
+	assert(top == duk_get_top(ctx));
 } // End of registerModules

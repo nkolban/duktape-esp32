@@ -126,16 +126,42 @@ static duk_ret_t js_fs_readSync(duk_context *ctx) {
  */
 void ModuleFS(duk_context *ctx) {
 	duk_push_global_object(ctx);
+	// [0] - Global
+
 	duk_push_object(ctx); // Create new FS object
+	// [0] - Global
+	// [1] - FS Object
 
 	duk_push_c_function(ctx, js_fs_openSync, 3);
+	// [0] - Global
+	// [1] - FS Object
+	// [2] - C Func - js_fs_openSync
+
 	duk_put_prop_string(ctx, -2, "openSync"); // Add openSync to new FS
+	// [0] - Global
+	// [1] - FS Object
 
 	duk_push_c_function(ctx, js_fs_closeSync, 1);
+	// [0] - Global
+	// [1] - FS Object
+	// [2] - C Func - js_fs_closeSync
+
 	duk_put_prop_string(ctx, -2, "closeSync"); // Add closeSync to new FS
+	// [0] - Global
+	// [1] - FS Object
 
 	duk_push_c_function(ctx, js_fs_readSync, 5);
+	// [0] - Global
+	// [1] - FS Object
+	// [2] - C Func - js_fs_readSync
+
 	duk_put_prop_string(ctx, -2, "readSync"); // Add readSync to new FS
+	// [0] - Global
+	// [1] - FS Object
 
 	duk_put_prop_string(ctx, -2, "FS"); // Add ESP32 to global
+	// [0] - Global
+
+	duk_pop(ctx);
+	// <empty stack>
 } // ModuleFS

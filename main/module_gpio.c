@@ -104,19 +104,51 @@ static duk_ret_t js_gpio_pinMode(duk_context *ctx) {
  */
 void ModuleGPIO(duk_context *ctx) {
 	duk_push_global_object(ctx);
+	// [0] - Global object
+
 	duk_push_object(ctx); // Create new FS object
+	// [0] - Global object
+	// [1] - New object - FS Object
 
 	duk_push_c_function(ctx, js_gpio_getPinMode, 1);
+	// [0] - Global object
+	// [1] - New object - FS Object
+	// [2] - C Function - js_gpio_getPinMode
+
 	duk_put_prop_string(ctx, -2, "getPinMode"); // Add getPinMode to new GPIO
+	// [0] - Global object
+	// [1] - New object - FS Object
 
 	duk_push_c_function(ctx, js_gpio_digitalRead, 1);
+	// [0] - Global object
+	// [1] - New object - FS Object
+	// [2] - C Function - js_gpio_digitalRead
+
 	duk_put_prop_string(ctx, -2, "digitalRead"); // Add digitalRead to new GPIO
+	// [0] - Global object
+	// [1] - New object - FS Object
 
 	duk_push_c_function(ctx, js_gpio_digitalWrite, 2);
+	// [0] - Global object
+	// [1] - New object - FS Object
+	// [2] - C Function - js_gpio_digitalWrite
+
 	duk_put_prop_string(ctx, -2, "digitalWrite"); // Add digitalWrite to new GPIO
+	// [0] - Global object
+	// [1] - New object - FS Object
 
 	duk_push_c_function(ctx, js_gpio_pinMode, 2);
+	// [0] - Global object
+	// [1] - New object - FS Object
+	// [2] - C Function - js_gpio_pinMode
+
 	duk_put_prop_string(ctx, -2, "pinMode"); // Add pinMode to new GPIO
+	// [0] - Global object
+	// [1] - New object - FS Object
 
 	duk_put_prop_string(ctx, -2, "GPIO"); // Add GPIO to global
+	// [0] - Global object
+
+	duk_pop(ctx);
+	// <Empty stack>
 } // ModuleGPIO

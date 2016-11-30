@@ -9,9 +9,7 @@
 #include <string.h>
 #include <lwip/sockets.h>
 #include <lwip/inet.h>
-//#include <netinet/in.h>
 #include <unistd.h>
-//#include <poll.h>
 #include <errno.h>
 #include "duktape.h"
 #include "sdkconfig.h"

@@ -308,16 +308,42 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
  */
 void ModuleRMT(duk_context *ctx) {
 	duk_push_global_object(ctx);
+	// [0] - Global object
+
 	duk_idx_t idx = duk_push_object(ctx); // Create new RMT object
+	// [0] - Global object
+	// [1] - New object - RMT object
 
 	duk_push_c_function(ctx, js_rmt_txConfig, 2);
+	// [0] - Global object
+	// [1] - New object - RMT object
+	// [2] - C Function - js_rmt_txConfig
+
 	duk_put_prop_string(ctx, idx, "txConfig"); // Add txConfig to new RMT
+	// [0] - Global object
+	// [1] - New object - RMT object
 
 	duk_push_c_function(ctx, js_rmt_getState, 1);
+	// [0] - Global object
+	// [1] - New object - RMT object
+	// [2] - C Function - js_rmt_getState
+
 	duk_put_prop_string(ctx, idx, "getState"); // Add getState to new RMT
+	// [0] - Global object
+	// [1] - New object - RMT object
 
 	duk_push_c_function(ctx, js_rmt_write, 2);
+	// [0] - Global object
+	// [1] - New object - RMT object
+	// [2] - C Function - js_rmt_write
+
 	duk_put_prop_string(ctx, idx, "write"); // Add write to new RMT
+	// [0] - Global object
+	// [1] - New object - RMT object
 
 	duk_put_prop_string(ctx, 0, "RMT"); // Add RMT to global
+	// [0] - Global object
+
+	duk_pop(ctx);
+	// <Empty Stack>
 } // ModuleFS

@@ -76,6 +76,15 @@ Syntax:
 
 `disconnect()`
 
+###getDNS
+Retrieve an array of the two IP addresses (as strings) that represent the two
+DNS servers that we may know about.
+
+Syntax:
+
+`getDNS()`
+
+
 ###getState
 Retrieve the current state of the WiFi environment.
 
