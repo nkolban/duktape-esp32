@@ -21,6 +21,11 @@ The binary is supplied as a ZIP of three distinct files:
 * `app-template.bin`
 * `partitions-singleapp.bin`
 
+The file can be download at:
+
+[http://www.neilkolban.com/esp32/downloads/esp32-duktape-2016-11-30.zip](http://www.neilkolban.com/esp32/downloads/esp32-duktape-2016-11-30.zip)
+
+
 ##Running ESP32-Duktape
 After flashing your ESP32 with the images, reboot the device.  At this point the device will start and
 begin running ESP32-Duktape.  Since this is the first time it has started, it will not know how to connect

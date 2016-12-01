@@ -267,7 +267,12 @@ static esp_err_t esp32_wifi_eventHandler(void *ctx, system_event_t *event) {
 	switch(event->event_id) {
 		// When we have started being an access point, then start being a web server.
 		case SYSTEM_EVENT_AP_START: { // Handle the AP start event
-			ESP_LOGD(tag, "AP started");
+			tcpip_adapter_ip_info_t ip_info;
+			tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &ip_info);
+			ESP_LOGD(tag, "**********************************************");
+			ESP_LOGD(tag, "* We are now an access point and you can point")
+			ESP_LOGD(tag, "* your browser to http://" IPSTR, IP2STR(&ip_info.ip));
+			ESP_LOGD(tag, "**********************************************");
 			// Start Mongoose ...
 			if (!g_mongooseStarted)
 			{
