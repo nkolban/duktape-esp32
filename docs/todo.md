@@ -1,7 +1,7 @@
 #TODO
 These are the work items that need attended to.
 
-* Add the additional properties for the WiFi scan.
+* Fix problem when function code to be called on a callback is invalid ... eg. function not found. 
 * Handle the response for a Bootwifi browser request back to the browser.  We seem to terminate
 too quickly resulting in no response.
 * Design and implement security handling.

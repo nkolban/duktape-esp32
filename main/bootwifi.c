@@ -53,6 +53,10 @@ static void bootWiFi2();
 
 static char tag[] = "bootwifi";
 
+
+
+
+
 /**
  * Convert a Mongoose event type to a string.  Used for debugging.
  */

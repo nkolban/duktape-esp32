@@ -24,6 +24,9 @@
 
 static char tag[] = "module_wifi";
 
+
+
+
 /**
  * An ESP32 WiFi event handler.
  * The types of events that can be received here are:
@@ -57,6 +60,7 @@ static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event)
 			break;
 		}
 	}
+	ESP_LOGD(tag, "<< esp32_wifi_eventHandler");
 	return ESP_OK;
 } // esp32_wifi_eventHandler
 

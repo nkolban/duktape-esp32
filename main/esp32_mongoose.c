@@ -7,6 +7,7 @@
 #include <esp_log.h>
 #include <mongoose.h>
 #include <duktape.h>
+#include "esp32_duktape/module_http.h"
 #include "esp32_duktape/duktape_event.h"
 #include "duktape_utils.h"
 #include "sdkconfig.h"
@@ -260,3 +261,23 @@ void websocket_console_sendData(const char *message) {
 	mg_send_websocket_frame(
 	g_webSocketConnection, WEBSOCKET_OP_TEXT, message, strlen(message));
 } // websocket_console_sendData
+
+
+static void mongoose_httpRequest_event_handler(struct mg_connection *nc, int ev, void *evData) {
+	ESP_LOGD(tag, ">> mongoose_httpRequest_event_handler: [task=%s] %d %s",
+			pcTaskGetTaskName(NULL),
+			(uint32_t)nc->user_data,
+			mongoose_eventToString(ev));
+	ESP_LOGD(tag, "<< mongoose_httpRequest_event_handler");
+} // mongoose_httpRequest_event_handler
+
+
+/**
+ * Use the mongoose technology to send a request to a back end system
+ * using HTTP.
+ */
+void esp32_mongoose_sendHTTPRequest(const char *url) {
+	ESP_LOGD(tag, ">> esp32_mongoose_sendHTTPRequest");
+	mg_connect_http(&mgr, mongoose_httpRequest_event_handler, url, NULL /* Extra headers */, NULL /* post data */);
+	ESP_LOGD(tag, "<< esp32_mongoose_sendHTTPRequest");
+} // esp32_mongoose_sendHTTPRequest

@@ -13,5 +13,6 @@ duk_ret_t js_startMongoose(duk_context *ctxParam);
 duk_ret_t js_serverResponseMongoose(duk_context *ctxParam);
 void startMongooseServer();
 void websocket_console_sendData(const char *message);
+void esp32_mongoose_sendHTTPRequest(const char *url);
 
 #endif /* MAIN_ESP32_MONGOOSE_H_ */

@@ -10,7 +10,9 @@
 #include "esp32_duktape/module_gpio.h"
 #include "esp32_duktape/module_timers.h"
 #include "esp32_duktape/module_rmt.h"
+#include "esp32_duktape/module_http.h"
 #include "esp32_duktape/module_wifi.h"
+#include "esp32_duktape/module_partitions.h"
 #include "esp32_mongoose.h"
 #include "duktape_utils.h"
 #include "duk_trans_socket.h"
@@ -275,5 +277,9 @@ void registerModules(duk_context *ctx) {
 	ModuleWIFI(ctx);
 	assert(top == duk_get_top(ctx));
 	ModuleRMT(ctx);
+	assert(top == duk_get_top(ctx));
+	ModuleHTTP(ctx);
+	assert(top == duk_get_top(ctx));
+	ModulePARTITIONS(ctx);
 	assert(top == duk_get_top(ctx));
 } // End of registerModules

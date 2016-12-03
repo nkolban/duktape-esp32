@@ -59,6 +59,27 @@ void duktape_init_environment() {
 
 
 /**
+ * Convert an authentication mode to a string.
+ */
+static char *authModeToString(wifi_auth_mode_t mode) {
+	switch(mode) {
+	case WIFI_AUTH_OPEN:
+		return "open";
+	case WIFI_AUTH_WEP:
+		return "wep";
+	case WIFI_AUTH_WPA_PSK:
+		return "wpa";
+	case WIFI_AUTH_WPA2_PSK:
+		return "wpa2";
+	case WIFI_AUTH_WPA_WPA2_PSK:
+		return "wpa_wpa2";
+	default:
+		return "unknown";
+	}
+} // authModeToString
+
+
+/**
  * Process an event within the context of JavaScript.  JavaScript is a serialized
  * language which means that we can't do multi threading or other parallel activities.
  * This can appear to be a problem as JavaScript also lends itself to async processing.
@@ -84,6 +105,7 @@ void duktape_init_environment() {
  * * ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED - A WiFi scan has completed.
  */
 void processEvent(esp32_duktape_event_t *pEvent) {
+	ESP_LOGD(tag, ">> processEvent");
 	switch(pEvent->type) {
 		// Handle a new command line submitted to us.
 		case ESP32_DUKTAPE_EVENT_COMMAND_LINE: {
@@ -161,6 +183,14 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 		// is contained in an array called "scan_callbacks_array" that is found on the
 		// heapStash.  It may not exist and it may be empty (if something has gone wrong or
 		// we have executed two scans in quick succession).
+		// A published scan record will contain:
+		// {
+		//    ssid: <network id>,
+		//    mac: <mac address>
+		//    rssi: <signal strength>
+		//    auth: <authentication mode>
+		// }
+		//
 		case ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED: {
 			int i;
 
@@ -195,7 +225,34 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 				// [0] - Array - results
 				// [1] - New object
 
-				duk_put_prop_index(esp32_duk_context, resultIdx, i);
+				duk_push_sprintf(esp32_duk_context, MACSTR, MAC2STR(apRecords[i].bssid));
+				// [0] - Array - results
+				// [1] - New object
+				// [2] - String (mac)
+
+				duk_put_prop_string(esp32_duk_context, scanResultIdx, "mac");
+				// [0] - Array - results
+				// [1] - New object
+
+				duk_push_int(esp32_duk_context, apRecords[i].rssi);
+				// [0] - Array - results
+				// [1] - New object
+				// [2] - Number (rssi)
+
+				duk_put_prop_string(esp32_duk_context, scanResultIdx, "rssi");
+				// [0] - Array - results
+				// [1] - New object
+
+				duk_push_string(esp32_duk_context, authModeToString(apRecords[i].authmode));
+				// [0] - Array - results
+				// [1] - New object
+				// [2] - String (auth)
+
+				duk_put_prop_string(esp32_duk_context, scanResultIdx, "auth");
+				// [0] - Array - results
+				// [1] - New object
+
+				duk_put_prop_index(esp32_duk_context, resultIdx, i); // Add the new record into the results array
 				// [0] - Array - results
 			}
 
@@ -238,7 +295,7 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 				// [3] - Callback function
 				// [4] - Array - results
 
-				duk_call(esp32_duk_context, 1); // Invoke the callback with 1 parameter
+				duk_pcall(esp32_duk_context, 1); // Invoke the callback with 1 parameter
 				// [0] - Array - results
 				// [1] - Heap stash
 				// [2] - scan_callbacks array
@@ -270,6 +327,7 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 		default:
 			break;
 	} // End of switch
+	ESP_LOGD(tag, "<< processEvent");
 } // processEvent
 
 
