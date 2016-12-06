@@ -98,6 +98,13 @@ void esp32_duktape_freeEvent(esp32_duktape_event_t *pEvent) {
 		return;
 	}
 
+	if (pEvent->type == ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED) {
+		if (pEvent->callbackRequested.data != NULL) {
+			free(pEvent->callbackRequested.data);
+		}
+		return;
+	}
+
 	ESP_LOGD(tag, "We have been asked to free an event of type %d but don't know how",
 		pEvent->type);
 } // esp32_duktape_freeEvent
@@ -172,10 +179,20 @@ void event_newTimerFiredEvent(unsigned long id) {
 	event.type = ESP32_DUKTAPE_EVENT_TIMER_FIRED;
 	event.timerFired.id = id;
 	postEvent(&event);
-} // newTimerFiredEvent
+} // event_newTimerFiredEvent
 
 void event_newWifiScanCompletedEvent() {
 	esp32_duktape_event_t event;
 	event.type = ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED;
 	postEvent(&event);
 } // event_newWifiScanCompletedEvent
+
+
+void event_newCallbackRequestedEvent(uint32_t callbackType, void *contextData, char *data) {
+	esp32_duktape_event_t event;
+	event.type = ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED;
+	event.callbackRequested.callbackType = callbackType;
+	event.callbackRequested.context = contextData;
+	event.callbackRequested.data = data;
+	postEvent(&event);
+} // event_newCallbackRequestedEvent

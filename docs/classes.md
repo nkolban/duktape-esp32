@@ -240,3 +240,54 @@ The arrayOfItems is an array of item objects where each item object contains
 }
 ```
 
+##FS
+
+Example:
+```
+var fd = FS.openSync("/spiffs/a");
+console.log("fd = " + fd);
+var buf = new Buffer(500);
+var i = FS.readSync(fd, buf, 0, buf.length, 0);
+console.log("We read " + i + " bytes: \"" + buf.toString("ascii", 0, i) + "\"");
+FS.closeSync(fd);
+```
+
+###closeSync
+Closes a previously opened file.
+
+Syntax:
+`closeSync(fileDescriptor)`
+
+###dump
+Dumps a listing of the file system to debug.
+
+Syntax:
+`dump()`
+
+
+###openSync
+Open a file for access.  The return is an integer file descriptor.
+
+Syntax:
+`openSync(path, flags)`
+
+* `path` - The path to the file to open.
+* `flags` - The flags used to describe how the file should be opened.
+  * `r`
+  * `r+`
+  * `w`
+  * `w+`
+  * `a`
+  * `a+`
+
+###readSync
+
+###writeSync
+Write data into a file.
+
+Syntax:
+`writeSync(fd, buffer, [offset [, length]])`
+
+Write the buffer into the file specified by the file descriptor.  If an `offset` is supplied, then
+write starting at the offset within the buffer.  If `length` is specified, then write the specified number
+of bytes into the file.

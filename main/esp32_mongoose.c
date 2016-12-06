@@ -7,6 +7,8 @@
 #include <esp_log.h>
 #include <mongoose.h>
 #include <duktape.h>
+#include <cJSON.h>
+#include "duktape_spiffs.h"
 #include "esp32_duktape/module_http.h"
 #include "esp32_duktape/duktape_event.h"
 #include "duktape_utils.h"
@@ -38,6 +40,8 @@ static char *mongoose_eventToString(int ev) {
 		return "MG_EV_RECV";
 	case MG_EV_HTTP_REQUEST:
 		return "MG_EV_HTTP_REQUEST";
+	case MG_EV_HTTP_REPLY:
+		return "MG_EV_HTTP_REPLY";
 	case MG_EV_MQTT_CONNACK:
 		return "MG_EV_MQTT_CONNACK";
 	case MG_EV_MQTT_CONNACK_ACCEPTED:
@@ -80,6 +84,14 @@ static char *mongoose_eventToString(int ev) {
 } //eventToString
 
 
+void mongoose_dump_http_message(struct http_message *msg) {
+	ESP_LOGD(tag, "http message dump");
+	ESP_LOGD(tag, " method: %.*s", msg->method.len, msg->method.p);
+	ESP_LOGD(tag, " uri: %.*s", msg->uri.len, msg->uri.p);
+	ESP_LOGD(tag, " resp_code: %d", msg->resp_code);
+	ESP_LOGD(tag, " body: %.*s", msg->body.len, msg->body.p);
+} // mongoose_dump_http_message
+
 // Convert a Mongoose string type to a string.
 static char *mgStrToStr(struct mg_str mgStr) {
 	char *retStr = (char *) malloc(mgStr.len + 1);
@@ -95,7 +107,7 @@ static char *mgStrToStr(struct mg_str mgStr) {
  * For MG_EV_HTTP_REQUEST - struct http_message. (https://docs.cesanta.com/mongoose/master/#/c-api/http.h/struct_http_message.md/)
  *
  */
-static void mongoose_event_handler(struct mg_connection *nc, int ev, void *evData) {
+static void event_handler(struct mg_connection *nc, int ev, void *evData) {
 	ESP_LOGD(tag, ">> mongoose_event_handler: [task=%s] %d %s",
 			pcTaskGetTaskName(NULL),
 			(uint32_t)nc->user_data,
@@ -117,6 +129,7 @@ static void mongoose_event_handler(struct mg_connection *nc, int ev, void *evDat
 			char *uri = mgStrToStr(message->uri);
 			char *method = mgStrToStr(message->method);
 			ESP_LOGD(tag, "- %s %s", method, uri);
+
 			if (strcmp(method, "OPTIONS") == 0) {
 				// Handle OPTIONS
 				mg_send_head(nc, 200, 0,
@@ -127,6 +140,7 @@ static void mongoose_event_handler(struct mg_connection *nc, int ev, void *evDat
 				free(uri);
 				free(method);
 			}
+
 			// If the command is POST /run then this is a request to execute the
 			// JavaScript supplied in the post body.
 			else if (strcmp(method, "POST") == 0 && strcmp(uri, "/run") ==0) {
@@ -138,7 +152,24 @@ static void mongoose_event_handler(struct mg_connection *nc, int ev, void *evDat
 				free(method);
 				mg_send_head(nc, 200, 0, "Access-Control-Allow-Origin: *");
 				nc->flags |= MG_F_SEND_AND_CLOSE;
-			}	else {
+			}
+
+			else if (strcmp(uri, "/spiffs/list") == 0) {
+				esp32_duktape_dump_spiffs_json();
+				mg_send_head(nc, 200, 0, "Access-Control-Allow-Origin: *");
+				nc->flags |= MG_F_SEND_AND_CLOSE;
+				free(uri);
+				free(method);
+			}
+
+			else if (strcmp(uri, "/spiffs/write") == 0 && strcmp(method, "POST") == 0) {
+				char *fileName = "name1.txt";
+				char *body = mgStrToStr(message->body);
+				esp32_duktape_spiffs_write(fileName, (uint8_t *)body, strlen(body));
+				free(body);
+				free(uri);
+				free(method);
+			} else {
 				event_newHTTPServerRequestEvent(uri, method);
 			}
 			break;
@@ -162,7 +193,7 @@ static void mongooseTask(void *data) {
 	mg_mgr_init(&mgr, NULL);
 
 	ESP_LOGD(tag, "Mongoose: Succesfully inited");
-	struct mg_connection *conn = mg_bind(&mgr, address, mongoose_event_handler);
+	struct mg_connection *conn = mg_bind(&mgr, address, event_handler);
 
 	ESP_LOGD(tag, "Mongoose: Successfully bound to address \"%s\"", address);
 	if (conn == NULL) {
@@ -263,11 +294,46 @@ void websocket_console_sendData(const char *message) {
 } // websocket_console_sendData
 
 
-static void mongoose_httpRequest_event_handler(struct mg_connection *nc, int ev, void *evData) {
-	ESP_LOGD(tag, ">> mongoose_httpRequest_event_handler: [task=%s] %d %s",
-			pcTaskGetTaskName(NULL),
-			(uint32_t)nc->user_data,
-			mongoose_eventToString(ev));
+static void event_handler_httpRequest(struct mg_connection *nc, int ev, void *evData) {
+	char *tmp;
+	ESP_LOGD(tag, ">> mongoose_httpRequest_event_handler: [task=%s] user_data=0x%x event=%s",
+		pcTaskGetTaskName(NULL),
+		(uint32_t)nc->user_data,
+		mongoose_eventToString(ev));
+	if (ev == MG_EV_RECV) {
+		ESP_LOGD(tag, "Number of bytes received: %d", *((int *)evData));
+	} // MG_EV_RECV
+
+	// We have received an HTTP reply from a previous request we have sent.  We must now
+	// post that request onto the event queue for it to be handled within the context
+	// of the main JS thread.  This means we need to save the data that was received
+	// as well as identify the callback context.
+	if (ev == MG_EV_HTTP_REPLY) {
+		struct http_message *msg = (struct http_message *)evData;
+		mongoose_dump_http_message(msg);
+		// Now we build the JSON string representing the data we want to send into
+		// Duktape
+		cJSON *obj = cJSON_CreateObject();
+
+		cJSON_AddStringToObject(obj, "method", tmp=mgStrToStr(msg->method));
+		free(tmp);
+		cJSON_AddStringToObject(obj, "body", tmp=mgStrToStr(msg->body));
+		free(tmp);
+		cJSON_AddNumberToObject(obj, "status", msg->resp_code);
+		char *jsonString = cJSON_PrintUnformatted(obj);
+		ESP_LOGD(tag, "Data to be passed to JS is %s", jsonString);
+
+
+		event_newCallbackRequestedEvent(99, // Callback type
+			nc->user_data, // Context data
+			jsonString // Call data
+		);
+
+		cJSON_Delete(obj);
+
+		nc->flags |= MG_F_CLOSE_IMMEDIATELY;
+	} // MG_EV_HTTP_REPLY
+
 	ESP_LOGD(tag, "<< mongoose_httpRequest_event_handler");
 } // mongoose_httpRequest_event_handler
 
@@ -278,6 +344,52 @@ static void mongoose_httpRequest_event_handler(struct mg_connection *nc, int ev,
  */
 void esp32_mongoose_sendHTTPRequest(const char *url) {
 	ESP_LOGD(tag, ">> esp32_mongoose_sendHTTPRequest");
-	mg_connect_http(&mgr, mongoose_httpRequest_event_handler, url, NULL /* Extra headers */, NULL /* post data */);
+	mg_connect_http(&mgr, event_handler_httpRequest, url, NULL /* Extra headers */, NULL /* post data */);
 	ESP_LOGD(tag, "<< esp32_mongoose_sendHTTPRequest");
 } // esp32_mongoose_sendHTTPRequest
+
+/**
+ * Process the MONGOOSE.request() JS function call.
+ * This is the lowest level of the HTTP processing stack.  This is where a mechanical
+ * call is made outbound from the ESP32 to the network.  We employ the services of
+ * mongoose to perform this task.
+ *
+ * [0] - URL - The URL to send the request to.
+ * [1] - Context object - A context object passed by the caller that will be
+ *       passed back in the callback event.  The caller **MUST** ensure that the context
+ *       object is not garbage collected.
+ */
+static duk_ret_t js_mongoose_http_request(duk_context *ctx) {
+	ESP_LOGD(tag, ">> js_mongoose_http_request");
+	const char *url = duk_get_string(ctx, 0);
+	ESP_LOGD(tag, " - HTTP call to \"%s\"", url);
+	struct mg_connection *cn = mg_connect_http(&mgr, event_handler_httpRequest, url, NULL /* Extra headers */, NULL /* post data */);
+	cn->user_data = duk_get_heapptr(ctx, 1); // Save the context object reference in the connection handle.
+	ESP_LOGD(tag, "<< js_mongoose_http_request");
+	return 0;
+} // js_mongoose_http_request
+
+
+void ModuleMONGOOSE(duk_context *ctx) {
+	duk_push_global_object(ctx);
+	// [0] - Global object
+
+	duk_idx_t idx = duk_push_object(ctx); // Create new MONGOOSE object
+	// [0] - Global object
+	// [1] - New object - MONGOOSE object
+
+	duk_push_c_function(ctx, js_mongoose_http_request, 2);
+	// [0] - Global object
+	// [1] - New object - MONGOOSE object
+	// [2] - C Function - js_mongoose_http_request
+
+	duk_put_prop_string(ctx, idx, "request"); // Add request to new RMT
+	// [0] - Global object
+	// [1] - New object - MONGOOSE object
+
+	duk_put_prop_string(ctx, 0, "MONGOOSE"); // Add RMT to global
+	// [0] - Global object
+
+	duk_pop(ctx);
+	// <Empty Stack>
+} // ModuleMONGOOSE

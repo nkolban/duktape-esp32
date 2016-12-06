@@ -26,6 +26,7 @@
 									<listOptionValue builtIn="false" value="&quot;${IDF_PATH}/components/vfs/include&quot;"/>
 									<listOptionValue builtIn="false" value="/opt/xtensa-esp32-elf/xtensa-esp32-elf/include/c++/4.8.5"/>
 									<listOptionValue builtIn="false" value="&quot;${IDF_PATH}/components/spi_flash/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${IDF_PATH}/components/json/include&quot;"/>
 								</option>
 								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.1584592142" languageId="org.eclipse.cdt.core.assembly" languageName="Assembly" sourceContentType="org.eclipse.cdt.core.asmSource" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
 							</tool>
@@ -44,6 +45,7 @@
 									<listOptionValue builtIn="false" value="/opt/xtensa-esp32-elf/xtensa-esp32-elf/include/c++/4.8.5"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/myapp/build/include}&quot;"/>
 									<listOptionValue builtIn="false" value="/opt/xtensa-esp32-elf/lib/gcc/xtensa-esp32-elf/4.8.5/include"/>
+									<listOptionValue builtIn="false" value="&quot;${IDF_PATH}/components/json/include&quot;"/>
 								</option>
 								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.842764018" languageId="org.eclipse.cdt.core.g++" languageName="GNU C++" sourceContentType="org.eclipse.cdt.core.cxxSource,org.eclipse.cdt.core.cxxHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
 							</tool>
@@ -58,6 +60,7 @@
 									<listOptionValue builtIn="false" value="&quot;${IDF_PATH}/components/tcpip_adapter/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${IDF_PATH}/components/lwip/include/lwip&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${IDF_PATH}/components/vfs/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${IDF_PATH}/components/json/include&quot;"/>
 									<listOptionValue builtIn="false" value="/opt/xtensa-esp32-elf/lib/gcc/xtensa-esp32-elf/4.8.5/include"/>
 									<listOptionValue builtIn="false" value="/opt/xtensa-esp32-elf/xtensa-esp32-elf/include/c++/4.8.5"/>
 									<listOptionValue builtIn="false" value="&quot;${IDF_PATH}/components/spi_flash/include&quot;"/>

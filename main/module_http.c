@@ -1,4 +1,8 @@
 #include "esp32_duktape/module_http.h"
+#include <esp_log.h>
+#include "sdkconfig.h"
+
+static char tag[] = "module_http";
 
 /**
  * The options parameter is an object which contains the details of
@@ -15,6 +19,8 @@
  * [1] - Callback function
  */
 static duk_ret_t js_http_request(duk_context *ctx) {
+	ESP_LOGD(tag, ">> js_http_request");
+	ESP_LOGD(tag, "<< js_http_request");
 	return 0;
 }
 
@@ -34,7 +40,7 @@ void ModuleHTTP(duk_context *ctx) {
 	// [1] - New object - HTTP object
 	// [2] - C Function - js_rmt_txConfig
 
-	duk_put_prop_string(ctx, idx, "request"); // Add something to new HTTP
+	duk_put_prop_string(ctx, idx, "requestC"); // Add something to new HTTP
 	// [0] - Global object
 	// [1] - New object - HTTP object
 

@@ -8,15 +8,20 @@
 #include <esp_err.h>
 #include <esp_wifi.h>
 #include <duktape.h>
+#include <spiffs.h>
+#include <esp_spiffs.h>
 #include "esp32_duktape/duktape_event.h"
 #include "esp32_duktape/module_timers.h"
 #include "modules.h"
 #include "telnet.h"
 #include "duktape_utils.h"
 #include "duktape_task.h"
+#include "duktape_spiffs.h"
 #include "sdkconfig.h"
 
 static char tag[] = "duktape_task";
+
+
 
 // The Duktape context.
 duk_context *esp32_duk_context;
@@ -33,6 +38,7 @@ void duktape_init_environment() {
 	}
 
 	esp32_duk_context = duk_create_heap_default();	// Create the Duktape context.
+	esp32_duktape_stash_init(esp32_duk_context); // Initialize the stash environment.
 	registerModules(esp32_duk_context); // Register the built-in modules
 
 	// Print a console logo.
@@ -174,6 +180,63 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 
 		case ESP32_DUKTAPE_EVENT_TIMER_CLEARED: {
 			ESP_LOGD(tag, "Process a timer cleared event");
+			break;
+		}
+
+		case ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: {
+			ESP_LOGD(tag, "Process a callback requested event: callbackType=%d, contextData=0x%x, callData=0x%x",
+				pEvent->callbackRequested.callbackType,
+				(uint32_t)pEvent->callbackRequested.context,
+				(uint32_t)pEvent->callbackRequested.data
+			);
+			// Now that we have a callback request, we pass control back into JS by calling a JS
+			// function.  The JS function we call is a global called "eventCallback".
+			duk_push_global_object(esp32_duk_context);
+			// [0] - Global object
+
+			if (duk_get_prop_string(esp32_duk_context, -1, "eventCallback")) {
+				// [0] - Global object <object>
+				// [1] - eventCallback <function>
+
+				duk_push_int(esp32_duk_context, pEvent->callbackRequested.callbackType);
+				// [0] - Global object <object>
+				// [1] - eventCallback <function>
+				// [2] - callbackType <number>
+
+				duk_push_heapptr(esp32_duk_context, pEvent->callbackRequested.context);
+				// [0] - Global object <object>
+				// [1] - eventCallback <function>
+				// [2] - callbackType <number>
+				// [3] - context <object>
+
+				duk_push_string(esp32_duk_context, (char *)pEvent->callbackRequested.data);
+				// [0] - Global object <object>
+				// [1] - eventCallback <function>
+				// [2] - callbackType <number>
+				// [3] - context <object>
+				// [4] - data <String>
+
+				duk_json_decode(esp32_duk_context, -1);
+				// [0] - Global object <object>
+				// [1] - eventCallback <function>
+				// [2] - callbackType <number>
+				// [3] - context <object>
+				// [4] - data <Object>
+
+
+				duk_pcall(esp32_duk_context, 3 /* Number of parms */);
+				// [0] - Global object <object>
+				// [1] - result
+			} else {
+				ESP_LOGD(tag, "Unable to find global function called eventCallback");
+
+				duk_pop(esp32_duk_context);
+				// [0] - Global object
+				// [1] - undefined
+			}
+			duk_pop_2(esp32_duk_context);
+			// Empty Stack
+
 			break;
 		}
 
@@ -331,6 +394,9 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 } // processEvent
 
 
+
+
+
 /**
  * Start the duktape processing.
  *
@@ -346,8 +412,12 @@ void duktape_task(void *ignore) {
 
 	ESP_LOGD(tag, ">> duktape_task");
 
+	// Mount the SPIFFS file system.
+	esp32_duktape_spiffs_mount();
+
 	duktape_init_environment();
 	// From here on, we have a Duktape context ...
+
 
 	lastTop = duk_get_top(esp32_duk_context); // Get the last top value of the stack from which we will use to check for leaks.
 

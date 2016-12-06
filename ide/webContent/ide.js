@@ -1,6 +1,11 @@
+/**
+ * This is the IDE for ESP32-Duktape
+ */
 $(document).ready(function() {
+	
 	var consoleConnected = false; // Is the console web socket connected?
 	var settings;
+	
 	if (localStorage.settings) {
 		settings = JSON.parse(localStorage.settings);
 	} else {
@@ -46,7 +51,7 @@ $(document).ready(function() {
 		ws.onclose = function() {
 			$("#newWebSocket").button("enable");
 			$("#console").prop("disabled", true);
-			consoleConnect = false;
+			consoleConnected = false;
 		}
 		ws.onopen = function() {
 			consoleConnected = true;

@@ -282,4 +282,6 @@ void registerModules(duk_context *ctx) {
 	assert(top == duk_get_top(ctx));
 	ModulePARTITIONS(ctx);
 	assert(top == duk_get_top(ctx));
+	ModuleMONGOOSE(ctx);
+	assert(top == duk_get_top(ctx));
 } // End of registerModules
