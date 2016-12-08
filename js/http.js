@@ -76,7 +76,7 @@ function streams() {
 			}
 		}, // write()
 		end: function(data) {
-			if (data !== null) {
+			if (data !== null && data !== undefined) {
 				this.write(data);
 			}
 			end = true;
@@ -127,25 +127,29 @@ function eventCallback(callbackType, contextData, appData) {
    console.log("body: " + appData.body + "\n");
    console.log("As JSON: " + JSON.stringify(appData) + "\n");
    var s = new streams();
-   contextData(s.reader);
-   s.writer.write(body);
+   var response = s.reader;
+   response.statusCode = appData.status;
+   contextData(response);
+   s.writer.write(appData.body);
    s.writer.end();
 }
 
 var http = {
 	_counter: 1,
 	_stash: {},
-	request: function(uri, responseCallback) {
+	request: function(options, responseCallback) {
 		// Invoke Mongoose!
 		this._stash[this._counter] = responseCallback;
 		this._counter++;
+		var uri = "http://" + options.host + options.path;
 		MONGOOSE.request(uri, responseCallback);
 	}
 };
 
 http.request("http://httpbin.org/get", function(response) {
-	console.log("Response callback called!: " + response);
+	console.log("Response callback called!: " + response + "\n");
 	response.on("data", function(d) {
-		console.log("And here is the data! " + d);
+		console.log("And here is the data! " + d + "\n");
 	});
+	console.log("Status is " + response.statusCode + "\n");
 });

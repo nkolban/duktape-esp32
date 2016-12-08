@@ -310,29 +310,33 @@ static duk_ret_t js_timers_setTimeout(duk_context *ctx) {
  * Run the function associated with the timer.
  */
 void timers_runTimer(duk_context *ctx, unsigned long id) {
-
+	duk_int_t callRc;
 	// Push the heapStash onto the stack.
 	// Push the timers object onto the stack.
 	// Get the function that is associated with the timers object.
 	// Call the function
 
-	// [0] - heap stash
 	duk_push_heap_stash(ctx);
+	// [0] - heap stash
 
+	duk_get_prop_string(ctx, -1, "timers");
 	// [0] - heap stash
 	// [1] - timers
-	duk_get_prop_string(ctx, -1, "timers");
 
+	duk_push_int(ctx, id);
 	// [0] - heap stash
 	// [1] - timers
 	// [2] - key (timer id)
-	duk_push_int(ctx, id);
 
+	// Call the function in the timers object which has a property name of "id".
+	callRc = duk_pcall_prop(ctx, -2, 0 /* Number of arguments */);
 	// [0] - heap stash
 	// [1] - timers (-2)
 	// [2] - retVal (-1)
-	// Call the function in the timers object which has a property name of "id".
-	duk_call_prop(ctx, -2, 0);
+	if (callRc != 0) {
+		ESP_LOGD(tag, "Error detected running timer function!");
+		esp32_duktape_log_error(ctx);
+	}
 
 	// <empty>
 	duk_pop_3(ctx);

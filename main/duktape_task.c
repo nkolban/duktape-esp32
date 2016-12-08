@@ -111,14 +111,19 @@ static char *authModeToString(wifi_auth_mode_t mode) {
  * * ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED - A WiFi scan has completed.
  */
 void processEvent(esp32_duktape_event_t *pEvent) {
+	duk_int_t callRc;
 	ESP_LOGD(tag, ">> processEvent");
 	switch(pEvent->type) {
 		// Handle a new command line submitted to us.
 		case ESP32_DUKTAPE_EVENT_COMMAND_LINE: {
 			ESP_LOGD(tag, "We are about to eval: %.*s", pEvent->commandLine.commandLineLength, pEvent->commandLine.commandLine);
-			duk_peval_lstring(esp32_duk_context,
-				pEvent->commandLine.commandLine, pEvent->commandLine.commandLineLength);
+			callRc = duk_peval_lstring(esp32_duk_context,	pEvent->commandLine.commandLine, pEvent->commandLine.commandLineLength);
 			// [0] - result
+
+// If an error was detected, perform error logging.
+			if (callRc != 0) {
+				esp32_duktape_log_error(esp32_duk_context);
+			}
 
 			// If we executed from a keyboard, send keyboard user response.
 			if (pEvent->commandLine.fromKeyboard) {
@@ -184,6 +189,8 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 		}
 
 		case ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: {
+			duk_int_t callRc;
+
 			ESP_LOGD(tag, "Process a callback requested event: callbackType=%d, contextData=0x%x, callData=0x%x",
 				pEvent->callbackRequested.callbackType,
 				(uint32_t)pEvent->callbackRequested.context,
@@ -223,10 +230,12 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 				// [3] - context <object>
 				// [4] - data <Object>
 
-
-				duk_pcall(esp32_duk_context, 3 /* Number of parms */);
+				callRc = duk_pcall(esp32_duk_context, 3 /* Number of parms */);
 				// [0] - Global object <object>
 				// [1] - result
+				if (callRc != 0) {
+					esp32_duktape_log_error(esp32_duk_context);
+				}
 			} else {
 				ESP_LOGD(tag, "Unable to find global function called eventCallback");
 

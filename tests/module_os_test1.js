@@ -1,0 +1,10 @@
+console.log("Hello World\n");var sockfd = OS.socket().sockfd;
+console.log("sockfd = " + sockfd + "\n");
+OS.bind({port: 8887, sockfd: sockfd});
+OS.listen({sockfd: sockfd});
+OS.select({readfds: [sockfd], writefds: [], exceptfds: []});
+ret = OS.accept({sockfd: sockfd});
+console.log(ret.sockfd);
+OS.close({sockfd: sockfd});
+OS.close({sockfd: ret.sockfd});
+console.log("Done!\n");

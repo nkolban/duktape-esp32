@@ -14,6 +14,35 @@ static int g_reset = 0;
 
 static uint32_t g_stashCounter = 1;
 
+/**
+ *
+Property
+name	  Compatibility	Description
+name	     standard	 Name of error, e.g. TypeError, inherited
+message	   standard	 Optional message of error, own property, empty message inherited if absent
+fileName	 Rhino     Filename related to error source, inherited accessor
+lineNumber Rhino     Linenumber related to error source, inherited accessor
+stack	     V8        Traceback as a multi-line human redable string, inherited accessor
+ */
+void esp32_duktape_log_error(duk_context *ctx) {
+	duk_idx_t errObjIdx = duk_get_top_index(ctx);
+	duk_get_prop_string(ctx, errObjIdx, "name");
+	duk_get_prop_string(ctx, errObjIdx, "message");
+	duk_get_prop_string(ctx, errObjIdx, "lineNumber");
+	duk_get_prop_string(ctx, errObjIdx, "stack");
+	// [0] - Err
+	// [1] - name
+	// [2] - message
+	// [3] - lineNumber
+	// [4] - Stack
+	ESP_LOGD(tag, "Error: %s: %s\nline: %d\nStack: %s", duk_get_string(ctx, -4),
+			duk_get_string(ctx, -3),
+			duk_get_int(ctx, -2),
+			duk_get_string(ctx, -1));
+	duk_pop_n(ctx, 4);
+	// [0] - Err
+}
+
 void esp32_duktape_stash_init(duk_context *ctx) {
 	g_stashCounter = 1;
 	duk_push_global_object(ctx);

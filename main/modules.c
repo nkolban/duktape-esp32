@@ -13,6 +13,7 @@
 #include "esp32_duktape/module_http.h"
 #include "esp32_duktape/module_wifi.h"
 #include "esp32_duktape/module_partitions.h"
+#include "esp32_duktape/module_os.h"
 #include "esp32_mongoose.h"
 #include "duktape_utils.h"
 #include "duk_trans_socket.h"
@@ -63,11 +64,13 @@ static duk_ret_t js_esp32_load(duk_context *ctx) {
 	return 0;
 } //js_esp32_load
 
+
 typedef struct {
 	char *id;
 	duk_c_function func;
 	int paramCount;
 } functionTableEntry_t;
+
 
 functionTableEntry_t functionTable[] = {
 		{"startMongoose",          js_startMongoose, 1},
@@ -162,12 +165,30 @@ static duk_ret_t js_esp32_debug(duk_context *ctx) {
 	return 0;
 } // js_esp32_debug
 
+
+/**
+ * Write a log record to the debug output stream.  Exposed
+ * as the global log("message").
+ */
+static duk_ret_t js_global_log(duk_context *ctx) {
+	ESP_LOGD("debug", "%s", duk_get_string(ctx, -1));
+	return 0;
+} // js_global_log
+
+
 /**
  * Define the static module called "ModuleConsole".
  */
 static void ModuleConsole(duk_context *ctx) {
 
 	duk_push_global_object(ctx);
+	// [0] Global Object
+
+	duk_push_c_function(ctx, js_global_log, 1);
+	// [0] Global Object
+	// [1] C Function - js_global_log
+
+	duk_put_prop_string(ctx, -2, "log"); // Add log to new console
 	// [0] Global Object
 
 	duk_push_object(ctx); // Create new console object
@@ -179,11 +200,9 @@ static void ModuleConsole(duk_context *ctx) {
 	// [1] New object
 	// [2] c-function - js_console_log
 
-
 	duk_put_prop_string(ctx, -2, "log"); // Add log to new console
 	// [0] Global Object
 	// [1] New object
-
 
 	duk_put_prop_string(ctx, -2, "console"); // Add console to global
 	// [0] Global Object
@@ -217,7 +236,6 @@ static void ModuleESP32(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object
 	// [2] - c-function - js_esp32_reset
-
 
 	duk_put_prop_string(ctx, -2, "reset"); // Add reset to new ESP32
 	// [0] - Global object
@@ -283,5 +301,7 @@ void registerModules(duk_context *ctx) {
 	ModulePARTITIONS(ctx);
 	assert(top == duk_get_top(ctx));
 	ModuleMONGOOSE(ctx);
+	assert(top == duk_get_top(ctx));
+	ModuleOS(ctx);
 	assert(top == duk_get_top(ctx));
 } // End of registerModules

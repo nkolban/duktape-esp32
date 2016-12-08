@@ -26,6 +26,12 @@ When we wish to send an outbound HTTP request we will call
 
 `http.get(options, callback)`
 
+or generically:
+
+`http.request(options [,callback])`
+
+
+
 The `options` describe the target of the request and at a minimum will contain:
 
 * `host`
@@ -39,6 +45,10 @@ The `response` will be a stream based object and hence have:
 * `on("data", callback)`
 * `on("end", callback)`
 * `read()`
+
+It will also have properties:
+
+* `statusCode`
 
 Thinking about the implementation of our solution, a response from the HTTP server can come at any time
 and hence we have to add the response as an event to be processed by JS when it can.  Now we have the issue
