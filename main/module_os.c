@@ -1,3 +1,6 @@
+/**
+ * Mapping from JavaScript (Duktape) to the underling OS (ESP-IDF)
+ */
 #include "esp32_duktape/module_os.h"
 #include "duktape.h"
 #include <esp_log.h>
@@ -9,31 +12,37 @@
 static char tag[] = "module_os";
 
 /**
+ * Create a new socket.
+ * The is no input to this function.
+ *
  * The return is an object that contains:
  * * sockfd - The socket file descriptor.
  */
 static duk_ret_t js_os_socket(duk_context *ctx) {
 	ESP_LOGD(tag, ">> js_os_socket");
-	int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (s < 0) {
-		ESP_LOGE(tag, "Error with socket: %d: %d - %s", s, errno, strerror(errno));
+	int sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sockfd < 0) {
+		ESP_LOGE(tag, "Error with socket: %d: %d - %s", sockfd, errno, strerror(errno));
 	} else {
-		ESP_LOGD(tag, "New socket fd=%d", s);
+		ESP_LOGD(tag, "New socket fd=%d", sockfd);
 	}
-	setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
+	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
 	//fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NONBLOCK); // Set the socket to be non blocking.
 	duk_push_object(ctx);
-	duk_push_int(ctx, s);
+	duk_push_int(ctx, sockfd);
 	duk_put_prop_string(ctx, -2, "sockfd");
 	ESP_LOGD(tag, "<< js_os_socket");
 	return 1;
-}
+} // js_os_socket
+
 
 /**
  * Send data to a partner socket.  The input to this function is a
  * parameter object that contains:
  * - sockfd - The socket file descriptor we will use to send data.
- * - data - A buffer that contains the data we wish to send.
+ * - data - A buffer or string that contains the data we wish to send.
+ *
+ * The return is the return code from the underlying OS send().
  */
 static duk_ret_t js_os_send(duk_context *ctx) {
 	ssize_t sendRc;
@@ -59,13 +68,23 @@ static duk_ret_t js_os_send(duk_context *ctx) {
 		return 0;
 	}
 
-	data = duk_get_buffer_data(ctx, -1, &size);
-	if (size == 0) {
-		ESP_LOGE(tag, "js_os_send: The data buffer is zero length.");
-		return 0;
+	// If the data is a string, then the string is the data to transmit else it
+	// is a buffer and the content of the buffer is the data to transmit,
+	if (duk_is_string(ctx, -1)) {
+		data = (void *)duk_get_string(ctx, -1);
+		size = strlen(data);
+	} else {
+		data = duk_get_buffer_data(ctx, -1, &size);
+		if (size == 0) {
+			ESP_LOGE(tag, "js_os_send: The data buffer is zero length.");
+			return 0;
+		}
 	}
+
 	ESP_LOGD(tag, "About to send %d bytes of data to sockfd=%d", size, sockfd);
+	ESP_LOGD(tag, "- %.*s", size, (char *)data);
 	sendRc = send(sockfd, data, size, 0);
+
 	if (sendRc < 0) {
 		ESP_LOGE(tag, "Error with send: %d: %d - %s", sendRc, errno, strerror(errno));
 	}
@@ -76,9 +95,12 @@ static duk_ret_t js_os_send(duk_context *ctx) {
 
 
 /**
+ * Receive data from the socket.
  * The input is a parameters object that contains:
  * - sockfd - The socket we are to read from.
  * - data - A buffer used to hold the received data.
+ *
+ * The return is the amount of data actually received.
  */
 static duk_ret_t js_os_recv(duk_context *ctx) {
 	duk_size_t size;
@@ -123,9 +145,10 @@ static duk_ret_t js_os_recv(duk_context *ctx) {
 	duk_push_int(ctx, recvRc);
 	ESP_LOGD(tag, "<< js_os_recv");
 	return 1;
-}
+} // js_os_recv
 
 /**
+ * Close the socket.
  * [0] - Params object
  * - sockfd: The socket to close.
  */
@@ -141,12 +164,15 @@ static duk_ret_t js_os_closesocket(duk_context *ctx) {
 	int sockfd = duk_get_int(ctx, -1);
 	duk_pop(ctx);
 	closesocket(sockfd);
-	return 1;
-}
+	return 0;
+} // js_os_closesocket
 
 /**
+ * Close the socket.
  * [0] - Params object
  * - sockfd: The socket to close.
+ *
+ * There is no return code.
  */
 static duk_ret_t js_os_close(duk_context *ctx) {
 	ESP_LOGD(tag, ">> js_os_close");
@@ -160,16 +186,19 @@ static duk_ret_t js_os_close(duk_context *ctx) {
 	}
 	int sockfd = duk_get_int(ctx, -1);
 	duk_pop(ctx);
+
 	ESP_LOGD(tag, "About to close fd=%d", sockfd);
 	int rc = close(sockfd);
 	if (rc < 0) {
 		ESP_LOGE(tag, "Error with close: %d: %d - %s", rc, errno, strerror(errno));
 	}
+
 	ESP_LOGD(tag, "<< js_os_close");
 	return 0;
-}
+} // js_os_close
 
 /**
+ * Bind a socket to an address
  * [0] - Params object
  * - port: The port to bind to.
  * - sockfd: The socket to bind.
@@ -206,10 +235,11 @@ static duk_ret_t js_os_bind(duk_context *ctx) {
 	}
 	ESP_LOGD(tag, "<< js_os_bind");
 	return 0;
-}
+} // js_os_bind
 
 
 /**
+ * Listen on a server socket.
  * [0] - Params object
  * - sockfd: The socket to bind.
  */
@@ -239,9 +269,11 @@ static duk_ret_t js_os_listen(duk_context *ctx) {
 	}
 	ESP_LOGD(tag, "<< js_os_listen");
 	return 0;
-}
+} // js_os_listen
+
 
 /**
+ * Connect to a remote network partner.
  * The input is an options parameter object containing:
  * - sockfd - The socket file descriptor.
  * - address - The target address.
@@ -312,6 +344,7 @@ static duk_ret_t js_os_connect(duk_context *ctx) {
 
 
 /**
+ * Accept an incoming client request.
  * [0] - Parms Object
  *  - sockfd - The socket fd.
  *
@@ -343,13 +376,16 @@ static duk_ret_t js_os_accept(duk_context *ctx) {
 	duk_put_prop_string(ctx, -2, "sockfd");
 	ESP_LOGD(tag, "<< js_os_accept");
 	return 1;
-}
+} // js_os_accept
+
 
 /**
+ * Select from an array of sockets.
  * [0] - Parms object
  *  - readfds - read socket array
  *  - writefds - write socket array
  *  - exceptfds - exception socket array
+ *  Logging is Verbose as it is heavily trafficed.
  */
 static duk_ret_t js_os_select(duk_context *ctx) {
 	duk_size_t arraySize;
@@ -363,7 +399,7 @@ static duk_ret_t js_os_select(duk_context *ctx) {
 	int max = -1;
 	int i, idx;
 
-	ESP_LOGD(tag, ">> js_os_select");
+	ESP_LOGV(tag, ">> js_os_select");
 	if (!duk_is_object(ctx, -1)) {
 		ESP_LOGE(tag, "js_os_select: No parameters object found.");
 		return 0;
@@ -461,14 +497,14 @@ static duk_ret_t js_os_select(duk_context *ctx) {
 	struct timeval tv;
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
-	ESP_LOGD(tag, " - select(%d, count=%d, count=%d, count=%d...)", max+1, readfdsCount, writefdsCount, exceptfdsCount);
-	ESP_LOGD(tag, " - readfds: 0x%x", (int)(readfds.fds_bits[0]));
+	ESP_LOGV(tag, " - select(%d, count=%d, count=%d, count=%d...)", max+1, readfdsCount, writefdsCount, exceptfdsCount);
+	ESP_LOGV(tag, " - readfds: 0x%x", (int)(readfds.fds_bits[0]));
 	int rc = select(max+1, &readfds, &writefds, &exceptfds, &tv);
 	if (rc < 0) {
 		ESP_LOGE(tag, "Error with select: %d: %d - %s", rc, errno, strerror(errno));
 		return 0;
 	}
-	ESP_LOGD(tag, "- rc from select = %d - readfds=0x%x, writefds=0x%x, exceptfds=0x%x", rc,
+	ESP_LOGV(tag, "- rc from select = %d - readfds=0x%x, writefds=0x%x, exceptfds=0x%x", rc,
 			(int)(readfds.fds_bits[0]), (int)(writefds.fds_bits[0]), (int)(exceptfds.fds_bits[0]));
 
 	/**
@@ -522,15 +558,16 @@ static duk_ret_t js_os_select(duk_context *ctx) {
 		free(exceptfdsArray);
 	}
 
-	ESP_LOGD(tag, "<< js_os_select");
+	ESP_LOGV(tag, "<< js_os_select");
 	return 1;
-}
+} // js_os_select
 
 
 /**
  * Create the OS module in Global.
  */
 void ModuleOS(duk_context *ctx) {
+
 	duk_push_global_object(ctx);
 	// [0] - Global object
 
@@ -633,4 +670,4 @@ void ModuleOS(duk_context *ctx) {
 
 	duk_pop(ctx);
 	// <Empty Stack>
-} // ModuleHTTP
+} // ModuleOS

@@ -9,6 +9,7 @@
 #include <esp_wifi.h>
 #include <duktape.h>
 #include <spiffs.h>
+#include <esp_system.h>
 #include <esp_spiffs.h>
 #include "esp32_duktape/duktape_event.h"
 #include "esp32_duktape/module_timers.h"
@@ -18,6 +19,7 @@
 #include "duktape_task.h"
 #include "duktape_spiffs.h"
 #include "sdkconfig.h"
+#include "esp32_memory.h"
 
 static char tag[] = "duktape_task";
 
@@ -112,7 +114,7 @@ static char *authModeToString(wifi_auth_mode_t mode) {
  */
 void processEvent(esp32_duktape_event_t *pEvent) {
 	duk_int_t callRc;
-	ESP_LOGD(tag, ">> processEvent");
+	ESP_LOGV(tag, ">> processEvent");
 	switch(pEvent->type) {
 		// Handle a new command line submitted to us.
 		case ESP32_DUKTAPE_EVENT_COMMAND_LINE: {
@@ -178,8 +180,10 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 		}
 
 		case ESP32_DUKTAPE_EVENT_TIMER_FIRED: {
-			ESP_LOGD(tag, "Process a timer fired event: %lu", pEvent->timerFired.id);
+			ESP_LOGV(tag, "Process a timer fired event: %lu", pEvent->timerFired.id);
+			HEAP_CHANGE_START();
 			timers_runTimer(esp32_duk_context, pEvent->timerFired.id);
+			HEAP_CHANGE_END();
 			break;
 		}
 
@@ -397,9 +401,10 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 		}
 
 		default:
+			ESP_LOGD(tag, "Unknown event type seen: %d", pEvent->type);
 			break;
 	} // End of switch
-	ESP_LOGD(tag, "<< processEvent");
+	ESP_LOGV(tag, "<< processEvent");
 } // processEvent
 
 
@@ -430,15 +435,29 @@ void duktape_task(void *ignore) {
 
 	lastTop = duk_get_top(esp32_duk_context); // Get the last top value of the stack from which we will use to check for leaks.
 
+	/*
+	while(1) {
+		ESP_LOGD(tag,"A: Heap: %d", esp_get_free_heap_size());
+		ESP_LOGD(tag,"B: Heap: %d", esp_get_free_heap_size());
+		duk_get_top(esp32_duk_context);
+		ESP_LOGD(tag,"C: Heap: %d", esp_get_free_heap_size());
+		ESP_LOGD(tag,"D: Heap: %d", esp_get_free_heap_size());
+		vTaskDelay(1000/portTICK_PERIOD_MS);
+	}
+	*/
 	//
 	// Master JavaScript loop.
 	//
 	while(1) {
+
 		rc = esp32_duktape_waitForEvent(&esp32_duktape_event);
 		if (rc != 0) {
+			//HEAP_CHANGE_START();
 			processEvent(&esp32_duktape_event);
+			//HEAP_CHANGE_END();
 			esp32_duktape_freeEvent(&esp32_duktape_event);
 		}
+
 
 		// If we have been requested to reset the environment
 		// then do that now.
@@ -452,6 +471,7 @@ void duktape_task(void *ignore) {
 			esp32_duktape_dump_value_stack(esp32_duk_context);
 			lastTop = duk_get_top(esp32_duk_context);
 		} // End of check for value stack leakage.
+		taskYIELD();
 
 	} // End while loop.
 

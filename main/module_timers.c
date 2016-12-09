@@ -32,6 +32,7 @@
 
 #include "c_list.h"
 #include "c_timeutils.h"
+#include "esp32_memory.h"
 
 #include "duktape_utils.h"
 #include "esp32_duktape/module_timers.h"
@@ -93,18 +94,14 @@ static void deleteTimer(duk_context *ctx, unsigned long id) {
 	// <empty>
 	duk_pop_2(ctx);
 
-	list_deleteList(timerList, 1 /* with free */);
-	timerList = list_createList();
-	/*
 	list_t *pListRecord = list_first(timerList);
 	while(pListRecord != NULL) {
 		if (((timer_record_t *)pListRecord->value)->id == id) {
 			list_delete(timerList, pListRecord, 1);
-			return;
+			break;
 		}
 		pListRecord = list_next(pListRecord);
 	} // End while
-	*/
 } // deleteTimer
 
 
@@ -172,6 +169,7 @@ static duk_ret_t js_timers_clearInterval(duk_context *ctx) {
 	 */
 	ESP_LOGD(tag, ">> js_timers_clearInterval");
 	duk_int_t timeoutId = duk_get_int(ctx, 0);
+	ESP_LOGD(tag, " - Clearing interval timer with id: %d", timeoutId);
 	deleteTimer(ctx, timeoutId);
 	event_newTimerClearedEvent(timeoutId);
 	ESP_LOGD(tag, "<< js_timers_clearInterval");
@@ -223,42 +221,45 @@ static unsigned long setTimer(duk_context *ctx, bool isInterval) {
 	// We want to add the function that is at ctx[0] to the property of the
 	// <heapStash>.timers object with the name of the "id"
 
+
+	duk_push_heap_stash(ctx);
 	// [0] - function
 	// [1] - number
 	// [2] - heap stash
-	duk_push_heap_stash(ctx);
 
-
+	duk_get_prop_string(ctx, -1, "timers"); // -3
 	// [0] - function
 	// [1] - number
 	// [2] - heap stash
 	// [3] - timers
-	duk_get_prop_string(ctx, -1, "timers"); // -3
 
+	duk_push_int(ctx, id);
 	// [0] - function
 	// [1] - number
 	// [2] - heap stash
 	// [3] - timers
 	// [4] - id
-	duk_push_int(ctx, id);
 
+
+	duk_dup(ctx, 0);
 	// [0] - function
 	// [1] - number
 	// [2] - heap stash
 	// [3] - timers (-3)
 	// [4] - id (-2)
 	// [5] - function (-1)
-	duk_dup(ctx, 0);
 
+
+	duk_put_prop(ctx, -3);
 	// [0] - function
 	// [1] - number
 	// [2] - heap stash
 	// [3] - timers
-	duk_put_prop(ctx, -3);
 
+
+	duk_pop_2(ctx);
 	// [0] - function
 	// [1] - number
-	duk_pop_2(ctx);
 
 	duk_int_t delayMsecs = duk_get_int(ctx, 1);
 
@@ -328,8 +329,11 @@ void timers_runTimer(duk_context *ctx, unsigned long id) {
 	// [1] - timers
 	// [2] - key (timer id)
 
+
 	// Call the function in the timers object which has a property name of "id".
+	HEAP_CHANGE_START();
 	callRc = duk_pcall_prop(ctx, -2, 0 /* Number of arguments */);
+	HEAP_CHANGE_END();
 	// [0] - heap stash
 	// [1] - timers (-2)
 	// [2] - retVal (-1)

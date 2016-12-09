@@ -24,7 +24,7 @@ var net = {
 			remotePort: null,
 			localPort: null,
 			write: function(data) {
-				_callC("write", data);
+				OS.send({sockfd: this._sockfd, data: data});
 			},
 			end: function(data) {
 				_callC("write", data);
@@ -88,6 +88,45 @@ var net = {
 
 };
 
+var http = {
+	request: function(options, callback) {
+		if (options.address === undefined) {
+			log("http.request: No address set");
+			return;
+		}
+		
+		if (options.path === undefined) {
+			options.path = "/";
+		}
+
+
+		if (options.port === undefined) {
+			options.port = 80;
+		}
+		
+		var sock = new net.Socket();
+		var clientRequest = {
+			_sock: sock	
+		};
+		callback(sock);
+		var message = "";
+		sock.connect(options, function() {
+			// We are now connected ... send the HTTP message
+			var requestMessage = "GET " + options.path + " HTTP/1.0\r\n" + 
+			"User-Agent: ESP32-Duktape\r\n" +
+			"\r\n";
+			sock.write(requestMessage);
+		});
+		sock.on("data", function(data) {
+			message += data.toString();
+		});
+		sock.on("end", function() {
+			log("HTTP session over ... data is: " + message);
+		});
+		return clientRequest;
+	}
+};
+
 function testServer() {
 	var server = net.createServer(function(sock) {
 		console.log("A new connection was received!");
@@ -103,10 +142,21 @@ function testClient() {
 	var address = "54.175.219.8"; // httpbin.org
 	var client = net.connect({address: address, port: 80}, function() {
 		log("We have connected!");
+		client.on("data", function(data) {
+			log("We have received new data over the socket! :" + data.toString());
+		});
 	});
 }
 
-testClient();
+function testHTTPClient() {
+	var address = "54.175.219.8"; // httpbin.org
+	var clientRequest = http.request({address: address, port: 80, path: "/get"}, function(response) {
+		log("HTTP Response ready ...");
+	});
+}
+
+ESP32.setLogLevel("*", "debug");
+testHTTPClient();
 
 /**
  * Primary loop that processes events.
@@ -115,6 +165,7 @@ testClient();
 function loop() {
 	// Process the file descriptors for sockets.  We build an array that contains
 	// the set of file descriptors corresponding to the sockets that we wish to read from.
+	return;
 	var readfds = [];
 	var writefds = [];
 	for (var sock in _sockets) {
@@ -164,15 +215,15 @@ function loop() {
 			// We need to read data from it!
 			// We have a socket in currentSocket that had data ready to be read from it.  Now we
 			// read the data from that socket.
-			var myData = new Buffer(64);
+			var myData = new Buffer(512);
 			var recvSize = OS.recv({sockfd: currentSock._sockfd, data: myData});
 			log("Result from recv: " + recvSize);
 			if (recvSize === 0) {
 				if (currentSock._onEnd) {
-					currentSock.onEnd();
+					currentSock._onEnd();
 				}
 				if (currentSock._onClose) {
-					currentSock.onClose();
+					currentSock._onClose();
 				}
 				OS.close({sockfd: currentSock._sockfd});
 				// Now that we have closed the socket ... we can remove it from
@@ -187,4 +238,24 @@ function loop() {
 		} // Data available and socket is NOT a server
 	} // For each socket that is able to read ... 
 } // loop
-setInterval(loop, 2000);
+
+var startHeap = 0;
+var counter = 0;
+function doNothing() {
+	counter++;
+}
+function logHeap() {
+	var currentHeap = ESP32.getState().heapSize;
+	var diff = startHeap - currentHeap;
+	if (diff != 0) {
+		log("heap: " + currentHeap + ", Diff: " + diff  + ", counter: " + counter);
+		counter = 0;
+		startHeap = currentHeap;
+	} else {
+		log("heap: " + currentHeap);
+	}
+}
+
+setInterval(logHeap, 1000);
+setInterval(doNothing, 10);
+//setInterval(loop, 1);

@@ -115,7 +115,46 @@ static duk_ret_t js_esp32_getNativeFunction(duk_context *ctx) {
 	return 1;
 } // js_esp32_getNativeFunction
 
+typedef struct {
+	char *levelString;
+	esp_log_level_t level;
+} level_t;
+static level_t levels[] = {
+		{"none", ESP_LOG_NONE},
+		{"error", ESP_LOG_ERROR},
+		{"warn", ESP_LOG_WARN},
+		{"info", ESP_LOG_INFO},
+		{"debug", ESP_LOG_DEBUG},
+		{"verbose", ESP_LOG_VERBOSE},
+		{NULL, 0}
+};
+/**
+ * [0] - tag
+ * [1] - level
+ */
+static duk_ret_t js_esp32_setLogLevel(duk_context *ctx) {
+	char *tagToChange;
+	char *levelString;
+	tagToChange = (char *)duk_get_string(ctx, -2);
+	levelString = (char *)duk_get_string(ctx, -1);
+	ESP_LOGD(tag, "Setting a new log level to be tag: \"%s\", level: \"%s\"", tagToChange, levelString);
+	level_t *pLevels = levels;
+	while(pLevels->levelString != NULL) {
+		if (strcmp(pLevels->levelString, levelString) == 0) {
+			break;
+		}
+		pLevels++;
+	}
+	if (pLevels->levelString != NULL) {
+		esp_log_level_set(tagToChange, pLevels->level);
+	}
+	return 0;
+}
 
+static duk_ret_t js_esp32_gc(duk_context *ctx) {
+	duk_gc(ctx, 0);
+	return 0;
+}
 /**
  * Reset the duktape environment by flagging a request to reset.
  */
@@ -265,6 +304,24 @@ static void ModuleESP32(duk_context *ctx) {
 	// [2] - c-function - js_esp32_debug
 
 	duk_put_prop_string(ctx, -2, "debug"); // Add debug to new ESP32
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_esp32_setLogLevel, 2);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_setLogLevel
+
+	duk_put_prop_string(ctx, -2, "setLogLevel"); // Add setLogLevel to new ESP32
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_esp32_gc, 0);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_gc
+
+	duk_put_prop_string(ctx, -2, "gc"); // Add gc to new ESP32
 	// [0] - Global object
 	// [1] - New object
 

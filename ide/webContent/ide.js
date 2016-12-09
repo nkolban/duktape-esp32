@@ -121,6 +121,13 @@ $(document).ready(function() {
 		open("https://github.com/nkolban/duktape-esp32");
 	});
 	
+	$("#repl").on("keypress", function(e) {
+		if (e.keyCode == 13) {
+			runScript($("#repl").val());
+			return false;
+		}
+	});
+	
 	// Create and handle the settings dialog.
 	$("#settingsDialog").dialog({
 		autoOpen: false, // Do not auto open the dialog

@@ -101,7 +101,21 @@ Syntax:
 
 `reset()`
 
+###setLogLevel
+Set the log level for messages in the JavaScript environment.
 
+Syntax:
+`setLogLevel(tag, level)`
+
+The `tag` is the tag on which to set the level.  The special value of `*` means all tags.  The `level`
+can be one of the levels to set for that log output.  Choices are:
+
+* `none`
+* `error`
+* `warn`
+* `info`
+* `debug`
+* `verbose`
 
 ##WiFi
 ###disconnect
@@ -291,3 +305,169 @@ Syntax:
 Write the buffer into the file specified by the file descriptor.  If an `offset` is supplied, then
 write starting at the offset within the buffer.  If `length` is specified, then write the specified number
 of bytes into the file.
+
+##OS
+
+###accept
+Accept a connection from an incoming client request.
+
+Syntax:
+`accept(options)`
+
+The `options` is an object that contains:
+
+```
+{
+   sockfd: <the file descriptor of the existing socket>
+}
+
+```
+
+The return is a an object that contains:
+```
+{
+   sockfd: <the file descriptor of the partner socket>
+}
+
+```
+
+###bind
+Bind a socket to a local address.
+
+Syntax:
+`bind(options)`
+
+The `options` is an object that contains:
+
+```
+{
+   sockfd: <the file descriptor of the existing socket>
+   port: <The local port number to bind against>
+}
+
+```
+
+###close
+Close a socket.
+
+Syntax:
+`close(options)`
+
+The `options` is an object that contains:
+
+```
+{
+   sockfd: <the file descriptor of the existing socket>
+}
+
+```
+
+There is no return code from this function.
+
+
+###connect
+Connect to a remote network partner.
+
+Syntax:
+`connect(options)`
+
+The `options` is an object that contains:
+
+```
+{
+   sockfd: <the file descriptor of the existing socket>
+   address: <The IP address as a dotted decimal string to which to connect>
+   port: <The port number to which to connect>
+}
+
+```
+
+
+
+###listen
+Listen on a server socket for incoming client requests.
+
+Syntax:
+`listen(options)`
+
+The `options` is an object that contains:
+
+```
+{
+   sockfd: <the file descriptor of the existing socket>
+}
+
+```
+
+###recv
+Receive data from a socket.
+
+Syntax:
+`recv(options)`
+
+The `options` is an object that contains:
+
+```
+{
+   sockfd: <the file descriptor of the existing socket>
+   data: <The data buffer into which the received data will be stored>
+}
+```
+
+The return is the length of the data actually received.
+
+
+###select
+Select readiness of an array of sockets.
+
+Syntax:
+`select(options)`
+
+The `options` is an object that contains:
+
+```
+{
+   readfds: <An array of file descriptors to examine for their ability to read>
+   writefds: <An array of file descriptors to examine for their ability to write>
+   exceptfds: <An array of file descriptors to examine for their notification of an exception>
+}
+``` 
+
+The return is an object that contains:
+```
+{
+   readfds: <An array of file descriptors that are ready to read>
+   writefds: <An array of file descriptors that are ready to write>
+   exceptfds: <An array of file descriptors that have exceptions>
+}
+``` 
+
+###send
+Send data down a socket.
+
+Syntax:
+`send(options)`
+
+The `options` is an object that contains:
+
+```
+{
+   sockfd: <the file descriptor of the existing socket>
+   data: <The data to send.  Either a buffer or a string>.
+}
+```
+
+The return is the response code from `send()` at the OS level.
+
+###socket
+Create a new socket.
+
+Syntax:
+`socket()`
+
+Create a new socket.  The return is an object which contains:
+```
+{
+   sockfd: <the file descriptor for the new socket>
+}
+```
