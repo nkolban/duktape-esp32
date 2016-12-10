@@ -32,7 +32,6 @@
 
 #include "c_list.h"
 #include "c_timeutils.h"
-#include "esp32_memory.h"
 
 #include "duktape_utils.h"
 #include "esp32_duktape/module_timers.h"
@@ -331,9 +330,11 @@ void timers_runTimer(duk_context *ctx, unsigned long id) {
 
 
 	// Call the function in the timers object which has a property name of "id".
-	HEAP_CHANGE_START();
-	callRc = duk_pcall_prop(ctx, -2, 0 /* Number of arguments */);
-	HEAP_CHANGE_END();
+	//HEAP_CHANGE_START();
+
+	callRc = duk_pcall_prop(ctx, -2,
+		0); // Number of arguments
+
 	// [0] - heap stash
 	// [1] - timers (-2)
 	// [2] - retVal (-1)

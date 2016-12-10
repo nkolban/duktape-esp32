@@ -1,3 +1,6 @@
+/**
+ * SPIFFs documentation can be found at https://github.com/pellepl/spiffs
+ */
 #include "duktape_spiffs.h"
 #include <spiffs.h>
 #include <esp_spiffs.h>
@@ -191,7 +194,7 @@ static ssize_t vfs_read(void *ctx, int fd, void *dst, size_t size) {
 	ESP_LOGI(tag, ">> read fd=%d, dst=0x%lx, size=%d", fd, (unsigned long)dst, size);
 	spiffs *fs = (spiffs *)ctx;
 	ssize_t retSize = SPIFFS_read(fs, (spiffs_file)fd, dst, size);
-	ESP_LOGD(tag, "We read %d", retSize);
+	ESP_LOGD(tag, "vfs_read(SPIFFS): We read %d", retSize);
 	return retSize;
 } // vfs_read
 
@@ -246,14 +249,22 @@ static int vfs_close(void *ctx, int fd) {
 
 
 static int vfs_fstat(void *ctx, int fd, struct stat *st) {
+	spiffs_stat spiffsStat;
 	ESP_LOGI(tag, ">> fstat fd=%d", fd);
-	return 0;
+	spiffs *fs = (spiffs *)ctx;
+	int rc = SPIFFS_fstat(fs, fd, &spiffsStat);
+	st->st_size = spiffsStat.size;
+	return 1;
 } // vfs_fstat
 
 
 static int vfs_stat(void *ctx, const char *path, struct stat *st) {
 	ESP_LOGI(tag, ">> stat path=%s", path);
-	return 0;
+	spiffs_stat spiffsStat;
+	spiffs *fs = (spiffs *)ctx;
+	int rc = SPIFFS_stat(fs, path, &spiffsStat);
+	st->st_size = spiffsStat.size;
+	return 1;
 } // vfs_stat
 
 

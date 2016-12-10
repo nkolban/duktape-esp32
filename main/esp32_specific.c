@@ -8,7 +8,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include "esp32_duktape/curl_client.h"
 #include "sdkconfig.h"
 
 
@@ -169,32 +168,7 @@ void setupVFS() {
  * the path.
  */
 static int web_vfs_open(const char *path, int flags, int accessMode) {
-
-	char url[256];
-
-	ESP_LOGI(tag, ">> web_vfs_open path=%s, flags=0x%x, accessMode=0x%x", path, flags, accessMode);
-	file_record_t *pFileRecord = getNextFreeFilerecord();
-	if (pFileRecord == NULL) {
-		ESP_LOGE(tag, "No available file records");
-		return -1;
-	}
-
-	sprintf(url, "%s%s", g_baseURL, path);
-	ESP_LOGD(tag, "- Target URL: %s", url);
-	logFlags(flags);
-
-	char *data = curl_client_getContent(url);
-	if (data == NULL) {
-		ESP_LOGD(tag, "No data retrieved");
-		return -1;
-	}
-
-	pFileRecord->data = (uint8_t *)data;
-	pFileRecord->size = strlen(data);
-	pFileRecord->fptr = 0;
-	pFileRecord->inUse = 1;
-	ESP_LOGD(tag, "<< web_vfs_open: fd=%d", pFileRecord->fd);
-	return pFileRecord->fd;
+	return 0;
 } // web_vfs_open
 
 

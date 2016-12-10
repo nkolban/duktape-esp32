@@ -4,6 +4,41 @@ function _callC(command) {
 }
 var _sockets= {};
 
+/**
+ * Given a line of text that is expected to be "\r\n" delimited, return an object that
+ * contains the first line and the remainder.
+ * @param data The input text to parse.
+ * @returns An object that contains
+ * {
+ *    line: <The line of text up to the first \r\n>
+ *    remainder: The remainder of the data after the first \r\n or the whole
+ *       data if there is no first \r\n.
+ * }
+ */
+function getLine(data) {
+	var i = data.indexOf("\r\n");
+	if (i==-1) {
+		return {
+			line: null,
+			remainder: data
+		}
+	}
+	return {
+		line: data.substr(0, i),
+		remainder: data.substr(i+2)
+	}
+} // getLine
+
+/* Getline tests ...
+var text = "1234567890\r\nabcdefghij\r\n";
+log(JSON.stringify(getLine(text)));
+text = "1234567890\r\n";
+log(JSON.stringify(getLine(text)));
+text = "1234567890";
+log(JSON.stringify(getLine(text)));
+*/
+
+
 var net = {
 	Socket: function(options) {
 		var sockfd;
@@ -88,7 +123,18 @@ var net = {
 
 };
 
+/**
+ * The HTTP Module.
+ */
 var http = {
+	// Send an HTTP request.  The options object contains the details of the request
+	// to be sent.
+	// {
+	//    address: <IP Address of target of request>
+	//    port: <port number of target> [optional; default=80]
+	//    path: <Path within the url> [optional; default="/"]
+	// }
+	//
 	request: function(options, callback) {
 		if (options.address === undefined) {
 			log("http.request: No address set");
@@ -121,15 +167,51 @@ var http = {
 			message += data.toString();
 		});
 		sock.on("end", function() {
+			var STATE = {
+				START: 1,
+				HEADERS: 2,
+				BODY: 3
+			}
 			log("HTTP session over ... data is: " + message);
+			// We now have the WHOLE HTTP response message ... so it is time to parse the data
+			var state = STATE.START;
+			var line = getLine(message);
+			var headers = {};
+			while (line.line !== null) {
+				if (state == STATE.START) {
+					var splitData = line.line.split(" ");
+					var httpStatus = splitData[1];
+					log("httpStatus = " + httpStatus);
+					// We found the start line ...
+					state = STATE.HEADERS;
+				} else if (state == STATE.HEADERS) {
+					if (line.line.length == 0) {
+						log("End of headers\n" + JSON.stringify(headers));
+						state = STATE.BODY;
+					} else {
+						// we found a header
+						var i = line.line.indexOf(":");
+						var name = line.line.substr(0, i);
+						var value = line.line.substr(i+2);
+						headers[name] = value;
+					}
+					
+				}
+				
+				log("New line: " + line.line);
+				line = getLine(line.remainder);
+			}
+			log("Final remainder: " + line.remainder);
+			log("Remainder length: " + line.remainder.length);
 		});
 		return clientRequest;
 	}
-};
+}; // http
+
 
 function testServer() {
 	var server = net.createServer(function(sock) {
-		console.log("A new connection was received!");
+		log("A new connection was received!");
 		log("New connection socket is " + JSON.stringify(sock));
 		sock.on("data", function(data) {
 			log("We have received new data over the socket! :" + data.toString());
@@ -155,8 +237,7 @@ function testHTTPClient() {
 	});
 }
 
-ESP32.setLogLevel("*", "debug");
-testHTTPClient();
+
 
 /**
  * Primary loop that processes events.
@@ -165,7 +246,6 @@ testHTTPClient();
 function loop() {
 	// Process the file descriptors for sockets.  We build an array that contains
 	// the set of file descriptors corresponding to the sockets that we wish to read from.
-	return;
 	var readfds = [];
 	var writefds = [];
 	for (var sock in _sockets) {
@@ -239,23 +319,7 @@ function loop() {
 	} // For each socket that is able to read ... 
 } // loop
 
-var startHeap = 0;
-var counter = 0;
-function doNothing() {
-	counter++;
-}
-function logHeap() {
-	var currentHeap = ESP32.getState().heapSize;
-	var diff = startHeap - currentHeap;
-	if (diff != 0) {
-		log("heap: " + currentHeap + ", Diff: " + diff  + ", counter: " + counter);
-		counter = 0;
-		startHeap = currentHeap;
-	} else {
-		log("heap: " + currentHeap);
-	}
-}
+setInterval(loop, 100);
 
-setInterval(logHeap, 1000);
-setInterval(doNothing, 10);
-//setInterval(loop, 1);
+ESP32.setLogLevel("*", "debug");
+testHTTPClient();

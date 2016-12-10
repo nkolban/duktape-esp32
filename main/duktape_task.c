@@ -181,9 +181,7 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 
 		case ESP32_DUKTAPE_EVENT_TIMER_FIRED: {
 			ESP_LOGV(tag, "Process a timer fired event: %lu", pEvent->timerFired.id);
-			HEAP_CHANGE_START();
 			timers_runTimer(esp32_duk_context, pEvent->timerFired.id);
-			HEAP_CHANGE_END();
 			break;
 		}
 
@@ -471,6 +469,7 @@ void duktape_task(void *ignore) {
 			esp32_duktape_dump_value_stack(esp32_duk_context);
 			lastTop = duk_get_top(esp32_duk_context);
 		} // End of check for value stack leakage.
+		//duk_gc(esp32_duk_context, 0);
 		taskYIELD();
 
 	} // End while loop.

@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "modules.h"
-#include "esp32_duktape/curl_client.h"
 #include "esp32_duktape/module_fs.h"
 #include "esp32_duktape/module_gpio.h"
 #include "esp32_duktape/module_timers.h"
@@ -40,29 +39,6 @@ static duk_ret_t js_console_log(duk_context *ctx) {
 	}
   return 0;
 } // js_console_log
-
-
-/**
- * Low level load and evaluate.  The load is performed by making an HTTP
- * get request to obtain the source which is then passed to Duktape eval() for
- * execution.
- */
-static duk_ret_t js_esp32_load(duk_context *ctx) {
-	ESP_LOGD(tag, "js_esp32_load");
-	char *data = curl_client_getContent(duk_get_string(ctx, -1));
-	if (data == NULL) {
-		ESP_LOGD(tag, "No data");
-	} else {
-		ESP_LOGD(tag, "we got data");
-		int evalResponse = duk_peval_string(ctx, data);
-		if (evalResponse != 0) {
-			esp32_duktape_console(duk_safe_to_string(ctx, -1));
-		}
-		duk_pop(ctx);
-	}
-	free(data);
-	return 0;
-} //js_esp32_load
 
 
 typedef struct {
@@ -259,15 +235,6 @@ static void ModuleESP32(duk_context *ctx) {
 	// [0] - Global object
 
 	duk_push_object(ctx); // Create new ESP32 object
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_esp32_load, 1);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-function - js_esp32_load
-
-	duk_put_prop_string(ctx, -2, "load"); // Add load to new ESP32
 	// [0] - Global object
 	// [1] - New object
 

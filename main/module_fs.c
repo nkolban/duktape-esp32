@@ -190,6 +190,39 @@ static duk_ret_t js_fs_closeSync(duk_context *ctx) {
 } // js_fs_closeSync
 
 
+static duk_ret_t js_fs_fstatSync(duk_context *ctx) {
+	struct stat statBuf;
+	int fd = duk_require_int(ctx, 0);
+	int rc = fstat(fd, &statBuf);
+	if (rc == -1) {
+		ESP_LOGD(tag, "Error from stat of fd %d: %d %s", fd, errno, strerror(errno));
+		return 0;
+	}
+	duk_push_object(ctx);
+	duk_push_int(ctx, statBuf.st_size);
+	duk_put_prop_string(ctx, -2, "size");
+	return 1;
+} // js_fs_fstatSync
+
+
+static duk_ret_t js_fs_statSync(duk_context *ctx) {
+	struct stat statBuf;
+	const char *path = duk_require_string(ctx, 0);
+	int rc = stat(path, &statBuf);
+	if (rc == -1) {
+		ESP_LOGD(tag, "Error from stat of file %s: %d %s", path, errno, strerror(errno));
+		return 0;
+	}
+	duk_push_object(ctx);
+	duk_push_int(ctx, statBuf.st_size);
+	duk_put_prop_string(ctx, -2, "size");
+	return 1;
+} // js_fs_fstatSync
+
+/**
+ * Perform a stat on the file.  The return data includes:
+ * * size - Number of bytes in the file.
+ */
 static duk_ret_t js_fs_dump(duk_context *ctx) {
 	esp32_duktape_dump_spiffs();
 	return 0;
@@ -212,7 +245,7 @@ static duk_ret_t js_fs_dump(duk_context *ctx) {
  */
 static duk_ret_t js_fs_readSync(duk_context *ctx) {
 	ESP_LOGD(tag, ">> js_fs_readSync");
-	esp32_duktape_dump_value_stack(ctx);
+	//esp32_duktape_dump_value_stack(ctx);
 	int fd = duk_require_int(ctx, 0);
 	// [0] - fd <Integer>
 	// [1] - buffer <Buffer>
@@ -331,6 +364,24 @@ void ModuleFS(duk_context *ctx) {
 	// [2] - C Func - js_fs_writeSync
 
 	duk_put_prop_string(ctx, -2, "writeSync"); // Add writeSync to new FS
+	// [0] - Global
+	// [1] - FS Object
+
+	duk_push_c_function(ctx, js_fs_statSync, 1);
+	// [0] - Global
+	// [1] - FS Object
+	// [2] - C Func - js_fs_statSync
+
+	duk_put_prop_string(ctx, -2, "statSync"); // Add statSync to new FS
+	// [0] - Global
+	// [1] - FS Object
+
+	duk_push_c_function(ctx, js_fs_fstatSync, 1);
+	// [0] - Global
+	// [1] - FS Object
+	// [2] - C Func - js_fs_fstatSync
+
+	duk_put_prop_string(ctx, -2, "fstatSync"); // Add fstatSync to new FS
 	// [0] - Global
 	// [1] - FS Object
 

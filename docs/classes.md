@@ -278,6 +278,19 @@ Dumps a listing of the file system to debug.
 Syntax:
 `dump()`
 
+###fstatSync
+Retrieve details about the file.
+
+`fstatSync(fd)`
+
+The return is an object that contains details of the file:
+
+```
+{
+   size: <The size of the file in bytes>
+}
+```
+
 
 ###openSync
 Open a file for access.  The return is an integer file descriptor.
@@ -287,14 +300,42 @@ Syntax:
 
 * `path` - The path to the file to open.
 * `flags` - The flags used to describe how the file should be opened.
-  * `r`
-  * `r+`
-  * `w`
-  * `w+`
-  * `a`
-  * `a+`
+  * `r` - Reading. File must exist.
+  * `r+` - Reading and writing. File must exist.
+  * `w` - Writing. File is created if it does not exist.
+  * `w+`- Reading and writing.  File is created if it does not exist.
+  * `a` - Appending.  File is created if it does not exist.
+  * `a+` - Reading and writing.  File is created if it does not exist.
+  
+The return is a file descriptor.
 
 ###readSync
+Read data from a file.
+
+Syntax:
+`readSync(fd, buffer, offset, length, position)`
+
+ * fd <Integer> - file descriptor
+ * buffer <Buffer> - The buffer into which to read data
+ * writeOffset <Integer> - The offset into the buffer to start writing
+ * maxToRead <Integer> - The maximum number of bytes to read
+ * position <Integer> - The position within the file to read from.  If position is null then we read from the current file position.
+ 
+ The return is the number of bytes actually read.
+ 
+
+###statSync
+Retrieve details about the file.
+
+`statSync(path)`
+
+The return is an object that contains details of the file:
+
+```
+{
+   size: <The size of the file in bytes>
+}
+```
 
 ###writeSync
 Write data into a file.

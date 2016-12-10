@@ -2,6 +2,8 @@
 #include <esp_log.h>
 #include <string.h>
 #include <errno.h>
+#include <esp_wifi.h>
+#include "esp32_duktape/duktape_event.h"
 #include "sdkconfig.h"
 
 #define PORT_NUMBER 8001
@@ -44,6 +46,7 @@ void socket_server(void *ignore) {
 
 	while (1) {
 		// Listen for a new client connection.
+		ESP_LOGD(tag, "Waiting for new client connection");
 		socklen_t clientAddressLength = sizeof(clientAddress);
 		int clientSock = accept(sock, (struct sockaddr *)&clientAddress, &clientAddressLength);
 		if (clientSock < 0) {
@@ -70,10 +73,11 @@ void socket_server(void *ignore) {
 		}
 
 		// Finished reading data.
-		ESP_LOGD(tag, "Data read (size: %d) was: %.*s", sizeUsed, sizeUsed, data);
+		//ESP_LOGD(tag, "Data read (size: %d) was: %.*s", sizeUsed, sizeUsed, data);
+		event_newCommandLineEvent(data, sizeUsed, 0);
 		free(data);
 		close(clientSock);
 	}
 	END:
 	vTaskDelete(NULL);
-}
+} // socket_server
