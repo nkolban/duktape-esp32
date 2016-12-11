@@ -164,13 +164,15 @@ static void logOpenFlags(int flags) {
 	if (flags & O_TRUNC) {
 		ESP_LOGD(tag, "- O_TRUNC");
 	}
-	if (flags & O_RDONLY) {
+
+	int openMode = flags & 3;
+	if (openMode == O_RDONLY) {
 		ESP_LOGD(tag, "- O_RDONLY");
 	}
-	if (flags & O_WRONLY) {
+	if (openMode == O_WRONLY) {
 		ESP_LOGD(tag, "- O_WRONLY");
 	}
-	if (flags & O_RDWR) {
+	if (openMode == O_RDWR) {
 		ESP_LOGD(tag, "- O_RDWR");
 	}
 } // End of logFlags
@@ -186,7 +188,9 @@ static size_t vfs_write(void *ctx, int fd, const void *data, size_t size) {
 
 static off_t vfs_lseek(void *ctx, int fd, off_t offset, int whence) {
 	ESP_LOGI(tag, ">> lseek fd=%d, offset=%d, whence=%d", fd, (int)offset, whence);
-	return 0;
+	spiffs *fs = (spiffs *)ctx;
+	int rc = SPIFFS_lseek(fs, fd, offset, whence);
+	return rc;
 } // vfs_lseek
 
 
@@ -217,20 +221,27 @@ static int vfs_open(void *ctx, const char *path, int flags, int accessMode) {
 	logOpenFlags(flags);
 	spiffs *fs = (spiffs *)ctx;
 	int spiffsFlags = 0;
+
+	// The openMode is encoded in the 1st 2 bits as:
+	// 0 - 00 - RDONLY
+	// 1 - 01 - WRONLY
+	// 2 - 10 - RDWR
+	// 3 - 11 - Undefined
+
+	int openMode = flags & 3;
+	if (openMode == O_RDONLY) {
+		spiffsFlags |= SPIFFS_O_RDONLY;
+	} else if (openMode == O_RDWR) {
+		spiffsFlags |= SPIFFS_O_RDWR;
+	} else if (openMode == O_WRONLY) {
+		spiffsFlags |= SPIFFS_O_WRONLY;
+	}
+
 	if (flags & O_CREAT) {
 		spiffsFlags |= SPIFFS_O_CREAT;
 	}
 	if (flags & O_TRUNC) {
 		spiffsFlags |= SPIFFS_O_TRUNC;
-	}
-	if (flags & O_RDONLY) {
-		spiffsFlags |= SPIFFS_O_RDONLY;
-	}
-	if (flags & O_WRONLY) {
-		spiffsFlags |= SPIFFS_O_WRONLY;
-	}
-	if (flags & O_RDWR) {
-		spiffsFlags |= SPIFFS_O_RDWR;
 	}
 	if (flags & O_APPEND) {
 		spiffsFlags |= SPIFFS_O_APPEND;

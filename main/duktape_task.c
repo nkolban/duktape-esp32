@@ -43,6 +43,12 @@ void duktape_init_environment() {
 	esp32_duktape_stash_init(esp32_duk_context); // Initialize the stash environment.
 	registerModules(esp32_duk_context); // Register the built-in modules
 
+	int rc = duk_peval_file(esp32_duk_context, "/spiffs/init.js");
+	if (rc != 0) {
+		esp32_duktape_log_error(esp32_duk_context);
+	}
+	duk_pop(esp32_duk_context);
+
 	// Print a console logo.
 	esp32_duktape_console(
 	"\n ______  _____ _____ ____ ___\n"

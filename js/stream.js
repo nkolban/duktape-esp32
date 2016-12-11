@@ -2,6 +2,7 @@
  * https://nodejs.org/api/stream.html
  * @returns
  */
+/* globals Buffer, module */
 /*
 #Streams
 A writer can have data written to it.
@@ -54,7 +55,28 @@ function stream() {
 }
 ```
 */
-function streams() {
+/**
+ * A stream object is created with
+ * var myStream = new stream();
+ * The result is an object that contains:
+ * {
+ *    reader: <A representation of a reader of data>
+ *    writer: <A representation of a write of data>
+ * }
+ * 
+ * The writer object contains:
+ * write: Write some data.  The input can be either a Buffer or a String.
+ * end: Flag the stream writing as complete optionally passing in some final data.
+ * 
+ * The reader object contains:
+ * read: <read some data>
+ * on: Register an event handler
+ * - data: A callback that takes a Buffer parameter.  When called, new data is available
+ *         and can be found in the passed in buffer.
+ * - end: A callback (with no parameters) that indicates that the reader should
+ *        not expect any more data.  It has reached the end.
+ */
+function stream() {
 	var dataBuffer = null;
 	var dataBufferUsed = 0;
 	var end = false;
@@ -65,10 +87,10 @@ function streams() {
 			if (typeof data == "string") {
 				data = new Buffer(data);
 			}
-			if (readerCallback != null) {
+			if (readerCallback !== null) {
 				readerCallback(data);
 			} else {
-				if (dataBuffer == null) {
+				if (dataBuffer === null) {
 					dataBuffer = new Buffer(1000);
 				}
 				data.copy(dataBuffer, dataBufferUsed);
@@ -76,7 +98,7 @@ function streams() {
 			}
 		}, // write()
 		end: function(data) {
-			if (data != null) {
+			if (data !== null) {
 				this.write(data);
 			}
 			end = true;
@@ -88,7 +110,7 @@ function streams() {
 	
 	var reader = {
 		read: function() {
-			if (dataBufferUsed == 0) {
+			if (dataBufferUsed === 0) {
 				return new Buffer(0);
 			}
 			var tempBuffer = new Buffer(dataBufferUsed);
@@ -114,49 +136,11 @@ function streams() {
 			} // end
 		} // on
 
-	} // reader()
+	}; // reader()
 	return {
 		reader: reader,
 		writer: writer
 	};
 }
 
-function test1() {
-	console.log("test1 starting");
-	var stream = new streams();
-	console.log("Writing to stream \"12345\"");
-	stream.writer.write("12345");
-	
-	console.log("Reading from stream");
-	console.log(stream.reader.read());
-	
-	console.log("Writing to stream \"67890\"");
-	stream.writer.write("67890");
-	
-	console.log("Reading from stream");
-	console.log(stream.reader.read());
-	
-	stream.reader.on("data", function(data) {
-		console.log("Stream received " + data);
-	});
-	
-	console.log("Writing to stream");
-	stream.writer.write("hello 2");
-	
-	var a = {
-		write: stream.writer.write
-	};
-	a.write("hello");
-	
-	
-	stream.reader.on("end", function() {
-		console.log("Stream has ended");
-	});
-	
-	stream.writer.end();
-	
-
-	
-}
-
-test1();
+module.exports = stream;

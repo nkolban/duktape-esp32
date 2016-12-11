@@ -4,6 +4,10 @@
 #include <duktape.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
 #include "modules.h"
 #include "esp32_duktape/module_fs.h"
 #include "esp32_duktape/module_gpio.h"
@@ -54,8 +58,10 @@ functionTableEntry_t functionTable[] = {
 		// Must be last entry
 		{NULL, NULL, 0 }
 };
+
+
 /**
- * Retrieve a native function refernce by name.
+ * Retrieve a native function reference by name.
  * ESP32.getNativeFunction(nativeFunctionID)
  * The input stack contains:
  * [ 0] - String - nativeFunctionID - A string name that is used to lookup a function handle.
@@ -91,6 +97,7 @@ static duk_ret_t js_esp32_getNativeFunction(duk_context *ctx) {
 	return 1;
 } // js_esp32_getNativeFunction
 
+
 typedef struct {
 	char *levelString;
 	esp_log_level_t level;
@@ -105,8 +112,16 @@ static level_t levels[] = {
 		{NULL, 0}
 };
 /**
- * [0] - tag
- * [1] - level
+ * Set the debug log level.
+ * [0] - tag - The tag that we are setting the log level on.  Can be "*" for
+ *             all tags.
+ * [1] - level - The level we are setting for this tage.  Choices are:
+ *               * none
+ *               * error
+ *               * warn
+ *               * info
+ *               * debug
+ *               * verbose
  */
 static duk_ret_t js_esp32_setLogLevel(duk_context *ctx) {
 	char *tagToChange;
@@ -125,12 +140,60 @@ static duk_ret_t js_esp32_setLogLevel(duk_context *ctx) {
 		esp_log_level_set(tagToChange, pLevels->level);
 	}
 	return 0;
-}
+} // js_esp32_setLogLevel
 
+
+/**
+ * Load a file using the POSIX file I/O functions.
+ * [0] - path - The name of the file to load.
+ *
+ * The String representation of the file will remain on the stack at the end.
+ *
+ * The high level algorithm is:
+ * 1. Determine file size.
+ * 2. Allocate a buffer to hold the file.
+ * 3. Open the file.
+ * 4. Read the whole file into the buffer.
+ * 5. Cleanup.
+ * 6. Put the buffer as a string onto the stack for return.
+ *
+ */
+static duk_ret_t js_esp32_loadFile(duk_context *ctx) {
+	const char *path = duk_get_string(ctx, -1);
+	struct stat statBuf;
+	int rc = stat(path, &statBuf);
+	if (rc < 0) {
+		ESP_LOGD(tag, "js_esp32_loadFile: stat() %d %s", errno, strerror(errno));
+		return 0;
+	}
+	int fd = open(path, O_RDWR);
+	if (fd < 0) {
+		ESP_LOGD(tag, "js_esp32_loadFile: open() %d %s", errno, strerror(errno));
+		return 0;
+	}
+	char *data = malloc(statBuf.st_size);
+	ssize_t sizeRead = read(fd, data, statBuf.st_size);
+	if (sizeRead < 0) {
+		ESP_LOGD(tag, "js_esp32_loadFile: read() %d %s", errno, strerror(errno));
+		free(data);
+		close(fd);
+		return 0;
+	}
+	close(fd); // Close the open file, we don't need it anymore.
+	duk_push_lstring(ctx, data, sizeRead); // Push the data onto the stack.
+	free(data); // Release the dynamically read data as it is on the stack now.
+	ESP_LOGD(tag, "Read file %s of length %d", path, sizeRead);
+	return 1;
+} // js_esp32_loadFile
+
+
+// Ask JS to perform a gabrage collection.
 static duk_ret_t js_esp32_gc(duk_context *ctx) {
 	duk_gc(ctx, 0);
 	return 0;
-}
+} // js_esp32_gc
+
+
 /**
  * Reset the duktape environment by flagging a request to reset.
  */
@@ -138,6 +201,7 @@ static duk_ret_t js_esp32_reset(duk_context *ctx) {
 	esp32_duktape_set_reset(1);
 	return 0;
 } // js_esp32_reset
+
 
 /**
  * ESP32.getState()
@@ -289,6 +353,15 @@ static void ModuleESP32(duk_context *ctx) {
 	// [2] - c-function - js_esp32_gc
 
 	duk_put_prop_string(ctx, -2, "gc"); // Add gc to new ESP32
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_esp32_loadFile, 1);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_loadFile
+
+	duk_put_prop_string(ctx, -2, "loadFile"); // Add loadFile to new ESP32
 	// [0] - Global object
 	// [1] - New object
 
