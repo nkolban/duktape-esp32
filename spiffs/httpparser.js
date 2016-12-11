@@ -80,19 +80,20 @@ var STATE = {
 	
 var Stream = require("stream");
 function httpparser(type, handler) {
+	this.REQUEST = 1;
+	this.RESPONSE = 2;
 	var networkStream = new Stream();
 	var httpStream = new Stream();
 	var message = "";
-	var path = "";
 	
 	handler(httpStream.reader);
 	networkStream.reader.on("end", function() {
 		log("HTTP parsing over ... data is: " + message);
 		// We now have the WHOLE HTTP response message ... so it is time to parse the data
 		var state;
-		if (type === "request") {
+		if (type == this.REQUEST) {
 			state = STATE.START_REQUEST;
-		} else if (type === "response") {
+		} else if (type == this.RESPONSE) {
 			state = STATE.START_RESPONSE;
 		} else {
 			log("ERROR: Unknown type on httpparser: " + type);
@@ -101,6 +102,7 @@ function httpparser(type, handler) {
 		var line = getLine(message);
 		var headers = {};
 		var method = null;
+		var path = null;
 		while (line.line !== null) {
 			if (state == STATE.START_RESPONSE) {
 		// A header line is of the form <protocols>' '<code>' '<message>
@@ -142,14 +144,19 @@ function httpparser(type, handler) {
 		log("Remainder length: " + line.remainder.length);
 		httpStream.reader.headers = headers;
 		httpStream.reader.method = method;
-		httpStream.reader.method = path;
-		httpStream.writer.write(line.remainder);
+		httpStream.reader.path = path;
+		if (line.remainder.length > 0) {
+			httpStream.writer.write(line.remainder);
+		}
 		httpStream.writer.end();
 	}); // networkStream reader on("end")
 	
+	// Received data from network stream.
 	networkStream.reader.on("data", function(data) {
 		message += data.toString();
-	});
+	}); // End of received data from network stream.
+	
+	
 	return networkStream.writer;
 } // httpparser
 

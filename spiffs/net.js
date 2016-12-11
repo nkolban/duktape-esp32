@@ -111,7 +111,9 @@ var net = {
 		return {
 			listen: function(port) {
 				sock.localPort = port;
-				OS.bind({sockfd: sock._sockfd, port: port});
+				if (OS.bind({sockfd: sock._sockfd, port: port}) != 0) {
+					throw new Error("Underlying bind failed");
+				}
 				OS.listen({sockfd: sock._sockfd});
 				// Listen on the port
 			} // listen

@@ -159,16 +159,16 @@ var http = {
 		var connectionListener = function(sock) {
 			var httpRequestStream = new Stream();
 			requestHandler(httpRequestStream.reader, null);
-			var parserStreamWriter = new HTTPParser("request", function(parserStreamReader) {
+			var parserStreamWriter = new HTTPParser(HTTPParser.REQUEST, function(parserStreamReader) {
 				parserStreamReader.on("data", function(data) {
 					httpRequestStream.reader.method = parserStreamReader.method;
-					httpRequestStream.reader.method = parserStreamReader.path;
+					httpRequestStream.reader.path = parserStreamReader.path;
 					httpRequestStream.reader.headers = parserStreamReader.headers;
 					httpRequestStream.writer.write(data);
 				});
 				parserStreamReader.on("end", function() {
 					httpRequestStream.reader.method = parserStreamReader.method;
-					httpRequestStream.reader.method = parserStreamReader.path;
+					httpRequestStream.reader.path = parserStreamReader.path;
 					httpRequestStream.reader.headers = parserStreamReader.headers;
 					httpRequestStream.writer.end();
 				});

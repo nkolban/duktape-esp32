@@ -202,6 +202,8 @@ static duk_ret_t js_os_close(duk_context *ctx) {
  * [0] - Params object
  * - port: The port to bind to.
  * - sockfd: The socket to bind.
+ *
+ * returns the bind rc;
  */
 static duk_ret_t js_os_bind(duk_context *ctx) {
 	ESP_LOGD(tag, ">> js_os_bind");
@@ -233,8 +235,9 @@ static duk_ret_t js_os_bind(duk_context *ctx) {
 	if (rc < 0) {
 		ESP_LOGE(tag, "Error with bind: %d: %d - %s", rc, errno, strerror(errno));
 	}
+	duk_push_int(ctx, rc);
 	ESP_LOGD(tag, "<< js_os_bind");
-	return 0;
+	return 1;
 } // js_os_bind
 
 

@@ -58,7 +58,6 @@ The `function` is a function which will be invoked after the delay interval.
 `setTimeout` returns an id which can used through a call to `cancelTimeout()` to cancel a timer before
 it has fired.
 
-<a name="module_console></a>
 ##console
 ###log
 Log a text string to the console.
@@ -260,7 +259,10 @@ Primarily designed as an internal module, this module parses HTTP protocol reque
 
 We create a new instance of an HTTPParser passing in the type of parsing requested and a handler to be
 invoked as the parsing progresses.  The instance created of the HTTPParser is a stream writer and we
-write in HTTP protocol data as it arrives.
+write in HTTP protocol data as it arrives.  The type of the parser can be one of:
+
+* `HTTPParser.REQUEST` - We are parsing an HTTP request.
+* `HTTPParser.RESPONSE` - We are parsing an HTTP response.
 
 The handler is passed a stream reader from which the parsed HTTP protocol can be obtained.  Any data passed will be just the content
 of any payload for a POST or PUT request.  Status and headers will not be presented in the data stream.  Instead
@@ -279,7 +281,7 @@ For example:
 
 ```
 var HTTPParser = require("httpparser");
-var parserStreamWriter = new HTTPParser("request", function(parserStreamReader) {
+var parserStreamWriter = new HTTPParser(HTTPParser.REQUEST, function(parserStreamReader) {
    // We now have a parser stream reader which includes on("data") and on("end").
 });
 ```
@@ -400,7 +402,8 @@ The return is a an object that contains:
 ```
 
 ###bind
-Bind a socket to a local address.
+Bind a socket to a local address.  The return is the return code of the underlying bind.  This will
+be zero on success.
 
 Syntax:
 `bind(options)`
@@ -564,7 +567,6 @@ is an array of object where each object contains:
 ``` 
 
 
-<a name="module_RMT></a>
 ##RMT
 ###getState
 Retrieve the state of a give channel.
