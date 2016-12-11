@@ -84,6 +84,9 @@ function stream() {
 	var endCallback = null;
 	var writer = {
 		write: function(data) {
+			if (data === null || data === undefined) {
+				throw new Error("No data supplied for write");
+			}
 			if (typeof data == "string") {
 				data = new Buffer(data);
 			}
@@ -98,7 +101,7 @@ function stream() {
 			}
 		}, // write()
 		end: function(data) {
-			if (data !== null) {
+			if (data !== null && data !== undefined) {
 				this.write(data);
 			}
 			end = true;
@@ -119,6 +122,9 @@ function stream() {
 			return tempBuffer;
 		}, // read
 		on: function(event, callback) {
+			if (callback === null || callback === undefined) {
+				throw new Error("No callback function supplied");
+			}
 			if (event == "data") {
 				readerCallback = callback;
 				if (dataBufferUsed > 0) {
@@ -128,12 +134,15 @@ function stream() {
 					dataBufferUsed = 0;
 				}
 			} // data
-			if (event == "end") {
+			else if (event == "end") {
 				endCallback = callback;
 				if (end) {
 					callback();
 				}
 			} // end
+			else {
+				throw new Error("Unknown event type: "+ event);
+			}
 		} // on
 
 	}; // reader()

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<!--
+ESP32-Duktape
+
+The layout widget used in this project is:  http://layout.jquery-dev.com/documentation.cfm
+The JavaScript editor used in this project is: https://ace.c9.io
+
+Neil Kolban, 2016
+
+ -->
+<html lang="en">
+<head>
+<title>ESP32 - Duktape</title>
+<style>
+#editor {
+	width: 100%;
+	height: 95%;
+	border-style: solid;
+	border-width: 1px;
+	border-color: black;
+}
+.console {
+	font-family: monospace;
+	width: 100%;
+	resize: none;
+}
+
+.bottomBar {
+	margin-bottom: 4px;
+	margin-top: 4px;
+	margin-left:2px;
+	margin-right: 2px;
+	background-color: #303030;
+	padding: 8px;
+	border-radius: 10px;
+}
+
+body {
+	margin: 0px;
+}
+
+html {
+	height: 100%;
+}
+</style>
+<!-- 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-layout/1.4.3/layout-default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-layout/1.4.3/jquery.layout.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.5/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="ide.js"></script>
+
+</head>
+<body style="height: 100%;">
+
+
+<div style="display:flex; flex-direction: column; height: 100%;">
+	<div class="bottomBar" style="color: white; font-size: large; display: flex;">
+	<span style="flex-grow: 1;">ESP32-Duktape</span>
+	<span id="info">Info</span>
+	</div>
+	<div id="c1" style="width: 100%; flex-grow: 1;">
+		<div class="ui-layout-center">
+			<div id="editor">console.log("Hello World\n");</div>
+		</div>
+		<div class="ui-layout-south">
+			<div style="height: 100%; display: flex; flex-direction: column">
+				<textarea readonly disabled id="console" class="console" style="flex-grow:1;"></textarea>
+				<input id="repl" type="text" style="margin: 10px;">
+			</div>
+
+		</div>
+	</div>
+
+	<div class="bottomBar">
+		<button id="run" title="Run the script in the editor">Run</button>
+		<button id="clearConsole" title="Clear the console">Clear</button>
+		<button id="settings" title="Open the settings dialog">Settings</button>
+	</div>
+</div>
+
+<!--
+Define the settings dialog format. 
+-->
+<div id="settingsDialog" title="Settings">
+
+	<table>
+		<tr>
+			<td colspan="2">ESP32 Connection details:</td>
+		</tr>
+		<tr>
+			<td>Host:</td>
+			<td><input id="settingsHost" type="text" placeholder="host"></td>
+		</tr>
+		<tr>
+			<td>Port:</td>
+			<td><input id="settingsPort" type="number" placeholder="port"></td>
+		</tr>
+		<tr>
+			<td colspan="2">Appearance:</td>
+		</tr>
+		<tr>
+			<td>Font size:</td>
+			<td><input id="fontSize" type="number" placeholder="size"></td>
+		</tr>
+		<tr>
+			<td>Theme:</td>
+			<td><select id="theme">
+			<option value="ambiance">Ambiance</option>
+			<option value="chaos">Chaos</option>
+			<option value="chrome">Chrome</option>
+			<option value="clouds">Clouds</option>
+			<option value="clouds_midnight">Clouds Midnight</option>
+			<option value="cobalt">Cobalt</option>
+			<option value="crimson_editor">Crimson Editor</option>	
+			<option value="dawn">Dawn</option>	
+			<option value="dreamweaver">Dreamweaver</option>	
+			<option value="eclipse">Eclipse</option>	
+			<option value="github">Github</option>
+			<option value="idle_fingers">Idle Fingers</option>		
+			<option value="iplastic">Iplastic</option>		
+			<option value="katzenmilch">Katzenmilch</option>	
+			<option value="kr_theme">KR Theme</option>		
+			<option value="kurior">Kurior</option>		
+			<option value="merbivore">Merbivore</option>
+			<option value="merbivore_soft">Merbivore Soft</option>		
+			<option value="mono_industrial">Mono Industrial</option>		
+			<option value="monokai">Monokai</option>
+			<option value="pastel_on_dark">Pastel On Dark</option>		
+			<option value="solarized_dark">Solarized Dark</option>		
+			<option value="solarized_light">Solarized Light</option>																																												<option value="github">Github</option>		
+			<option value="sqlserver">Sqlserver</option>		
+			<option value="terminal">Terminal</option>
+			<option value="textmate">Textmate</option>		
+			<option value="tomorrow">Tomorrow</option>
+			<option value="tomorrow_night">Tomorrow Night</option>		
+			<option value="tomorrow_night_blue">Tomorrow Night Blue</option>
+			<option value="tomorrow_night_bright">Tomorrow Night Bright</option>		
+			<option value="tomorrow_night_eighties">Tomorrow Night Eighties</option>
+			<option value="twilight">Twilight</option>		
+			<option value="vibrant_ink">Vibrant Ink</option>
+			<option value="xcode">Xcode</option>																				
+			</select></td>
+		</tr>
+	</table>
+</div>
+
+</body>
+</html>

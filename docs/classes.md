@@ -1,16 +1,18 @@
 #Modules
 Built into the solution are a variety of Modules.
 
-* [console](#module_console)
-* [ESP32](#module_ESP32)
-* [FS](#module_FS)
-* [HTTP](#module_HTTP)
-* [net](#module_net)
-* [OS](#module_OS)
-* [PARTITIONS](#module_PARTITIONS)
-* [RMT](#module_RMT)
-* [WiFi](#module_WiFi)
-* 
+* [console](#console)
+* [ESP32](#esp32)
+* [FS](#fs)
+* [HTTP](#http)
+* [HTTPParser](#httpparser)
+* [net](#net)
+* [OS](#os)
+* [PARTITIONS](#partitions)
+* [RMT](#rmt)
+* [Stream](#stream)
+* [WiFi](#wifi)
+
 
 ##Globals
 These are functions that are in the global environment.
@@ -65,7 +67,6 @@ Syntax:
 `console.log(string)`
 
 
-<a name="module_ESP32></a>
 ##ESP32
 ###getNativeFunction
 Retrieve a built-in native function by name.
@@ -121,7 +122,7 @@ can be one of the levels to set for that log output.  Choices are:
 * `debug`
 * `verbose`
 
-<a name="module_FS></a>
+
 ##FS
 
 Example:
@@ -215,7 +216,7 @@ Write the buffer into the file specified by the file descriptor.  If an `offset`
 write starting at the offset within the buffer.  If `length` is specified, then write the specified number
 of bytes into the file.
 
-<a name="module_HTTP></a>
+
 ##HTTP
 ###request
 Make an HTTP request.
@@ -235,18 +236,57 @@ HTTP request.  The signature of the `requestHandler` is:
 `function(request, response)`
 
 For example:
+
 ```
 var http = require("http");
 function requestHandler(request, response) {
    log("We have received a new HTTP client request!");
+   request.on("data", function(data) {
+      log("HTTP Request handler: " + data);
+   });
+   request.on("end", function() {
+      log("HTTP request received:");
+      log(" - method: " + request.method);
+      log(" - headers: " + JSON.stringify(request.headers));
+   });
 }
 var server = http.createServer(requestHandler);
 server.listen(80);
 ```
 
 
-<a name="module_net></a>
+##HTTPParser
+Primarily designed as an internal module, this module parses HTTP protocol requests and responses.
+
+We create a new instance of an HTTPParser passing in the type of parsing requested and a handler to be
+invoked as the parsing progresses.  The instance created of the HTTPParser is a stream writer and we
+write in HTTP protocol data as it arrives.
+
+The handler is passed a stream reader from which the parsed HTTP protocol can be obtained.  Any data passed will be just the content
+of any payload for a POST or PUT request.  Status and headers will not be presented in the data stream.  Instead
+the stream object has properties added to it:
+
+For a request:
+* method
+* path
+* headers
+
+For a response:
+* status
+* headers
+
+For example:
+
+```
+var HTTPParser = require("httpparser");
+var parserStreamWriter = new HTTPParser("request", function(parserStreamReader) {
+   // We now have a parser stream reader which includes on("data") and on("end").
+});
+```
+
 ## net
+The net module owns the lowest level networking components.
+
 ###Socket
 Create a new socket.
 Syntax:
@@ -333,7 +373,7 @@ new incoming connection requests.  It has the following methods:
 * `listen(port)` - Start listening on the specified port.
 
 
-<a name="module_OS></a>
+
 ##OS
 
 ###accept
@@ -501,7 +541,6 @@ Create a new socket.  The return is an object which contains:
 }
 ```
 
-<a name="module_PARITIONS></a>
 ##PARTITIONS
 The `PARTITIONS` object provides access to the ESP32 partition table.
 
@@ -580,7 +619,55 @@ The arrayOfItems is an array of item objects where each item object contains
 ```
 
 
-<a name="module_WiFi></a>
+##Stream
+A new instance of this class returns an object that contains a stream connected pair.  The object
+looks like:
+```
+{
+   reader: <A reader object>
+   writer: <A writer object>
+}
+```
+
+##StreamReader
+This object can not be manually created but is instead created as a result of creating a new
+Stream instance.  The object provides a source of input data.
+
+###on
+Register an event handler.  The events that can be registered are:
+* data - Called when new data is available.  The signature of the callback function is `function(data)` where `data` is a `Buffer`.
+* end - Called when the stream has ended and no further data will be received.
+
+Syntax:
+`on(eventType, callback)`
+
+###read
+Read data if data is available otherwise just return.
+
+Syntax:
+`read()`
+  
+##StreamWriter
+This object can not be manually created but is instead created as a result of creating a new
+Stream instance.  The object provides a target of output data.
+
+###end
+Marks the stream as complete.
+
+Syntax:
+`end([data]])`
+
+The `data` is optional and is any final data that should be written before closing the stream.
+
+###write
+Write data down the stream.
+
+Syntax:
+`write(data)`
+
+The `data` is the data to be written down the stream.  It may be a `Buffer` or a `String`. 
+
+
 ##WiFi
 ###disconnect
 Disconnect from the currently connected access point when we are a station.

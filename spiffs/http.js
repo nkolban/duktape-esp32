@@ -5,6 +5,9 @@
 /* exported http */
 
 var net = require("net");
+var Stream = require("stream");
+var HTTPParser = require("httpparser");
+
 /**
  * Given a line of text that is expected to be "\r\n" delimited, return an object that
  * contains the first line and the remainder.
@@ -152,8 +155,30 @@ var http = {
 	createServer: function(requestHandler) {
 		// Internal connection listener that will be called when a new client connection
 		// has been received.
+
 		var connectionListener = function(sock) {
-			requestHandler(sock, null);
+			var httpRequestStream = new Stream();
+			requestHandler(httpRequestStream.reader, null);
+			var parserStreamWriter = new HTTPParser("request", function(parserStreamReader) {
+				parserStreamReader.on("data", function(data) {
+					httpRequestStream.reader.method = parserStreamReader.method;
+					httpRequestStream.reader.method = parserStreamReader.path;
+					httpRequestStream.reader.headers = parserStreamReader.headers;
+					httpRequestStream.writer.write(data);
+				});
+				parserStreamReader.on("end", function() {
+					httpRequestStream.reader.method = parserStreamReader.method;
+					httpRequestStream.reader.method = parserStreamReader.path;
+					httpRequestStream.reader.headers = parserStreamReader.headers;
+					httpRequestStream.writer.end();
+				});
+			});
+			sock.on("data", function(data) {
+				parserStreamWriter.write(data);
+			});
+			sock.on("end", function() {
+				parserStreamWriter.end();
+			});
 		};
 		var socketServer = net.createServer(connectionListener);
 		return socketServer; // Return the socket server which has a listen() method to start it listening.

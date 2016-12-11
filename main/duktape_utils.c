@@ -30,18 +30,24 @@ void esp32_duktape_log_error(duk_context *ctx) {
 	duk_get_prop_string(ctx, errObjIdx, "message");
 	duk_get_prop_string(ctx, errObjIdx, "lineNumber");
 	duk_get_prop_string(ctx, errObjIdx, "stack");
-	// [0] - Err
+	// [0] - Err object
 	// [1] - name
 	// [2] - message
 	// [3] - lineNumber
 	// [4] - Stack
-	ESP_LOGD(tag, "Error: %s: %s\nline: %d\nStack: %s", duk_get_string(ctx, -4),
-			duk_get_string(ctx, -3),
-			duk_get_int(ctx, -2),
-			duk_get_string(ctx, -1));
+
+	char *name = duk_get_string(ctx, -4);
+	char *message = duk_get_string(ctx, -3);
+	int lineNumber = duk_get_int(ctx, -2);
+	char *stack = duk_get_string(ctx, -1);
+	ESP_LOGD(tag, "Error: %s: %s\nline: %d\nStack: %s",
+			name!=NULL?name:"NULL",
+			message!=NULL?message:"NULL",
+			lineNumber,
+			stack!=NULL?stack:"NULL");
 	duk_pop_n(ctx, 4);
 	// [0] - Err
-}
+} // esp32_duktape_log_error
 
 void esp32_duktape_stash_init(duk_context *ctx) {
 	g_stashCounter = 1;
