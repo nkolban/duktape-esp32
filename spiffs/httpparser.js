@@ -84,13 +84,16 @@ function httpparser(type, handler) {
 	this.RESPONSE = 2;
 	var networkStream = new Stream();
 	var httpStream = new Stream();
+	httpStream.reader.headers = {};
 	var message = "";
+	var state;
 	
 	handler(httpStream.reader);
+	
 	networkStream.reader.on("end", function() {
 		log("HTTP parsing over ... data is: " + message);
 		// We now have the WHOLE HTTP response message ... so it is time to parse the data
-		var state;
+
 		if (type == this.REQUEST) {
 			state = STATE.START_REQUEST;
 		} else if (type == this.RESPONSE) {
@@ -100,24 +103,22 @@ function httpparser(type, handler) {
 		}
 
 		var line = getLine(message);
-		var headers = {};
-		var method = null;
 		var path = null;
 		while (line.line !== null) {
 			if (state == STATE.START_RESPONSE) {
 		// A header line is of the form <protocols>' '<code>' '<message>
 //		                                   0          1         2					
 				var splitData = line.line.split(" ");
-				var httpStatus = splitData[1];
-				log("httpStatus = " + httpStatus);
+				httpStream.reader.httpStatus = splitData[1];
+				log("httpStatus = " + httpStream.reader.httpStatus);
 				// We have finished with the start line ...
 				state = STATE.HEADERS;
 			} // End of in STATE.START_RESPONSE
 			else if (state == STATE.START_REQUEST) {
 				var splitData = line.line.split(" ");
-				method = splitData[0];
-				path = splitData[1];
-				log("http Method: " + method + ", path: " + path);
+				httpStream.reader.method = splitData[0];
+				httpStream.reader.path = splitData[1];
+				log("http Method: " + httpStream.reader.method + ", path: " + httpStream.reader.path);
 				// We have finished with the start line ...
 				state = STATE.HEADERS;
 			}
@@ -127,14 +128,14 @@ function httpparser(type, handler) {
 		// is found, we switch to STATE.BODY.  Otherwise, we found a header line of the format:
 		// <name>':_'<value>
 				if (line.line.length === 0) {
-					log("End of headers\n" + JSON.stringify(headers));
+					log("End of headers\n" + JSON.stringify(httpStream.reader.headers));
 					state = STATE.BODY;
 				} else {
 				// we found a header
 					var i = line.line.indexOf(":");
 					var name = line.line.substr(0, i);
 					var value = line.line.substr(i+2);
-					headers[name] = value;
+					httpStream.reader.headers[name] = value;
 				}
 			} // End of in STATE.HEADERS
 			log("New line: " + line.line);
@@ -142,9 +143,6 @@ function httpparser(type, handler) {
 		} // End of we have processed all the lines. (end while)
 		log("Final remainder: " + line.remainder);
 		log("Remainder length: " + line.remainder.length);
-		httpStream.reader.headers = headers;
-		httpStream.reader.method = method;
-		httpStream.reader.path = path;
 		if (line.remainder.length > 0) {
 			httpStream.writer.write(line.remainder);
 		}

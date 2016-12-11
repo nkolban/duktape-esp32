@@ -255,27 +255,38 @@ server.listen(80);
 
 
 ##HTTPParser
-Primarily designed as an internal module, this module parses HTTP protocol requests and responses.
+Primarily designed as an internal module, this module parses HTTP protocol requests and responses.  When we are
+acting as a Web Server, we expected to receive incoming HTTP requests that are asking to retrieve or put data.  When
+we are acting as an HTTP client, we are expecting to receive response messages.  Both are HTTP protocol
+transmissions and are expected to come over sockets.  This class parses that data.
 
 We create a new instance of an HTTPParser passing in the type of parsing requested and a handler to be
-invoked as the parsing progresses.  The instance created of the HTTPParser is a stream writer and we
-write in HTTP protocol data as it arrives.  The type of the parser can be one of:
+invoked as the parsing progresses.  The instance of an HTTPParser is a stream writer and we
+write in HTTP protocol data arriving over the network as it arrives.  The type of the parser can be one of:
 
 * `HTTPParser.REQUEST` - We are parsing an HTTP request.
 * `HTTPParser.RESPONSE` - We are parsing an HTTP response.
 
-The handler is passed a stream reader from which the parsed HTTP protocol can be obtained.  Any data passed will be just the content
-of any payload for a POST or PUT request.  Status and headers will not be presented in the data stream.  Instead
-the stream object has properties added to it:
+The handler is passed a stream reader from which the parsed HTTP protocol can be obtained.  Any data passed will
+to the reader will be just the content
+of any payload for a POST or PUT request.  Status and headers will not be presented in the data stream.  
+The stream object has properties added to it:
 
 For a request:
-* method
-* path
-* headers
+* method - The HTTP method in the request (eg. `GET`, `POST`, etc).
+* path - The local URL path (eg. "/" or "/dir/myfile.html").
+* headers - An object with name/value pairs for each of the headers received.
 
 For a response:
-* status
-* headers
+* status - The HTTP status code (eg. 200).
+* headers  - An object with name/value pairs for each of the headers received.
+
+To be clear, when we create an instance of an HTTPParser, we must pass in a callback function
+with the signature:
+
+`function(parserStreamReader)`
+
+where `parserStreamReader` is a reader stream and hence has events on it such as `data` and `end`.
 
 For example:
 
