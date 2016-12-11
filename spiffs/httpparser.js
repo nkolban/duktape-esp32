@@ -43,8 +43,40 @@
  * // requestData read from socket ...
  * parser.write(requestData);
  * parser.end();
+ * 
+ * The first implementation of the parser accumulated all the data that was passed into it until
+ * we were told that there was going to be no more.  At that point we had ALL the data received
+ * from the client and could parse it as a whole.  Unfortunately this wasn't going to work.
+ * Not only were we having to accumulate data, but there was an important semantic problem.
+ * When data is sent over a connection, the sender doesn't "end" the socket connection after it
+ * has sent its request or response.  As such, there is no "end of stream" marker at the network
+ * level.  The HTTP data itself defines when the data ends.
+ * 
+ * For example ... a request HTTP may be:
+ * 
+ * GET /path HTTP/1.0<CRLF>
+ * header1: value1<CRLF>
+ * header2: value2<CRLF>
+ * <CRLF>
+ * ... don't care ...
+ * 
+ * or it might be
+ * 
+ * POST /path HTTP/1.0<CRLF>
+ * header1: value1<CRLF>
+ * Content-Length: <size>
+ * header2: value2<CRLF>
+ * <CRLF>
+ * data ......
+ * ... don't care ...
+ * 
+ * 
+ * In our story now ... the parser will be called **repeatedly**.   Each time it is called, it will receive a bit more data.
+ * 
  */
 /* globals require, log, module */
+var Stream = require("stream");
+
 
 /**
  * Given a line of text that is expected to be "\r\n" delimited, return an object that
@@ -71,43 +103,39 @@ function getLine(data) {
 	};
 } // getLine
 
+
 var STATE = {
 	START_REQUEST: 1,
 	START_RESPONSE: 2,
 	HEADERS: 3,
-	BODY: 4
+	BODY: 4,
+	END: 5
 };
 	
-var Stream = require("stream");
+
 function httpparser(type, handler) {
-	this.REQUEST = 1;
-	this.RESPONSE = 2;
 	var networkStream = new Stream();
 	var httpStream = new Stream();
 	httpStream.reader.headers = {};
-	var message = "";
+	var unconsumedData = "";
+	var bodyLeftToRead;
 	var state;
+	if (type == "request") {
+		state = STATE.START_REQUEST;
+	} else if (type == "response") {
+		state = STATE.START_RESPONSE;
+	} else {
+		throw new Error("ERROR: Unknown type on httpparser: " + type);
+	}
 	
-	handler(httpStream.reader);
-	
-	networkStream.reader.on("end", function() {
-		log("HTTP parsing over ... data is: " + message);
-		// We now have the WHOLE HTTP response message ... so it is time to parse the data
-
-		if (type == this.REQUEST) {
-			state = STATE.START_REQUEST;
-		} else if (type == this.RESPONSE) {
-			state = STATE.START_RESPONSE;
-		} else {
-			log("ERROR: Unknown type on httpparser: " + type);
-		}
-
-		var line = getLine(message);
-		var path = null;
+	function consume(dataToProcess) {
+		var line = getLine(dataToProcess);
 		while (line.line !== null) {
+			log("http parsing: " + line.line);
+			
 			if (state == STATE.START_RESPONSE) {
-		// A header line is of the form <protocols>' '<code>' '<message>
-//		                                   0          1         2					
+				// A header line is of the form <protocols>' '<code>' '<message>
+				//                                  0          1         2					
 				var splitData = line.line.split(" ");
 				httpStream.reader.httpStatus = splitData[1];
 				log("httpStatus = " + httpStream.reader.httpStatus);
@@ -129,7 +157,15 @@ function httpparser(type, handler) {
 		// <name>':_'<value>
 				if (line.line.length === 0) {
 					log("End of headers\n" + JSON.stringify(httpStream.reader.headers));
-					state = STATE.BODY;
+					// We are about to start the body ... BUT ... at this point we only have a body
+					// if we have a contentLength.
+					if (httpStream.reader.headers["Content-Length"] !== undefined) {
+						bodyLeftToRead = Number(httpStream.reader.headers["Content-Length"]);
+						state = STATE.BODY;
+					} else {
+						state = STATE.END;
+						httpStream.writer.end();
+					}
 				} else {
 				// we found a header
 					var i = line.line.indexOf(":");
@@ -138,23 +174,36 @@ function httpparser(type, handler) {
 					httpStream.reader.headers[name] = value;
 				}
 			} // End of in STATE.HEADERS
-			log("New line: " + line.line);
+			else if (state == STATE.BODY) {
+				httpStream.writer.write(dataToProcess);
+				line.remainder = "";
+				bodyLeftToRead = bodyLeftToRead - dataToProcess.length;
+				if (bodyLeftToRead < 0) {
+					throw new Error("We have written more data than we expected");
+				}
+				if (bodyLeftToRead === 0) {
+					state = STATE.END;
+					httpStream.writer.end();
+
+				}
+			} else if (state == STATE.END) {
+				throw new Error("We have been asked to parse more HTTP data but we are already past the end");
+			}
+
 			line = getLine(line.remainder);
 		} // End of we have processed all the lines. (end while)
-		log("Final remainder: " + line.remainder);
-		log("Remainder length: " + line.remainder.length);
-		if (line.remainder.length > 0) {
-			httpStream.writer.write(line.remainder);
-		}
-		httpStream.writer.end();
-	}); // networkStream reader on("end")
+		return line.remainder;
+	} // consume
 	
-	// Received data from network stream.
+	handler(httpStream.reader);
+	
 	networkStream.reader.on("data", function(data) {
-		message += data.toString();
-	}); // End of received data from network stream.
+		unconsumedData = consume(unconsumedData + data.toString());
+	});
 	
-	
+	networkStream.reader.on("end", function() {
+		log("Received an end of network connection");
+	}); // networkStream reader on("end")
 	return networkStream.writer;
 } // httpparser
 

@@ -8,7 +8,12 @@ function requestHandler(request, response) {
    	log("HTTP request received:");
    	log(" - method: " + request.method);
    	log(" - headers: " + JSON.stringify(request.headers));
+   	log(" - Sending response ...");
+      response.writeHead(200);
+      response.write("Hello world!");
+      response.end();
    });
+
 }
 var server = http.createServer(requestHandler);
 server.listen(80);

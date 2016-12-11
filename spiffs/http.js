@@ -158,8 +158,29 @@ var http = {
 
 		var connectionListener = function(sock) {
 			var httpRequestStream = new Stream();
-			requestHandler(httpRequestStream.reader, null);
-			var parserStreamWriter = new HTTPParser(HTTPParser.REQUEST, function(parserStreamReader) {
+			var httpResponseStream = new Stream();
+			httpResponseStream.writer.writeHead = function(statusCode, headers) {
+				// Write a message of the form:  "HTTP/1.1 200 OK"
+				var statusMessage = "OK";
+				sock.write("HTTP/1.1 " + statusCode + " " + statusMessage + "\r\n");
+				if (headers !== undefined) {
+					for (var name in headers) {
+						if (headers.hasOwnProperty(name)) {
+							sock.write(name + ": " + headers[name] + "\r\n");
+						}
+					}
+				}
+				sock.write("\r\n");
+			};
+			requestHandler(httpRequestStream.reader, httpResponseStream.writer);
+			httpResponseStream.reader.on("data", function(data) {
+				sock.write(data);
+			});
+			httpResponseStream.reader.on("end", function() {
+				sock.end();
+			});
+			
+			var parserStreamWriter = new HTTPParser("request", function(parserStreamReader) {
 				parserStreamReader.on("data", function(data) {
 					httpRequestStream.reader.method = parserStreamReader.method;
 					httpRequestStream.reader.path = parserStreamReader.path;
