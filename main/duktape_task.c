@@ -11,6 +11,7 @@
 #include <spiffs.h>
 #include <esp_system.h>
 #include <esp_spiffs.h>
+#include "esp32_specific.h"
 #include "esp32_duktape/duktape_event.h"
 #include "esp32_duktape/module_timers.h"
 #include "modules.h"
@@ -23,11 +24,8 @@
 
 static char tag[] = "duktape_task";
 
-
-
 // The Duktape context.
 duk_context *esp32_duk_context;
-
 
 /**
  * Initialize the duktape environment.
@@ -43,11 +41,16 @@ void duktape_init_environment() {
 	esp32_duktape_stash_init(esp32_duk_context); // Initialize the stash environment.
 	registerModules(esp32_duk_context); // Register the built-in modules
 
-	int rc = duk_peval_file(esp32_duk_context, "/spiffs/init.js");
-	if (rc != 0) {
-		esp32_duktape_log_error(esp32_duk_context);
+	size_t fileSize;
+	char *data = esp32_loadFileESPFS("init.js", &fileSize);
+	if (data != NULL) {
+		duk_push_lstring(esp32_duk_context, data, fileSize);
+		int rc = duk_peval(esp32_duk_context);
+		if (rc != 0) {
+			esp32_duktape_log_error(esp32_duk_context);
+		}
+		duk_pop(esp32_duk_context);
 	}
-	duk_pop(esp32_duk_context);
 
 	// Print a console logo.
 	esp32_duktape_console(
@@ -452,6 +455,7 @@ void duktape_task(void *ignore) {
 	//
 	// Master JavaScript loop.
 	//
+	ESP_LOGD(tag, "Free heap at start of JavaScript main loop: %d", esp_get_free_heap_size());
 	while(1) {
 
 		rc = esp32_duktape_waitForEvent(&esp32_duktape_event);

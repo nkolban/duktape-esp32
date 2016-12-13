@@ -82,7 +82,7 @@ static duk_ret_t js_os_send(duk_context *ctx) {
 	}
 
 	ESP_LOGD(tag, "About to send %d bytes of data to sockfd=%d", size, sockfd);
-	ESP_LOGD(tag, "- %.*s", size, (char *)data);
+	ESP_LOGD(tag, "- data: \"%.*s\"", size, (char *)data);
 	sendRc = send(sockfd, data, size, 0);
 
 	if (sendRc < 0) {
@@ -267,11 +267,12 @@ static duk_ret_t js_os_listen(duk_context *ctx) {
 
 	ESP_LOGD(tag, "About to call listen on fd=%d", sockfd);
 	int rc = listen(sockfd, 5);
-	if (rc < 0) {
-		ESP_LOGE(tag, "Error with listen: %d", rc);
+	if (rc != 0) {
+		ESP_LOGE(tag, "Error with listen: %d %d %s", rc, errno, strerror(errno));
 	}
+	duk_push_int(ctx, rc);
 	ESP_LOGD(tag, "<< js_os_listen");
-	return 0;
+	return 1;
 } // js_os_listen
 
 
@@ -500,8 +501,8 @@ static duk_ret_t js_os_select(duk_context *ctx) {
 	struct timeval tv;
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
-	ESP_LOGV(tag, " - select(%d, count=%d, count=%d, count=%d...)", max+1, readfdsCount, writefdsCount, exceptfdsCount);
-	ESP_LOGV(tag, " - readfds: 0x%x", (int)(readfds.fds_bits[0]));
+	ESP_LOGV(tag, " - select(bitsToScan=%d, count=%d, count=%d, count=%d...)", max+1, readfdsCount, writefdsCount, exceptfdsCount);
+	//ESP_LOGV(tag, " - readfds: 0x%x", (int)(readfds.fds_bits[0]));
 	int rc = select(max+1, &readfds, &writefds, &exceptfds, &tv);
 	if (rc < 0) {
 		ESP_LOGE(tag, "Error with select: %d: %d - %s", rc, errno, strerror(errno));

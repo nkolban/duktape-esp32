@@ -10,5 +10,6 @@
 
 void setupVFS();
 void setupWebVFS(const char *mountPoint, char *baseURL);
+char *esp32_loadFileESPFS(const char *path, size_t *fileSize);
 
 #endif /* MAIN_ESP32_SPECIFIC_H_ */

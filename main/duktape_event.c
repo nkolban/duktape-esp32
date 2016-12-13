@@ -122,8 +122,17 @@ void event_newCommandLineEvent(
 	) {
 	esp32_duktape_event_t event;
 
+	if (commandLength == 0 || commandData == NULL) {
+		ESP_LOGE(tag, "event_newCommandLineEvent: problem ... length of command was %d which should be > 0 or commandData was NULL=%s ", commandLength, commandData==NULL?"yes":"no");
+		return;
+	}
+	assert(commandLength > 0);
+	assert(commandData != NULL);
+
 	event.commandLine.type = ESP32_DUKTAPE_EVENT_COMMAND_LINE;
 	event.commandLine.commandLine = malloc(commandLength);
+	assert(event.commandLine.commandLine != NULL);
+
 	memcpy(event.commandLine.commandLine, commandData, commandLength);
 	event.commandLine.commandLineLength = commandLength;
 	event.commandLine.fromKeyboard = fromKeyboard;

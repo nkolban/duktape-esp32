@@ -129,69 +129,73 @@ function httpparser(type, handler) {
 	}
 	
 	function consume(dataToProcess) {
-		var line = getLine(dataToProcess);
-		while (line.line !== null) {
-			log("http parsing: " + line.line);
-			
-			if (state == STATE.START_RESPONSE) {
-				// A header line is of the form <protocols>' '<code>' '<message>
-				//                                  0          1         2					
-				var splitData = line.line.split(" ");
-				httpStream.reader.httpStatus = splitData[1];
-				log("httpStatus = " + httpStream.reader.httpStatus);
-				// We have finished with the start line ...
-				state = STATE.HEADERS;
-			} // End of in STATE.START_RESPONSE
-			else if (state == STATE.START_REQUEST) {
-				var splitData = line.line.split(" ");
-				httpStream.reader.method = splitData[0];
-				httpStream.reader.path = splitData[1];
-				log("http Method: " + httpStream.reader.method + ", path: " + httpStream.reader.path);
-				// We have finished with the start line ...
-				state = STATE.HEADERS;
-			}
-			else if (state == STATE.HEADERS) {
-		// Between the headers and the body of an HTTP response is an empty line that marks the end of
-		// the HTTP headers and the start of the body.  Thus we can find a line that is empty and, if it
-		// is found, we switch to STATE.BODY.  Otherwise, we found a header line of the format:
-		// <name>':_'<value>
-				if (line.line.length === 0) {
-					log("End of headers\n" + JSON.stringify(httpStream.reader.headers));
-					// We are about to start the body ... BUT ... at this point we only have a body
-					// if we have a contentLength.
-					if (httpStream.reader.headers["Content-Length"] !== undefined) {
-						bodyLeftToRead = Number(httpStream.reader.headers["Content-Length"]);
-						state = STATE.BODY;
+		var line = {remainder: ""};
+		if (state !== STATE.BODY) {
+			line = getLine(dataToProcess);
+			while (line.line !== null) {
+				log("http parsing: " + line.line);
+				
+				if (state == STATE.START_RESPONSE) {
+					// A header line is of the form <protocols>' '<code>' '<message>
+					//                                  0          1         2					
+					var splitData = line.line.split(" ");
+					httpStream.reader.httpStatus = splitData[1];
+					log("httpStatus = " + httpStream.reader.httpStatus);
+					// We have finished with the start line ...
+					state = STATE.HEADERS;
+				} // End of in STATE.START_RESPONSE
+				else if (state == STATE.START_REQUEST) {
+					var splitData = line.line.split(" ");
+					httpStream.reader.method = splitData[0];
+					httpStream.reader.path = splitData[1];
+					log("http Method: " + httpStream.reader.method + ", path: " + httpStream.reader.path);
+					// We have finished with the start line ...
+					state = STATE.HEADERS;
+				}
+				else if (state == STATE.HEADERS) {
+			// Between the headers and the body of an HTTP response is an empty line that marks the end of
+			// the HTTP headers and the start of the body.  Thus we can find a line that is empty and, if it
+			// is found, we switch to STATE.BODY.  Otherwise, we found a header line of the format:
+			// <name>':_'<value>
+					if (line.line.length === 0) {
+						log("End of headers\n" + JSON.stringify(httpStream.reader.headers));
+						// We are about to start the body ... BUT ... at this point we only have a body
+						// if we have a contentLength.
+						if (httpStream.reader.headers["Content-Length"] !== undefined) {
+							bodyLeftToRead = Number(httpStream.reader.headers["Content-Length"]);
+							state = STATE.BODY;
+							dataToProcess = line.remainder;
+						} else {
+							state = STATE.END;
+							httpStream.writer.end();
+						}
 					} else {
-						state = STATE.END;
-						httpStream.writer.end();
+					// we found a header
+						var i = line.line.indexOf(":");
+						var name = line.line.substr(0, i);
+						var value = line.line.substr(i+2);
+						httpStream.reader.headers[name] = value;
 					}
-				} else {
-				// we found a header
-					var i = line.line.indexOf(":");
-					var name = line.line.substr(0, i);
-					var value = line.line.substr(i+2);
-					httpStream.reader.headers[name] = value;
+				} // End of in STATE.HEADERS
+				else if (state == STATE.END) {
+					throw new Error("We have been asked to parse more HTTP data but we are already past the end");
 				}
-			} // End of in STATE.HEADERS
-			else if (state == STATE.BODY) {
-				httpStream.writer.write(dataToProcess);
-				line.remainder = "";
-				bodyLeftToRead = bodyLeftToRead - dataToProcess.length;
-				if (bodyLeftToRead < 0) {
-					throw new Error("We have written more data than we expected");
-				}
-				if (bodyLeftToRead === 0) {
-					state = STATE.END;
-					httpStream.writer.end();
-
-				}
-			} else if (state == STATE.END) {
-				throw new Error("We have been asked to parse more HTTP data but we are already past the end");
+	
+				line = getLine(line.remainder);
+			} // End of we have processed all the lines. (end while)
+		} /// End was NOT STATE == BODY
+		if (state == STATE.BODY) {
+			httpStream.writer.write(dataToProcess);
+			line.remainder = "";
+			bodyLeftToRead = bodyLeftToRead - dataToProcess.length;
+			if (bodyLeftToRead < 0) {
+				throw new Error("We have written more data than we expected");
 			}
-
-			line = getLine(line.remainder);
-		} // End of we have processed all the lines. (end while)
+			if (bodyLeftToRead === 0) {
+				state = STATE.END;
+				httpStream.writer.end();
+			}
+		}
 		return line.remainder;
 	} // consume
 	

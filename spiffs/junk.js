@@ -1,19 +1,17 @@
-var http = require("http");
-function requestHandler(request, response) {
-   log("We have received a new HTTP client request!");
-   request.on("data", function(data) {
-   	log("HTTP Request handler: " + data);
-   });
-   request.on("end", function() {
-   	log("HTTP request received:");
-   	log(" - method: " + request.method);
-   	log(" - headers: " + JSON.stringify(request.headers));
-   	log(" - Sending response ...");
-      response.writeHead(200);
-      response.write("Hello world!");
-      response.end();
-   });
-
+log(JSON.stringify(Duktape.env));
+try {
+	ESP32.debug();
+var fd = FS.openSync("/spiffs/web/ideXXX.html", "r");
+var buffer = new Buffer(128);
+// Do something else ...
+while(1) {
+	var sizeRead = FS.readSync(fd, buffer, 0, buffer.length, null);
+	log("Size read: " + sizeRead);
+	if (sizeRead <= 0) {
+		break;
+	}
 }
-var server = http.createServer(requestHandler);
-server.listen(80);
+FS.closeSync(fd);
+} catch(e) {
+	log("We got an exception: " + e);
+}

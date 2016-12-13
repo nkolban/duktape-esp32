@@ -22,11 +22,11 @@ if (!String.prototype.startsWith) {
 
 Duktape.modSearch = function(id, require, exports, module) {
 	log("Module: Loading \"" + id + "\"");
-	var name = "/spiffs/" + id;
+	var name = id;
 	if (!id.endsWith(".js")) {
 		name += ".js";
 	}
-	return ESP32.loadFile(name);
+	return ESP32.loadFileESPFS(name);
 };
 
 ESP32.setLogLevel("*", "debug");

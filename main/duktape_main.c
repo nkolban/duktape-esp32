@@ -7,11 +7,11 @@
 #include <nvs_flash.h>
 #include <lwip/sockets.h>
 #include <string.h>
+#include <math.h>
 #include "bootwifi.h"
 #include "esp32_specific.h"
 #include "telnet.h"
 #include "esp32_duktape/duktape_event.h"
-#include "esp32_mongoose.h"
 #include "connection_info.h"
 #include "duktape_task.h"
 #include "sdkconfig.h"
@@ -87,6 +87,7 @@ static void init() {
  */
 void app_main(void)
 {
+	ESP_LOGD(tag, "Free heap at start: %d", esp_get_free_heap_size());
 	bootWiFi(init);
 } // app_main
 

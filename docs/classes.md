@@ -45,6 +45,13 @@ The `function` is a function which will be invoked when the timer fires.
 
 `setTimer` returns an id which can be used through a call to `cancelTimer()` to cancel any subsequent fires of the timer.
 
+For example:
+```
+var id = setInterval(function() {
+   log("tick!");
+}, 1000);
+```
+
 ###setTimeout
 Fire a single shot timer.
 
@@ -67,6 +74,15 @@ Syntax:
 
 
 ##ESP32
+###debug
+Attach the debugger.
+
+###dumpESPFS
+Dump the files contained in the ESPFS to the log.
+
+Syntax:
+`dumpESPFS()`
+
 ###getNativeFunction
 Retrieve a built-in native function by name.
 
@@ -91,12 +107,40 @@ This returns an object which contains:
 }
 ```
 
+For example:
+```
+setInterval(function() {
+   log("Current heap is + " ESP32.getState().heapSize);
+}, 2000);
+```
+
 ###loadFile
-Load a text file from the local file system.
+Load a text file from the local file system.  If the file can not be found or read
+then the result is `null`.
 
 Syntax:
 
 `loadFile(path)`
+
+For example:
+```
+var text = ESP32.loadFile("/index.html");
+log("About to send: " + text);
+```
+
+###loadFileESPFS
+Load a text file from the ESPFS file system.  If the file can not be found or read
+then the result is `null`.
+
+Syntax:
+
+`loadFileESPFS(path)`
+
+For example:
+```
+var text = ESP32.loadFileESPFS("index.html");
+log("About to send: " + text);
+```
 
 ###reset
 Reset the state of the JavaScript environment.
@@ -121,6 +165,11 @@ can be one of the levels to set for that log output.  Choices are:
 * `debug`
 * `verbose`
 
+
+For example:
+```
+ESP32.setLogLevel("*", "verbose");
+```
 
 ##FS
 
@@ -177,6 +226,14 @@ Syntax:
   
 The return is a file descriptor.
 
+For example:
+
+```
+var fd = openSync("/spiffs/index.html", "r");
+// Do something else ...
+closeSync(fd);
+```
+
 ###readSync
 Read data from a file.
 
@@ -190,6 +247,22 @@ Syntax:
  * position <Integer> - The position within the file to read from.  If position is null then we read from the current file position.
  
  The return is the number of bytes actually read.
+ 
+ For example:
+ 
+ ```
+var fd = FS.openSync("/spiffs/web/ide.html", "r");
+var buffer = new Buffer(128);
+// Do something else ...
+while(1) {
+	var sizeRead = FS.readSync(fd, buffer, 0, buffer.length, null);
+	log("Size read: " + sizeRead);
+	if (sizeRead <= 0) {
+		break;
+	}
+}
+FS.closeSync(fd);
+ ```
  
 
 ###statSync

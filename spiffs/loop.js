@@ -9,15 +9,19 @@ function loop() {
 	// the set of file descriptors corresponding to the sockets that we wish to read from.
 	var readfds = [];
 	var writefds = [];
+	var exceptfds = [];
+	
+	// Loop through each of the sockets and determine if we are going to work with them.
 	for (var sock in _sockets) {
 		readfds.push(_sockets[sock]._sockfd);
 		if (_sockets[sock].connecting) {
 			writefds.push(_sockets[sock]._sockfd);
 		}
+		exceptfds.push(_sockets[sock]._sockfd);
 	} // End of each socket id.
 	
 	// Invoke select() to see if there is any work to do.
-	var selectResult = OS.select({readfds: readfds, writefds: writefds, exceptfds:[]});
+	var selectResult = OS.select({readfds: readfds, writefds: writefds, exceptfds: exceptfds});
 	//console.log("selectResult: " + JSON.stringify(selectResult));
 	
 	var currentSocketFd;

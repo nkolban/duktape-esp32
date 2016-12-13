@@ -54,27 +54,44 @@ void socket_server(void *ignore) {
 			goto END;
 		}
 
-		// We now have a new client ...
-		int total =	10*1024;
-		int sizeUsed = 0;
-		char *data = malloc(total);
+// We now have a new client that is sending in JavaScript to evaluate.  We want
+// to receive ALL the JavaScript before processing it.  Since we are memory sensitive,
+// we can't just allocate a HUGE buffer.  So we need to allocate a small buffer, read in
+// some data and keep increasing the buffer size as there is more data to be received.
+		size_t totalAllocated =	1024;
+		size_t sizeUsed = 0;
+		char *data = malloc(totalAllocated);
 
 		// Loop reading data.
 		while(1) {
-			ssize_t sizeRead = recv(clientSock, data + sizeUsed, total-sizeUsed, 0);
+			ssize_t sizeRead = recv(clientSock, data + sizeUsed, totalAllocated-sizeUsed, 0);
 			if (sizeRead < 0) {
 				ESP_LOGE(tag, "recv: %d %s", sizeRead, strerror(errno));
 				goto END;
 			}
-			if (sizeRead == 0) {
+			if (sizeRead == 0) { // If sizeRead is 0, then we have reached the end.
 				break;
 			}
 			sizeUsed += sizeRead;
-		}
+// If we are running low on buffer into which to read more data from the socket, then
+// we calculate the new buffer size and realloc the existing buffer.
+			if ((totalAllocated-sizeUsed) < 512) {
+				totalAllocated += 1024 - (totalAllocated - sizeUsed); // Should increase the totalAllocated free to 1024
+				char *newPtr = realloc(data, totalAllocated);
+				if (newPtr == NULL) { // It is possible we may not be able to reallocate!
+					sizeUsed = 0;
+					ESP_LOGD(tag, "Unable to realloc storage to %d", totalAllocated);
+					break;
+				}
+				data = newPtr; // At this point we know we succesfully re-allocated.
+			}
+		} // Loop forever.
 
 		// Finished reading data.
 		//ESP_LOGD(tag, "Data read (size: %d) was: %.*s", sizeUsed, sizeUsed, data);
-		event_newCommandLineEvent(data, sizeUsed, 0);
+		if (sizeUsed > 0) {
+			event_newCommandLineEvent(data, sizeUsed, 0);
+		}
 		free(data);
 		close(clientSock);
 	}

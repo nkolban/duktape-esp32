@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
+#include <espfs.h>
 #include "sdkconfig.h"
 
 
@@ -28,6 +29,22 @@ typedef struct {
 static file_record_t file_records[MAX_WEB_FILE_RECORDS];
 static file_record_t *getNextFreeFilerecord();
 static file_record_t *getFilerecord(int fd);
+
+
+char *esp32_loadFileESPFS(char *path, size_t *fileSize) {
+	EspFsFile *fh = espFsOpen((char *)path);
+	if (fh == NULL) {
+		ESP_LOGD(tag, " Failed to open file %s", path);
+		return NULL;
+	}
+  char *data;
+  espFsAccess(fh, (void **)&data, fileSize);
+  espFsClose(fh);
+  // Note ... because data is mapped in memory from flash ... it will be good
+  // past the file close.
+  ESP_LOGD(tag, "esp32_loadFileESPFS: Read file %s for size %d", path, *fileSize);
+  return data;
+} // esp32_loadFileESPFS
 
 /**
  * Log the flags that are specified in an open() call.

@@ -43,7 +43,11 @@ var net = {
 			// write - Write data down the socket.
 			//
 			write: function(data) {
-				OS.send({sockfd: this._sockfd, data: data});
+				var sendRc = OS.send({sockfd: this._sockfd, data: data});
+				if (sendRc < 0) {
+					throw new Error("Underlying send() failed");
+				}
+				return sendRc;
 			},
 			//
 			// on - Register events.
@@ -81,19 +85,26 @@ var net = {
 			connect: function(options, connectListener) {
 				this.connecting = true;
 				this.on("connect", connectListener);
-				OS.connect({
+				var connectRc = OS.connect({
 					sockfd: this._sockfd,
 					port: options.port,
 					address: options.address});
+				if (connectRc < 0) {
+					throw new Error("Underlying connect() failed");
+				}
 			}, // connect
 			//
 			// close
 			//
+			// Here we flag the socket as ended.  This means we close the socket and delete it from
+			// the list of known sockets.  This should be fine as we shouldn't ever try and read
+			// from it or write from it again.
 			end: function(data) {
 				if (data !== undefined) {
 					this.write(data);
 				}
 				OS.close({sockfd: this._sockfd});
+				delete _sockets[this._sockfd];
 			}
 		}; // ret object
 		_sockets[sockfd] = ret;
@@ -104,7 +115,6 @@ var net = {
 	// net.createServer(...)
 	//
 	createServer: function(connectionListener) {
-
 		var sock = new this.Socket(); // Create a new socket
 		sock.listening = true;
 		sock.on("connect", connectionListener);
@@ -112,9 +122,11 @@ var net = {
 			listen: function(port) {
 				sock.localPort = port;
 				if (OS.bind({sockfd: sock._sockfd, port: port}) != 0) {
-					throw new Error("Underlying bind failed");
+					throw new Error("Underlying bind() failed");
 				}
-				OS.listen({sockfd: sock._sockfd});
+				if (OS.listen({sockfd: sock._sockfd}) !=0) {
+					throw new Error("Underlying listen() failed");
+				}
 				// Listen on the port
 			} // listen
 		}; // return
@@ -134,16 +146,3 @@ var net = {
 }; // End of module net
 
 module.exports = net;
-
-/*
-function testServer() {
-	var server = net.createServer(function(sock) {
-		log("A new connection was received!");
-		log("New connection socket is " + JSON.stringify(sock));
-		sock.on("data", function(data) {
-			log("We have received new data over the socket! :" + data.toString());
-		});
-	});
-	server.listen(8001);
-}
-*/
