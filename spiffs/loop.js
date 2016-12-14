@@ -85,6 +85,7 @@ function loop() {
 			}
 		} // Data available and socket is NOT a server
 	} // For each socket that is able to read ... 
+	ESP32.gc();
 } // loop
 
 setInterval(loop, 100);

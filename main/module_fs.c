@@ -44,7 +44,6 @@ static int stringToPosixFlags(const char *flags) {
 	return posixFlags;
 } // stringToPosixFlags
 
-
 /**
  * [0] - file descriptor
  * [1] - buffer
@@ -321,6 +320,14 @@ static duk_ret_t js_fs_readSync(duk_context *ctx) {
 
 
 /**
+ * Get a listing of SPIFFs files.
+ */
+static duk_ret_t js_fs_spiffsDir(duk_context *ctx) {
+	esp32_duktape_dump_spiffs_array(ctx);
+	return 1;
+} // js_fs_spiffsDir
+
+/**
  * Create the FS module in Global.
  */
 void ModuleFS(duk_context *ctx) {
@@ -394,7 +401,16 @@ void ModuleFS(duk_context *ctx) {
 	// [0] - Global
 	// [1] - FS Object
 
-	duk_put_prop_string(ctx, -2, "FS"); // Add ESP32 to global
+	duk_push_c_function(ctx, js_fs_spiffsDir, 0);
+	// [0] - Global
+	// [1] - FS Object
+	// [2] - C Func - js_fs_spiffsDir
+
+	duk_put_prop_string(ctx, -2, "spiffsDir"); // Add spiffsDir to new FS
+	// [0] - Global
+	// [1] - FS Object
+
+	duk_put_prop_string(ctx, -2, "FS"); // Add FS to global
 	// [0] - Global
 
 	duk_pop(ctx);

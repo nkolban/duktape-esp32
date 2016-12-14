@@ -374,7 +374,7 @@ static duk_ret_t js_os_accept(duk_context *ctx) {
 		ESP_LOGE(tag, "Error with accept: %d: %d - %s", newSockfd, errno, strerror(errno));
 		return 0;
 	}
-	fcntl(newSockfd, F_SETFL, fcntl(newSockfd, F_GETFL, 0) | O_NONBLOCK); // Set the socket to be non blocking.
+	//fcntl(newSockfd, F_SETFL, fcntl(newSockfd, F_GETFL, 0) | O_NONBLOCK); // Set the socket to be non blocking.
 	duk_push_object(ctx);
 	duk_push_int(ctx, newSockfd);
 	duk_put_prop_string(ctx, -2, "sockfd");

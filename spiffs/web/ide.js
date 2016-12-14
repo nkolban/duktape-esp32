@@ -106,6 +106,40 @@ $(document).ready(function() {
 		$("#console").val("");
 	});
 	
+	$("#load").button().click(function() {
+		/*
+		$.ajax({
+			url: "http://" + settings.esp32_host + ":" + settings.esp32_port + "/listFiles",
+			method: "get",
+			dataType: "json",
+			success: function(data) {
+				debugger;
+				$("#loadDialog").dialog("open");
+				console.log("All sent");
+			}
+		});
+		*/
+		var s = '[{"name":"/web/ide.html","size":4898},{"name":"/web/ide.js","size":4371},{"name":"/loadStream.js","size":133},{"name":"/stream.js","size":23940},{"name":"/tests/test_http.js","size":254},{"name":"/tests/test_streams.js","size":1524},{"name":"/tests/test_net.js","size":413},{"name":"/http_save.js","size":3644},{"name":"/junk.js","size":376},{"name":"/module.js","size":301},{"name":"/http.js","size":6894},{"name":"/init.js","size":1051},{"name":"/loop.js","size":3303},{"name":"/net.js","size":3465},{"name":"/webserver.js","size":1234},{"name":"/status.js","size":87},{"name":"/testModule.js","size":239},{"name":"/gc.js","size":130},{"name":"/httpparser.js","size":6573}]';
+		var data = JSON.parse(s);
+		data.sort(function(a, b) {
+			if (a.name < b.name) {
+				return -1;
+			}
+			if (a.name > b.name) {
+				return 1;
+			}
+			return 0;
+		});
+		//debugger;
+		for (var i=0; i<data.length; i++) {
+			$("#loadSelect").append($("<option>", {value: data[i].name, text: data[i].name}));
+		}
+		$("#loadDialog").dialog("open");
+	});
+	$("#save").button().click(function() {
+		
+	});
+	
 	// Handle the settings button.
 	$("#settings").button({
 		icon: "ui-icon-wrench" // Set the icon on the button to be the wrench.
@@ -127,6 +161,24 @@ $(document).ready(function() {
 			runScript($("#repl").val());
 			return false;
 		}
+	});
+	
+	// Create and handle the load file dialog
+	$("#loadDialog").dialog({
+		autoOpen: false,
+		modal: true,
+		width: 400,
+		buttons: [
+			{
+				text: "Load"
+			},
+			{
+				text: "Cancel",
+				click: function() {
+					$(this).dialog("close");
+				}
+			}
+		]
 	});
 	
 	// Create and handle the settings dialog.

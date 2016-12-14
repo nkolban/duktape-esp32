@@ -50,5 +50,88 @@ socket.accept(function(newSocket) {
 
 Ok ... that seems to make sense.  So what it appears we need is a C function that is called from the JS
 environment that takes a callback function as a parameter and, when the something that the C function
-is interested in happens, call that JS callback.
+is interested in happens, call that JS callback.  The first thing we have to consider is that the
+JS environment will pass (to C) a callback function that is to be invoked at a later time.  It is vital
+that the callback function be stashed.  Let us examine this and see why we need to stash it.
 
+Consider the following JS code
+```
+// JS
+callCFunc(function(params) {
+   // do something
+});
+```
+Notice that the callback function is defined as anonymous and in-line.  When this statement is reached, a new
+anonymous function is created and passed in as a parameter to the function called `callCFunc`.  When `callCFunc`
+returns, the anonymous function is eligible for garbage collection.  If at some time later, the C code that wishes
+to call the anonymous function (the callback) attempts to do so, any handle it may have simply had may no
+longer be valid as it was cleaned up.  To resolve this issue, the C code must ask JS to keep a reference to the
+function and that is what we call stashing.  If we have stashed the function, then when the C code wishes to
+call the JS in the future, it can retrieve the stashed handle and call it.
+
+Our framework provides a number of functions for stashing.
+
+First there is `esp32_duktape_stash_object`.
+
+```
+uint32_t esp32_duktape_stash_object(duk_context *ctx)
+```
+This takes the object at the top of the stack and places it
+in a new property  in the stash.  A key is returned that we can later use to get the data back.
+The next function we look at is called `esp32_duktape_unstash_object`:
+```
+void esp32_duktape_unstash_object(duk_context *ctx, uint32_t key)
+```
+This function takes a key previously generated/returned by `esp32_duktape_stash_object` and pushes a single object on the
+value stack.  That object contains the item previously stashed.  Note that the stashed item is NOT deleted.
+It still remains in the stash.  To delete a stashed entry we call:
+
+```
+void esp32_duktape_stash_delete(duk_context *ctx, uint32_t key)
+```
+
+Passing in the generated/returned key that we got from `esp32_duktape_stash_object`.  Failure to delete
+stashed objects over time will result in a bad memory leak.
+
+
+The last thing we have to consider is that when a C event occurs, we are NOT allowed to work with JavaScript.  We simply have
+no idea where we are in the JavaScript world we may be.  To handle this, what we must do is post an event to our
+event loop so that when JavaScript is ready, it can pick it up.  Imagine that we have a C event handler that is
+asynchronously called when some event happens:
+
+```
+void my_C_event_handler() {
+   // We want to call the JS callback here ... but we are in the wrong context!!!
+}
+```
+
+Instead we must code:
+```
+void my_C_event_handler() {
+   event_newCallbackRequestedEvent(
+      ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION,
+      stashKey, // Stash key for stashed callback array
+      dataProvider, // Data provider parameter
+      NULL // Context parameter
+   );
+}
+```
+
+Obviously we have some explaining to do here.  By calling `event_newCallbackRequestedEvent()` we are saying that
+we are posting a new event that a request to callback JS is needed.
+
+There might be multiple "styles" for invoking JS callbacks so we provide a parameter that defines the callback style we
+want.  Currently only `ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION` is provided so this will be constant in our story.
+Next comes `stashKey` which is a key to a previously stashed JS callback.  This would be stashed by `array` with the first
+element in the array being the function to invoke.
+The `dataProvider` is a C language function that is called to push additional values onto the Duktape call stack before
+invoking `duk_pcall()` to perform the callback function.  This is our chance to push dynamic parameters to the
+callback function.  The `dataProvider` is optional and can be `NULL` if we have no need to add dynamic parameters.
+The signature of the `dataProvider` function is:
+
+```
+int dataProvider(duk_context *ctx, void *context)
+```
+
+The return value should be the number of new items pushed onto the value stack.  The `context` parameter is optional
+and passed into the `dataProvider`.

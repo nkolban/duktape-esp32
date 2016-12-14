@@ -21,6 +21,9 @@ function requestHandler(request, response) {
       	} catch(e) {
       		log("Oh my!! The code we read over the net threw an exception! - " + e);
       	}
+      } else if (request.path == "/listFiles") {
+      	var filesArray = FS.spiffsDir();
+      	response.write(JSON.stringify(filesArray));
       } else {
 	      try {
 		      var fd = FS.openSync("/spiffs" + request.path, "r");

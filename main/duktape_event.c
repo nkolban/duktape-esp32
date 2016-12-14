@@ -5,6 +5,7 @@
 #include <esp_log.h>
 #include <assert.h>
 #include "esp32_duktape/module_timers.h"
+#include "duktape_utils.h"
 #include "c_timeutils.h"
 #include "sdkconfig.h"
 
@@ -68,7 +69,7 @@ int esp32_duktape_waitForEvent(esp32_duktape_event_t *pEvent) {
 /**
  * Mark the event as completed by releasing any state associated with it.
  */
-void esp32_duktape_freeEvent(esp32_duktape_event_t *pEvent) {
+void esp32_duktape_freeEvent(duk_context *ctx, esp32_duktape_event_t *pEvent) {
 	if(pEvent->type == ESP32_DUKTAPE_EVENT_COMMAND_LINE) {
 		free(pEvent->commandLine.commandLine);
 		return;
@@ -93,14 +94,9 @@ void esp32_duktape_freeEvent(esp32_duktape_event_t *pEvent) {
 		return;
 	}
 
-	if (pEvent->type == ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED) {
-		// Nothing to clean up for this event type.
-		return;
-	}
-
 	if (pEvent->type == ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED) {
-		if (pEvent->callbackRequested.data != NULL) {
-			free(pEvent->callbackRequested.data);
+		if (pEvent->callbackRequested.callbackType == 	ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION) {
+			esp32_duktape_stash_delete(ctx, pEvent->callbackRequested.stashKey);
 		}
 		return;
 	}
@@ -190,18 +186,17 @@ void event_newTimerFiredEvent(unsigned long id) {
 	postEvent(&event);
 } // event_newTimerFiredEvent
 
-void event_newWifiScanCompletedEvent() {
-	esp32_duktape_event_t event;
-	event.type = ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED;
-	postEvent(&event);
-} // event_newWifiScanCompletedEvent
 
-
-void event_newCallbackRequestedEvent(uint32_t callbackType, void *contextData, char *data) {
+void event_newCallbackRequestedEvent(uint32_t callbackType, uint32_t stashKey, esp32_duktape_callback_dataprovider dataProvider, void *contextData) {
 	esp32_duktape_event_t event;
 	event.type = ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED;
+	if (callbackType != ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION) {
+		ESP_LOGE(tag, "event_newCallbackRequestedEvent: Unknown callbackType: %d", callbackType);
+		return;
+	}
 	event.callbackRequested.callbackType = callbackType;
+	event.callbackRequested.stashKey = stashKey;
+	event.callbackRequested.dataProvider = dataProvider;
 	event.callbackRequested.context = contextData;
-	event.callbackRequested.data = data;
 	postEvent(&event);
 } // event_newCallbackRequestedEvent

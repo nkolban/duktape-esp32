@@ -8,6 +8,7 @@
 #include <esp_vfs.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <duktape.h>
 #include "sdkconfig.h"
 
 #define DUKTAPE_VFS_MOUNTPOINT "/spiffs"
@@ -45,31 +46,47 @@ void esp32_duktape_spiffs_write(char *fileName, uint8_t *data, int length) {
 	SPIFFS_close(&fs, fh);
 }
 
-void esp32_duktape_dump_spiffs_json() {
+
+/**
+ * Create a JS array on the value stack which contains objects.  Each
+ * object represents one file entry.  Each object contains:
+ * {
+ *    name: <file name>
+ *    size: <file size>
+ * }
+ */
+void esp32_duktape_dump_spiffs_array(duk_context *ctx) {
 	spiffs_DIR dir;
-		struct spiffs_dirent dirEnt;
-		const char rootPath[] = "/";
+	struct spiffs_dirent dirEnt;
+	const char rootPath[] = "/";
 
-		ESP_LOGD(tag, ">> dump_fs: %s", rootPath);
+	ESP_LOGD(tag, ">> esp32_duktape_dump_spiffs_json: %s", rootPath);
 
-		if (SPIFFS_opendir(&fs, rootPath, &dir) == NULL) {
-			ESP_LOGD(tag, "Unable to open %s dir", rootPath);
-			return;
+	duk_push_array(ctx);
+
+	if (SPIFFS_opendir(&fs, rootPath, &dir) == NULL) {
+		ESP_LOGD(tag, "Unable to open %s dir", rootPath);
+		return;
+	}
+	int arrayIndex = 0;
+	while(SPIFFS_readdir(&dir, &dirEnt) != NULL) {
+		int len = strlen((char *)dirEnt.name);
+		// Skip files that end with "/."
+		if (len>=2 && strcmp((char *)(dirEnt.name + len -2), "/.") == 0) {
+			continue;
 		}
+		duk_push_object(ctx);
+		duk_push_string(ctx, (char *)dirEnt.name);
+		duk_put_prop_string(ctx, -2, "name");
+		duk_push_int(ctx, dirEnt.size);
+		duk_put_prop_string(ctx, -2, "size");
+		duk_put_prop_index(ctx, -2, arrayIndex);
+		arrayIndex++;
+	}
+	ESP_LOGD(tag, "<< dump_fs");
+	return;
+} // esp32_duktape_dump_spiffs_json
 
-		while(1) {
-			if (SPIFFS_readdir(&dir, &dirEnt) == NULL) {
-				ESP_LOGD(tag, "<< dump_fs");
-				return;
-			}
-			ESP_LOGD(tag, "name=%s, id=%x, type=%s, size=%d", dirEnt.name, dirEnt.obj_id, typeToString(dirEnt.type), dirEnt.size)
-			char *tok = strtok((char *)dirEnt.name, "/");
-			while(tok != NULL) {
-				ESP_LOGD(tag, "JSON part: %s", tok);
-				tok = strtok(NULL, "/");
-			}
-		}
-}
 
 void esp32_duktape_dump_spiffs() {
 	spiffs_DIR dir;
@@ -263,7 +280,7 @@ static int vfs_fstat(void *ctx, int fd, struct stat *st) {
 	spiffs_stat spiffsStat;
 	ESP_LOGI(tag, ">> fstat fd=%d", fd);
 	spiffs *fs = (spiffs *)ctx;
-	int rc = SPIFFS_fstat(fs, fd, &spiffsStat);
+	SPIFFS_fstat(fs, fd, &spiffsStat);
 	st->st_size = spiffsStat.size;
 	return 1;
 } // vfs_fstat
@@ -273,7 +290,7 @@ static int vfs_stat(void *ctx, const char *path, struct stat *st) {
 	ESP_LOGI(tag, ">> stat path=%s", path);
 	spiffs_stat spiffsStat;
 	spiffs *fs = (spiffs *)ctx;
-	int rc = SPIFFS_stat(fs, path, &spiffsStat);
+	SPIFFS_stat(fs, path, &spiffsStat);
 	st->st_size = spiffsStat.size;
 	return 1;
 } // vfs_stat

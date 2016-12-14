@@ -76,27 +76,6 @@ void duktape_init_environment() {
 
 
 /**
- * Convert an authentication mode to a string.
- */
-static char *authModeToString(wifi_auth_mode_t mode) {
-	switch(mode) {
-	case WIFI_AUTH_OPEN:
-		return "open";
-	case WIFI_AUTH_WEP:
-		return "wep";
-	case WIFI_AUTH_WPA_PSK:
-		return "wpa";
-	case WIFI_AUTH_WPA2_PSK:
-		return "wpa2";
-	case WIFI_AUTH_WPA_WPA2_PSK:
-		return "wpa_wpa2";
-	default:
-		return "unknown";
-	}
-} // authModeToString
-
-
-/**
  * Process an event within the context of JavaScript.  JavaScript is a serialized
  * language which means that we can't do multi threading or other parallel activities.
  * This can appear to be a problem as JavaScript also lends itself to async processing.
@@ -200,15 +179,51 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 		}
 
 		case ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: {
-			duk_int_t callRc;
-
-			ESP_LOGD(tag, "Process a callback requested event: callbackType=%d, contextData=0x%x, callData=0x%x",
+			int topStart = duk_get_top(esp32_duk_context);
+			// The event contains 4 properties:
+			// callbackType - int
+			// stashKey - int
+			// context - void * - a Duktape heapptr
+			// data - char * - JSON encoded data
+			ESP_LOGD(tag, "Process a callback requested event: callbackType=%d, stashKey=%d, contextData=0x%x",
 				pEvent->callbackRequested.callbackType,
-				(uint32_t)pEvent->callbackRequested.context,
-				(uint32_t)pEvent->callbackRequested.data
+				pEvent->callbackRequested.stashKey,
+				(uint32_t)pEvent->callbackRequested.context
 			);
+			if (pEvent->callbackRequested.callbackType == ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION) {
+				// In this case, the stashKey points to a stashed array which starts with a callback function and parameters.
+				esp32_duktape_unstash_array(esp32_duk_context, pEvent->callbackRequested.stashKey);
+				// [0] - function
+				// [1] - param 1
+				// [.] - param
+				// [n] - param last
+
+				int numberParams = duk_get_top(esp32_duk_context) - topStart -1;
+				//ESP_LOGD(tag, "ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: #params: %d", numberParams);
+				if (!duk_is_function(esp32_duk_context, topStart)) {
+					ESP_LOGE(tag, "ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: Not a function!");
+					duk_pop_n(esp32_duk_context, duk_get_top(esp32_duk_context) - topStart);
+					return;
+				}
+				if (pEvent->callbackRequested.dataProvider != NULL) {
+					int numberAdditionalStackItems = pEvent->callbackRequested.dataProvider(esp32_duk_context, pEvent->callbackRequested.context);
+					numberParams += numberAdditionalStackItems;
+				}
+				duk_pcall(esp32_duk_context, numberParams);
+				// [0] - Ret val
+				duk_pop(esp32_duk_context);
+			}
 			// Now that we have a callback request, we pass control back into JS by calling a JS
-			// function.  The JS function we call is a global called "eventCallback".
+			// function.  The JS function we call is a global called "eventCallback".  This function
+			// has the following signature:
+			//
+			// eventCallback(type, context, data)
+			//
+			// type - a Numeric identifying the type of callback
+			// context - an object providing the context of the callback
+			// data - specific data for the callback
+			//
+			/*
 			duk_push_global_object(esp32_duk_context);
 			// [0] - Global object
 
@@ -241,171 +256,28 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 				// [3] - context <object>
 				// [4] - data <Object>
 
-				callRc = duk_pcall(esp32_duk_context, 3 /* Number of parms */);
+				callRc = duk_pcall(esp32_duk_context,
+					3); // Number of params
 				// [0] - Global object <object>
 				// [1] - result
 				if (callRc != 0) {
 					esp32_duktape_log_error(esp32_duk_context);
 				}
 			} else {
-				ESP_LOGD(tag, "Unable to find global function called eventCallback");
+				ESP_LOGE(tag, "Unable to find global function called eventCallback");
 
 				duk_pop(esp32_duk_context);
 				// [0] - Global object
 				// [1] - undefined
 			}
 			duk_pop_2(esp32_duk_context);
+			*/
 			// Empty Stack
 
 			break;
-		}
+		} // End of ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED
 
-		// Handle the event that a Wifi scan has completed.  Our logic hear is to build an
-		// object that contains the results and then call each of the callback functions
-		// that want to hear about WiFi scans passing them the object.  The list of callbacks
-		// is contained in an array called "scan_callbacks_array" that is found on the
-		// heapStash.  It may not exist and it may be empty (if something has gone wrong or
-		// we have executed two scans in quick succession).
-		// A published scan record will contain:
-		// {
-		//    ssid: <network id>,
-		//    mac: <mac address>
-		//    rssi: <signal strength>
-		//    auth: <authentication mode>
-		// }
-		//
-		case ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED: {
-			int i;
 
-			ESP_LOGD(tag, "Process a scan result event.");
-
-			// Get the number of access points in our last scan.
-			uint16_t numAp;
-			ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&numAp));
-
-			// Allocate storage for our scan results and retrieve them.
-			wifi_ap_record_t *apRecords = calloc(sizeof(wifi_ap_record_t), numAp);
-			ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&numAp, apRecords));
-			ESP_LOGD(tag, "Number of Access Points: %d", numAp);
-
-			// Build an array for the results ...
-			duk_idx_t resultIdx = duk_push_array(esp32_duk_context);
-			// [0] - Array - results
-
-			// Add each of the scan results into the array.
-			for (i=0; i<numAp; i++) {
-				ESP_LOGD(tag, "%d: ssid=%s", i, apRecords[i].ssid);
-				duk_idx_t scanResultIdx = duk_push_object(esp32_duk_context); // Create a new scan result object
-				// [0] - Array - results
-				// [1] - New object
-
-				duk_push_string(esp32_duk_context, (char *)apRecords[i].ssid);
-				// [0] - Array - results
-				// [1] - New object
-				// [2] - String (ssid)
-
-				duk_put_prop_string(esp32_duk_context, scanResultIdx, "ssid");
-				// [0] - Array - results
-				// [1] - New object
-
-				duk_push_sprintf(esp32_duk_context, MACSTR, MAC2STR(apRecords[i].bssid));
-				// [0] - Array - results
-				// [1] - New object
-				// [2] - String (mac)
-
-				duk_put_prop_string(esp32_duk_context, scanResultIdx, "mac");
-				// [0] - Array - results
-				// [1] - New object
-
-				duk_push_int(esp32_duk_context, apRecords[i].rssi);
-				// [0] - Array - results
-				// [1] - New object
-				// [2] - Number (rssi)
-
-				duk_put_prop_string(esp32_duk_context, scanResultIdx, "rssi");
-				// [0] - Array - results
-				// [1] - New object
-
-				duk_push_string(esp32_duk_context, authModeToString(apRecords[i].authmode));
-				// [0] - Array - results
-				// [1] - New object
-				// [2] - String (auth)
-
-				duk_put_prop_string(esp32_duk_context, scanResultIdx, "auth");
-				// [0] - Array - results
-				// [1] - New object
-
-				duk_put_prop_index(esp32_duk_context, resultIdx, i); // Add the new record into the results array
-				// [0] - Array - results
-			}
-
-			// We now have a WiFi scan completed and we are in the Duktape thread, so let us
-			// invoke the callbacks for those scans (assuming they exist).
-			duk_push_heap_stash(esp32_duk_context);
-			// [0] - Array - results
-			// [1] - Heap stash
-
-			if (!duk_get_prop_string(esp32_duk_context, -1, "scan_callbacks_array")) {
-				// [0] - Array - results
-				// [1] - Heap stash
-				// [2] - scan_callbacks array (undefined)
-				ESP_LOGE(tag, "Want to process Scan callbacks, but no callbacks found!");
-				duk_pop_3(esp32_duk_context);
-				break;
-			}
-
-			// [0] - Array - results
-			// [1] - Heap stash
-			// [2] - scan_callbacks array
-
-			duk_size_t length = duk_get_length(esp32_duk_context, -1);
-			ESP_LOGD(tag, "Number of callbacks to invoke: %d", length);
-
-			for (i=0; i<length; i++) {
-				int rc = duk_get_prop_index(esp32_duk_context, -1, i);
-				// [0] - Array - results
-				// [1] - Heap stash
-				// [2] - scan_callbacks array
-				// [3] - Callback function
-				if (rc == 0) {
-					ESP_LOGD(tag, "Unable to find callback: %d in scan_callbacks_array", i);
-				}
-
-				duk_dup(esp32_duk_context, resultIdx);
-				// [0] - Array - results
-				// [1] - Heap stash
-				// [2] - scan_callbacks array
-				// [3] - Callback function
-				// [4] - Array - results
-
-				duk_pcall(esp32_duk_context, 1); // Invoke the callback with 1 parameter
-				// [0] - Array - results
-				// [1] - Heap stash
-				// [2] - scan_callbacks array
-				// [3] - scan callback result
-
-				duk_pop(esp32_duk_context); // Discard the result from the call
-				// [0] - Array - results
-				// [1] - Heap stash
-				// [2] - scan_callbacks array
-			}
-
-			// Now that we have called all the callbacks, time to empty the callback array.
-			duk_push_int(esp32_duk_context, 0);
-			// [0] - Array - results
-			// [1] - Heap stash
-			// [2] - scan_callbacks array
-			// [3] - number (0)
-
-			duk_put_prop_string(esp32_duk_context, -2, "length"); // Empty the callbacks array
-			// [0] - Array - results
-			// [1] - Heap stash
-			// [2] - scan_callbacks array
-
-			duk_pop_3(esp32_duk_context); // Clean the stack
-			// <Empty Stack>
-			break;
-		}
 
 		default:
 			ESP_LOGD(tag, "Unknown event type seen: %d", pEvent->type);
@@ -463,7 +335,7 @@ void duktape_task(void *ignore) {
 			//HEAP_CHANGE_START();
 			processEvent(&esp32_duktape_event);
 			//HEAP_CHANGE_END();
-			esp32_duktape_freeEvent(&esp32_duktape_event);
+			esp32_duktape_freeEvent(esp32_duk_context, &esp32_duktape_event);
 		}
 
 
@@ -481,6 +353,10 @@ void duktape_task(void *ignore) {
 		} // End of check for value stack leakage.
 		//duk_gc(esp32_duk_context, 0);
 		taskYIELD();
+		uint32_t heapSize = esp_get_free_heap_size();
+		if (heapSize < 10000) {
+			ESP_LOGV("heap", "heap: %d",heapSize);
+		}
 
 	} // End while loop.
 

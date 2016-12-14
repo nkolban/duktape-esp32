@@ -2,6 +2,7 @@
 #include <esp_log.h>
 #include <sys/time.h>
 #include "telnet.h"
+#include "duktape_utils.h"
 #include "sdkconfig.h"
 
 static char tag[] = "duktape_utils";
@@ -12,6 +13,12 @@ static char tag[] = "duktape_utils";
 static int g_reset = 0;
 
 static uint32_t g_stashCounter = 1;
+
+static uint32_t getNextStashKey() {
+	uint32_t stashKey = g_stashCounter;
+	g_stashCounter++;
+	return stashKey;
+} // getNextStashKey
 
 /**
  *
@@ -35,10 +42,10 @@ void esp32_duktape_log_error(duk_context *ctx) {
 	// [3] - lineNumber
 	// [4] - Stack
 
-	char *name = duk_get_string(ctx, -4);
-	char *message = duk_get_string(ctx, -3);
+	const char *name = duk_get_string(ctx, -4);
+	const char *message = duk_get_string(ctx, -3);
 	int lineNumber = duk_get_int(ctx, -2);
-	char *stack = duk_get_string(ctx, -1);
+	const char *stack = duk_get_string(ctx, -1);
 	ESP_LOGD(tag, "Error: %s: %s\nline: %d\nStack: %s",
 			name!=NULL?name:"NULL",
 			message!=NULL?message:"NULL",
@@ -48,6 +55,12 @@ void esp32_duktape_log_error(duk_context *ctx) {
 	// [0] - Err
 } // esp32_duktape_log_error
 
+
+/**
+ * Initialize the stash environment.  This must be called before any other
+ * stash functions.  We create a global variable called defined in
+ * CALLBACK_STASH_OBJECT_NAME that is an object.
+ */
 void esp32_duktape_stash_init(duk_context *ctx) {
 	g_stashCounter = 1;
 	duk_push_global_object(ctx);
@@ -63,6 +76,7 @@ void esp32_duktape_stash_init(duk_context *ctx) {
 	duk_pop(ctx);
 	// <Empty Stack>
 } // esp32_duktape_stash_init
+
 
 void esp32_duktape_unstash_object(duk_context *ctx, uint32_t key) {
 	duk_push_global_object(ctx);
@@ -113,8 +127,12 @@ void esp32_duktape_unstash_object(duk_context *ctx, uint32_t key) {
 } // esp32_duktape_unstash_object
 
 
-void esp32_duktape_unstash_array(duk_context *ctx, uint32_t key) {
-	duk_size_t length;
+/**
+ * Unstash a previously stashed array object.  Return the number of new
+ * elements on the value stack.
+ */
+size_t esp32_duktape_unstash_array(duk_context *ctx, uint32_t key) {
+	duk_size_t arraySize;
 	int i;
 	duk_idx_t objIdx;
 	duk_idx_t delIdx;
@@ -135,25 +153,28 @@ void esp32_duktape_unstash_array(duk_context *ctx, uint32_t key) {
 		ESP_LOGE(tag, "esp32_duktape_unstash_array: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
 		duk_pop_2(ctx);
 		// <Empty Stack>
-		return;
+		return 0;
 	}
 	// [0] - Global object
 	// [1] - CALLBACK_STASH_OBJECT_NAME object
 
-	duk_push_int(ctx, key);
-	// [0] - Global object
-	// [1] - CALLBACK_STASH_OBJECT_NAME object
-	// [2] - key
-
-	duk_get_prop(ctx, -1);
+	if (duk_get_prop_index(ctx, -1, key) == 0) {
+		// [0] - Global object
+		// [1] - CALLBACK_STASH_OBJECT_NAME object
+		// [2] - [undefined]
+		// We were unable to find a stashed value with the given stash key.
+		ESP_LOGE(tag, "Unable to find a stashed array with key: %d", key);
+		duk_pop_3(ctx);
+		return 0;
+	}
 	// [0] - Global object
 	// [1] - CALLBACK_STASH_OBJECT_NAME object
 	// [2] - Callback array
 
 	objIdx = duk_get_top_index(ctx);
 
-	length = duk_get_length(ctx, -1);
-	for (i=length-1; i>=0; i--) {
+	arraySize = duk_get_length(ctx, -1);
+	for (i=arraySize-1; i>=0; i--) {
 		duk_get_prop_index(ctx, objIdx, i);
 	}
 	// [0] - Global object
@@ -170,7 +191,8 @@ void esp32_duktape_unstash_array(duk_context *ctx, uint32_t key) {
 	// [0] - item ...
 	// [.] - item .
 	// [end] - item
-}
+	return arraySize;
+} // esp32_duktape_unstash_array
 
 
 /**
@@ -197,6 +219,7 @@ void esp32_duktape_stash_delete(duk_context *ctx, uint32_t key) {
 	// [1] - CALLBACK_STASH_OBJECT_NAME object
 	// [2] - key
 
+	// Delete the property in CALLBACK_STASH_OBJECT_NAME object called "key"
 	duk_del_prop(ctx, -2);
 	// [0] - Global
 	// [1] - CALLBACK_STASH_OBJECT_NAME object
@@ -207,16 +230,12 @@ void esp32_duktape_stash_delete(duk_context *ctx, uint32_t key) {
 
 
 /**
- * Stash an object that is on the top of the stack and return an access key.
- * [0] - Object to stash
+ * Stash an object/item that is on the top of the stack and return an access key.
+ * [0] - Object/item to stash
  *
- * On return, the stack is empty and the return value is the key to the new stash.
+ * On return, the stack is empty and the return value is the key to the new stash entry.
  */
-uint32_t esp32_duktape_stash_object(duk_context *ctx, int count) {
-	if (duk_is_object(ctx, -1) == 0) {
-		ESP_LOGE(tag, "esp32_duktape_stash_object: top of stack is not an object.");
-		return 0;
-	}
+uint32_t esp32_duktape_stash_object(duk_context *ctx) {
 
 	duk_push_global_object(ctx);
 	// [0] - object to stash
@@ -235,22 +254,27 @@ uint32_t esp32_duktape_stash_object(duk_context *ctx, int count) {
 	// [1] - global
 	// [2] - callbackStash
 
-	uint32_t stashKey = g_stashCounter;
-	g_stashCounter++;
+	uint32_t stashKey = getNextStashKey(); 	// Get the new stash key
 
 	duk_push_int(ctx, stashKey);
 	// [0] - object to stash
 	// [1] - global
 	// [2] - callbackStash
-	// [3] - key
+	// [3] - stashKey
 
 	duk_dup(ctx, -4);
 	// [0] - object to stash
 	// [1] - global
 	// [2] - callbackStash
-	// [3] - key
+	// [3] - stashKey
 	// [4] - object to stash
 
+	// Put prop takes the top two items on the stack.  The 1st is the key
+	// the 2nd is the value.  It then creates/updates the property defined by the key
+	// to the value on the object supplied in the parameter index.
+	//
+	// In this call, we end up with <callbackStashObject>[key] = object to stash.
+	//
 	duk_put_prop(ctx, -3);
 	// [0] - object to stash
 	// [1] - global
@@ -264,7 +288,8 @@ uint32_t esp32_duktape_stash_object(duk_context *ctx, int count) {
 
 
 /**
- * The top <count> items on the stack are added to an array.
+ * The top <count> items on the stack are added to an array and the array is stashed.
+ * The value stack is empty at completion.
  */
 uint32_t esp32_duktape_stash_array(duk_context *ctx, int count) {
 	// [0] - Item 1
@@ -276,7 +301,8 @@ uint32_t esp32_duktape_stash_array(duk_context *ctx, int count) {
 		ESP_LOGE(tag, "Can't stash %d items when only %d items on value stack.", count, duk_get_top(ctx));
 		return 0;
 	}
-	duk_idx_t arrayIdx = duk_get_top(ctx) - count;
+
+	duk_idx_t arrayIdx = duk_get_top_index(ctx);
 
 	duk_push_array(ctx);
 	// [0] - Item 1
@@ -284,11 +310,13 @@ uint32_t esp32_duktape_stash_array(duk_context *ctx, int count) {
 	// [count-1] - Item Count
 	// [count] - array
 
+	// Move the top of the stack to arrayIdx.
 	duk_insert(ctx, arrayIdx);
 	// [0] - array
 	// [1] - Item 1
 	// [.] - ...
 	// [count] - Item Count
+
 	for (i=0; i<count; i++) {
 		duk_put_prop_index(ctx, arrayIdx, i);
 	}
@@ -311,20 +339,19 @@ uint32_t esp32_duktape_stash_array(duk_context *ctx, int count) {
 	// [1] - global
 	// [2] - callbackStash
 
-	uint32_t stashKey = g_stashCounter;
-	g_stashCounter++;
+	uint32_t stashKey = getNextStashKey(); 	// Get the new stash key
 
 	duk_push_int(ctx, stashKey);
 	// [0] - array
 	// [1] - global
 	// [2] - callbackStash
-	// [3] - key
+	// [3] - stashKey
 
 	duk_dup(ctx, -4);
 	// [0] - array
 	// [1] - global
 	// [2] - callbackStash
-	// [3] - key
+	// [3] - stashKey
 	// [4] - array
 
 	duk_put_prop(ctx, -3);

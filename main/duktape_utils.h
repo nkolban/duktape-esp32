@@ -21,8 +21,8 @@ void esp32_duktape_dump_value_stack(duk_context *ctx);
 void esp32_duktape_log_error(duk_context *ctx);
 void esp32_duktape_stash_init(duk_context *ctx);
 void esp32_duktape_unstash_object(duk_context *ctx, uint32_t key);
-void esp32_duktape_unstash_array(duk_context *ctx, uint32_t key);
+size_t esp32_duktape_unstash_array(duk_context *ctx, uint32_t key);
 void esp32_duktape_stash_delete(duk_context *ctx, uint32_t key);
-uint32_t esp32_duktape_stash_object(duk_context *ctx, int count);
+uint32_t esp32_duktape_stash_object(duk_context *ctx);
 uint32_t esp32_duktape_stash_array(duk_context *ctx, int count);
 #endif /* MAIN_DUKTAPE_UTILS_H_ */

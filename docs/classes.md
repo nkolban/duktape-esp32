@@ -83,6 +83,13 @@ Dump the files contained in the ESPFS to the log.
 Syntax:
 `dumpESPFS()`
 
+###gc
+Perform a garbage collection.
+
+Syntax:
+`gc()`
+
+
 ###getNativeFunction
 Retrieve a built-in native function by name.
 
@@ -754,7 +761,44 @@ Syntax:
 The `data` is the data to be written down the stream.  It may be a `Buffer` or a `String`. 
 
 
-##WiFi
+##WIFI
+###connect
+Connect to an access point.
+
+Syntax:
+`connect(options, callback)`
+
+The options is an object that declares how we should connect to the access point.  It contains:
+```
+{
+   ssid: <SSID of access point to connect to>
+   password: <Password to connect to access point> [optional]
+   network: { <Specific network parameters for connection> [optional]
+      ip: <IP Address to assign to the ESP32>
+      gw: <Gateway to use to route IP traffic>
+      netmask: <Netmask for network>
+   }
+}
+```
+
+The `password` is optional assuming that the access point doesn't require one.
+
+For example:
+
+```
+WIFI.connect({
+	ssid: "RASPI3",
+	password: "password",
+	network: {
+		ip: "192.168.1.211",
+		gw: "192.168.1.1",
+		netmask: "255.255.255.0"
+	}
+}, function() {
+	log("### We are now connected!");
+});
+```
+
 ###disconnect
 Disconnect from the currently connected access point when we are a station.
 
@@ -788,6 +832,29 @@ This returns an object which contains:
 }
 ```
 
+###listen
+Start being an access point.
+
+Syntax:
+`listen(options, callback)`
+
+The `options` is an object that declares how we are going to be an access point.  It contains
+```
+{
+   ssid: <The ssid of the access point we will advertize>
+   auth: <The authentication mechanism used to connect by clients>
+   password: <The password to connect to the access point used by clients> [optional if auth is "open"]
+}
+```
+
+The `auth` must be one of:
+
+* open
+* wep
+* wpa
+* wpa2
+* wap_wpa2
+
 
 ###scan
 Perform an access point scan and invoke a callback when complete.
@@ -812,6 +879,6 @@ Example:
 ```
 var wifi = require("WiFi");
 wifi.scan(function(list) {
-   print(JSON.stringify(list));
+   log(JSON.stringify(list));
 });
 ```
