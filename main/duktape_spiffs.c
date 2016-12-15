@@ -296,10 +296,19 @@ static int vfs_stat(void *ctx, const char *path, struct stat *st) {
 } // vfs_stat
 
 
+static int vfs_unlink(void *ctx, const char *path) {
+	ESP_LOGI(tag, ">> unlink path=%s", path);
+	spiffs *fs = (spiffs *)ctx;
+	SPIFFS_remove(fs, path);
+	return 0;
+} // vfs_unlink
+
+
 static int vfs_link(void *ctx, const char *oldPath, const char *newPath) {
 	ESP_LOGI(tag, ">> link oldPath=%s, newPath=%s", oldPath, newPath);
 	return 0;
 } // vfs_link
+
 
 
 static int vfs_rename(void *ctx, const char *oldPath, const char *newPath) {
@@ -330,6 +339,7 @@ static void spiffs_registerVFS(char *mountPoint, spiffs *fs) {
 	vfs.fstat_p  = vfs_fstat;
 	vfs.stat_p   = vfs_stat;
 	vfs.link_p   = vfs_link;
+	vfs.unlink_p = vfs_unlink;
 	vfs.rename_p = vfs_rename;
 
 	err = esp_vfs_register(mountPoint, &vfs, (void *)fs);

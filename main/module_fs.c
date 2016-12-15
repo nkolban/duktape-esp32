@@ -61,11 +61,9 @@ static duk_ret_t js_fs_writeSync(duk_context *ctx) {
 	duk_size_t bufferSize;
 	uint8_t *bufPtr;
 	int rc;
-	duk_size_t offset;
+	duk_size_t offset = 0; // Default offset is 0.
 	duk_size_t length;
 
-	length = 0;
-	offset = 0;
 	fd = duk_get_int(ctx, 0);
 	// [0] - file descriptor
 	// [1] - buffer
@@ -79,7 +77,7 @@ static duk_ret_t js_fs_writeSync(duk_context *ctx) {
 		// [2] - offset [Optional]
 		// [3] - length [Optional]
 
-		length = bufferSize;
+		length = bufferSize; // Unless specified, the length is all of the buffer
 
 		if (duk_is_number(ctx, 2)) {
 		// [0] - file descriptor
@@ -107,10 +105,11 @@ static duk_ret_t js_fs_writeSync(duk_context *ctx) {
 				if (length > bufferSize) {
 					ESP_LOGW(tag, "Specified length is > buffer size");
 					length = bufferSize;
-				}
-			}
-		}
-	} else {
+				} // length > bufferSize
+			} // We have a length
+		} // We have an offset
+	} // Data is buffer
+	else { // Handle the case where the data type is a string.
 		bufPtr = (uint8_t *)duk_get_string(ctx, 1);
 		// [0] - file descriptor
 		// [1] - string
@@ -122,6 +121,7 @@ static duk_ret_t js_fs_writeSync(duk_context *ctx) {
 		length = bufferSize - offset;
 	}
 	rc = write(fd, bufPtr+offset, length);
+
 	duk_push_int(ctx, rc);
 	// [0] - file descriptor
 	// [1] - buffer
@@ -318,6 +318,16 @@ static duk_ret_t js_fs_readSync(duk_context *ctx) {
 	return 1;
 } // js_fs_readSync
 
+/**
+ * Unlink the named file.
+ * [0] - Path.  The path to the file to unlink.
+ */
+static duk_ret_t js_fs_unlink(duk_context *ctx) {
+	const char *path = duk_require_string(ctx, 0);
+	unlink(path);
+	return 0;
+} // js_fs_unlink
+
 
 /**
  * Get a listing of SPIFFs files.
@@ -389,6 +399,15 @@ void ModuleFS(duk_context *ctx) {
 	// [2] - C Func - js_fs_fstatSync
 
 	duk_put_prop_string(ctx, -2, "fstatSync"); // Add fstatSync to new FS
+	// [0] - Global
+	// [1] - FS Object
+
+	duk_push_c_function(ctx, js_fs_unlink, 1);
+	// [0] - Global
+	// [1] - FS Object
+	// [2] - C Func - js_fs_unlink
+
+	duk_put_prop_string(ctx, -2, "unlink"); // Add unlink to new FS
 	// [0] - Global
 	// [1] - FS Object
 

@@ -275,6 +275,7 @@ FS.closeSync(fd);
 ###statSync
 Retrieve details about the file.
 
+Syntax:
 `statSync(path)`
 
 The return is an object that contains details of the file:
@@ -284,6 +285,15 @@ The return is an object that contains details of the file:
    size: <The size of the file in bytes>
 }
 ```
+
+##unlink
+Unlink (remove) a file.
+
+Syntax:
+`unlink(path)`
+
+The `path` is the file path to the file to be removed.
+
 
 ###writeSync
 Write data into a file.
@@ -760,8 +770,35 @@ Syntax:
 
 The `data` is the data to be written down the stream.  It may be a `Buffer` or a `String`. 
 
+##URL
+This is a module which provides URL processing.  It must be required,
+
+```
+var URL = require("url");
+```
+
+###parse
+Parse a URL string into its constituent pieces.
+
+Syntax:
+`parse(urlString)`
+
+The return is an object:
+
+```
+{
+   host: <The host part of the URL>
+   href: <The original URL>
+   protocol: <The protocol>
+   pathname: <The pathname of the URL>
+   search: <The search part of the URL including the ?>
+   query: <An object with the query parts broken out>
+}
+```	 
 
 ##WIFI
+Thus module provides WiFi processing.  It is built in and should not be required.
+
 ###connect
 Connect to an access point.
 
