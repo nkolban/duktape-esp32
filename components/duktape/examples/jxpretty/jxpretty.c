@@ -6,10 +6,20 @@
 #include <stdlib.h>
 #include "duktape.h"
 
-static duk_ret_t do_jxpretty(duk_context *ctx) {
+static duk_ret_t duk__print(duk_context *ctx) {
+	duk_push_string(ctx, " ");
+	duk_insert(ctx, 0);
+	duk_join(ctx, duk_get_top(ctx) - 1);
+	printf("%s\n", duk_safe_to_string(ctx, -1));
+	return 0;
+}
+
+static duk_ret_t do_jxpretty(duk_context *ctx, void *udata) {
 	FILE *f = stdin;
 	char buf[4096];
 	size_t ret;
+
+	(void) udata;
 
 	for (;;) {
 		if (ferror(f)) {
@@ -51,7 +61,10 @@ int main(int argc, char *argv[]) {
 
 	ctx = duk_create_heap_default();
 
-	rc = duk_safe_call(ctx, do_jxpretty, 0 /*nargs*/, 1 /*nrets*/);
+	duk_push_c_function(ctx, duk__print, DUK_VARARGS);
+	duk_put_global_string(ctx, "print");
+
+	rc = duk_safe_call(ctx, do_jxpretty, NULL, 0 /*nargs*/, 1 /*nrets*/);
 	if (rc) {
 		fprintf(stderr, "ERROR: %s\n", duk_safe_to_string(ctx, -1));
 		fflush(stderr);

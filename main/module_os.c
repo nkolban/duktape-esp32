@@ -8,8 +8,36 @@
 #include <lwip/sockets.h>
 #include <errno.h>
 #include <string.h>
+#include <mbedtls/sha1.h>
 
 static char tag[] = "module_os";
+
+/**
+ * Create a SHA1 encoding of data.
+ * [0] - A string or buffer
+ *
+ * On return
+ * A buffer (20 bytes long) containing the message digest.
+ */
+static duk_ret_t js_os_sha1(duk_context *ctx) {
+	uint8_t *data;
+	size_t length;
+	if (duk_is_string(ctx, -1)) {
+		data = (uint8_t *)duk_get_string(ctx, -1);
+		length = strlen((char *)data);
+	} else {
+		data = duk_get_buffer_data(ctx, -1, &length);
+	}
+	if (data == NULL) {
+		duk_push_null(ctx);
+	} else {
+		unsigned char *result = 	duk_push_fixed_buffer(ctx, 20);
+		mbedtls_sha1(data, length, result);
+		duk_push_buffer_object(ctx, -1, 0, 20, DUK_BUFOBJ_NODEJS_BUFFER);
+	}
+	return 1;
+} // js_os_sha1
+
 
 /**
  * Create a new socket.
@@ -666,6 +694,15 @@ void ModuleOS(duk_context *ctx) {
 	// [2] - C Function - js_os_connect
 
 	duk_put_prop_string(ctx, idx, "connect"); // Add connect to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_sha1, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_sha1
+
+	duk_put_prop_string(ctx, idx, "sha1"); // Add sha1 to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
 

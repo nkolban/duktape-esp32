@@ -35,33 +35,13 @@ void esp32_duktape_initEvents() {
 
 
 /**
- * Wait for an event blocking if there isn't one on the event queue ready
- * for processing.  We also handle here the concept of timers.  We block here
- * until an event occurs or else a timeout expires and the timeout is the time
- * of the next timer to wake up.
+ * Check to see if there is an event to process.
  *
  * We return 0 to indicate that no event was caught.
  */
 int esp32_duktape_waitForEvent(esp32_duktape_event_t *pEvent) {
-	BaseType_t waitDelay = portMAX_DELAY;
-
-	// Get the next timer to expire (if there is one) and, define the blocking period
-	// to be the time when we must wake up to process it.
-	timer_record_t *pTimerRecord = timers_getNextTimer();
-	if (pTimerRecord != NULL) {
-		waitDelay = timeval_durationFromNow(&pTimerRecord->wakeTime) / portTICK_PERIOD_MS;
-	}
-
-	// Ask FreeRTOS to block us until either the timer expires or a new event
-	// is added to the event queue.
-	BaseType_t rc = xQueueReceive(esp32_duktape_event_queue, pEvent, waitDelay);
-
-	// If the rc is false, then we did NOT get a new event which means that we
-	// timed out.
-	if (rc == pdFALSE) {
-		assert(pTimerRecord != NULL); // If it is NULL, why did we wake up?
-		event_newTimerFiredEvent(pTimerRecord->id); // Post an event that a timer fired.
-	}
+	// Ask FreeRTOS to see if we have a new event.
+	BaseType_t rc = xQueueReceive(esp32_duktape_event_queue, pEvent, 0);
 	return (int)rc;
 } // esp32_duktape_waitForEvent
 

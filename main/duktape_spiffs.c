@@ -24,6 +24,35 @@ static uint8_t spiffs_cache_buf[(LOG_PAGE_SIZE+32)*4];
 
 
 static void spiffs_registerVFS(char *mountPoint, spiffs *fs);
+static char *spiffsErrorToString(int code) {
+	static char msg[10];
+	switch(code) {
+	case SPIFFS_OK:
+		return "SPIFFS_OK";
+	case SPIFFS_ERR_NOT_MOUNTED:
+		return "SPIFFS_ERR_NOT_MOUNTED";
+	case SPIFFS_ERR_FULL:
+		return "SPIFFS_ERR_FULL";
+	case SPIFFS_ERR_NOT_FOUND:
+		return "SPIFFS_ERR_NOT_FOUND";
+	case SPIFFS_ERR_END_OF_OBJECT:
+		return "SPIFFS_ERR_END_OF_OBJECT";
+	case SPIFFS_ERR_DELETED:
+		return "SPIFFS_ERR_DELETED";
+	case SPIFFS_ERR_FILE_CLOSED:
+		return "SPIFFS_ERR_FILE_CLOSED";
+	case SPIFFS_ERR_FILE_DELETED:
+		return "SPIFFS_ERR_FILE_DELETED";
+	case SPIFFS_ERR_BAD_DESCRIPTOR:
+		return "SPIFFS_ERR_BAD_DESCRIPTOR";
+	case SPIFFS_ERR_NOT_A_FS:
+		return "SPIFFS_ERR_NOT_A_FS";
+	case SPIFFS_ERR_FILE_EXISTS:
+		return "SPIFFS_ERR_FILE_EXISTS";
+	}
+	sprintf(msg, "%d", code);
+	return msg;
+}
 
 static const char *typeToString(spiffs_obj_type type) {
 	switch(type) {
@@ -60,7 +89,7 @@ void esp32_duktape_dump_spiffs_array(duk_context *ctx) {
 	struct spiffs_dirent dirEnt;
 	const char rootPath[] = "/";
 
-	ESP_LOGD(tag, ">> esp32_duktape_dump_spiffs_json: %s", rootPath);
+	ESP_LOGD(tag, ">> esp32_duktape_dump_spiffs_array: rootPath=\"%s\"", rootPath);
 
 	duk_push_array(ctx);
 
@@ -83,7 +112,7 @@ void esp32_duktape_dump_spiffs_array(duk_context *ctx) {
 		duk_put_prop_index(ctx, -2, arrayIndex);
 		arrayIndex++;
 	}
-	ESP_LOGD(tag, "<< dump_fs");
+	ESP_LOGD(tag, "<< esp32_duktape_dump_spiffs_array");
 	return;
 } // esp32_duktape_dump_spiffs_json
 
@@ -215,7 +244,7 @@ static ssize_t vfs_read(void *ctx, int fd, void *dst, size_t size) {
 	ESP_LOGI(tag, ">> read fd=%d, dst=0x%lx, size=%d", fd, (unsigned long)dst, size);
 	spiffs *fs = (spiffs *)ctx;
 	ssize_t retSize = SPIFFS_read(fs, (spiffs_file)fd, dst, size);
-	ESP_LOGD(tag, "vfs_read(SPIFFS): We read %d", retSize);
+	ESP_LOGD(tag, "vfs_read(SPIFFS): We read %d %s", retSize, retSize<0?spiffsErrorToString(retSize):"");
 	return retSize;
 } // vfs_read
 

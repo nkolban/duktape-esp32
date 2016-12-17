@@ -34,17 +34,26 @@ ESP32.setLogLevel("*", "debug");
 var _sockets= {};
 
 var _timers = {
-	id: 1,
+	nextId: 1,
 	timerEntries: [],
 	setTimer: function(callback, interval, isInterval) {
-		var id = _timers.id;
+		var id = _timers.nextId;
 		_timers.timerEntries.push({
 			id: id,
 			callback: callback,
 			fire: new Date().getTime() + interval,
 			interval: isInterval?interval:0
 		});
-		_timers.id++;
+		_timers.nextId++;
+		_timers.sort();
+		log("Added a new timer: id=" + id + " due to fire in " + interval);
+		return id;
+	}, // setTimer
+	// Sort the array of timer entries such that the one which fires soonest is at the
+	// start of the array.  This way, we only need to check the first entry to determine
+	// if we need to fire a timer.  If now < the fire time of the first entry, then there
+	// is nothing further to do since all the timers after this are later.
+	sort: function() {
 		_timers.timerEntries.sort(function(a, b) {
 			if (a.fire > b.fire) {
 				return 1;
@@ -54,8 +63,7 @@ var _timers = {
 			}
 			return 0;
 		});
-		return id;
-	}, // setTimer
+	}, // sort
 	cancelTimer: function(id) {
 		for (var i=0; i<_timers.timerEntries.length; i++) {
 			if (_timers.timerEntries[i].id == id) {
@@ -82,4 +90,4 @@ function setTimeout2(callback, interval) {
 	return _timers.setTimer(callback, interval, false);
 }
 
-require("loop");
+var _loop = require("loop");

@@ -34,6 +34,8 @@ var net = {
 			_onClose: null,
 			_onConnect: null,
 			_onEnd: null,
+			_note: null,
+			_createTime: new Date().getTime(), // When the socket was created
 			listening: false,
 			connecting: false,
 			remoteAddress: null,
@@ -92,6 +94,8 @@ var net = {
 				if (connectRc < 0) {
 					throw new Error("Underlying connect() failed");
 				}
+				this._remotePort = options.port;
+				this._remoteAddress = options.address;
 			}, // connect
 			//
 			// close
@@ -105,6 +109,9 @@ var net = {
 				}
 				OS.close({sockfd: this._sockfd});
 				delete _sockets[this._sockfd];
+			},
+			setNote: function(text) {
+				this._note = text;
 			}
 		}; // ret object
 		_sockets[sockfd] = ret;

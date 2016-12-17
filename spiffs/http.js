@@ -4,9 +4,9 @@
 /* globals require, log, module */
 /* exported http */
 
-var net = require("net");
-var Stream = require("stream");
-var HTTPParser = require("httpparser");
+var net = require("net.js");
+var Stream = require("stream.js");
+var HTTPParser = require("httpparser.js");
 
 /**
  * Given a line of text that is expected to be "\r\n" delimited, return an object that
@@ -152,16 +152,66 @@ var http = {
 	// invoked when ever a new HTTP client connects to our listening port.  That connection
 	// listener will handle the incoming request and invoke the requestHandler supplied by the
 	// user.
+	
+// How we process an incoming HTTP request
+//
+// We create a connectionListener function that is called with a socket parameter when
+// a new connection is formed.  This is the connection from the new HTTP client.
+// We now form two streams an httpRequestStream and an httpResponseStream.
+// Data received FROM the partner is written INTO the httpRequestStream.
+// Data to be send TO the partner is written INTO the httpResponseStream.  We thus
+// create the notion of request (data from the partner) and response (data to the partner).
+//
+// Next we create an HTTPParser object.  This is responsible for parsing the data
+// that comes from the request.
+	
 	createServer: function(requestHandler) {
 		// Internal connection listener that will be called when a new client connection
 		// has been received.
 
 		var connectionListener = function(sock) {
-			var httpRequestStream = new Stream();
-			var httpResponseStream = new Stream();
-			httpResponseStream.writer.writeHead = function(statusCode, headers) {
-				// Write a message of the form:  "HTTP/1.1 200 OK"
-				var statusMessage = "OK";
+			var httpRequestStream = new Stream(); // Data FROM the partner
+			var httpResponseStream = new Stream(); // Data TO the partner
+			httpResponseStream.writer.writeHead = function(statusCode, param1, param2) {
+				var statusMessage;
+				var headers;
+				if (typeof param1 == "string") {
+					statusMessage = param1;
+					headers = param2;
+				} else {
+					switch(statusCode) {	
+						case 101: {
+							statusMessage = "Switching Protocols";
+							break;
+						}
+						case 200: {
+							statusMessage = "OK";
+							break;
+						}
+						case 400: {
+							statusMessage = "Bad Request";
+							break;
+						}
+						case 401: {
+							statusMessage = "Unauthorized";
+							break;
+						}
+						case 403: {
+							statusMessage = "Forbidden";
+							break;
+						}
+						case 404: {
+							statusMessage = "Not Found";
+							break;
+						}
+						default: {
+							statusMessage = "Unknown";
+							break;
+						}
+					}
+
+					headers = param1;
+				}
 				sock.write("HTTP/1.1 " + statusCode + " " + statusMessage + "\r\n");
 				if (headers !== undefined) {
 					for (var name in headers) {
@@ -172,6 +222,19 @@ var http = {
 				}
 				sock.write("\r\n");
 			};
+			httpRequestStream.reader.headers = {};
+			
+			// request.getHeader(name) - Obtain the value of a named header.
+			httpRequestStream.reader.getHeader = function(name) {
+				if (httpRequestStream.reader.headers.hasOwnProperty(name)) {
+					return httpRequestStream.reader.headers[name];
+				}
+				return null;
+			}; // getHeader
+			httpRequestStream.reader.getSocket = function() {
+				return sock;
+			};
+			
 			requestHandler(httpRequestStream.reader, httpResponseStream.writer);
 			httpResponseStream.reader.on("data", function(data) {
 				sock.write(data);
@@ -195,6 +258,7 @@ var http = {
 				});
 			});
 			sock.on("data", function(data) {
+				//log("Received data from socket, sending to HTTP Parser");
 				parserStreamWriter.write(data);
 			});
 			sock.on("end", function() {

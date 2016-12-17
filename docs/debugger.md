@@ -8,3 +8,6 @@ To enable we need to switch on:
 
 See also:
  * [Duktape debugger](https://github.com/svaarala/duktape/blob/master/doc/debugger.rst)
+ * https://github.com/svaarala/duktape/tree/master/debugger
+ 
+ To enable heap debugging, we need to compile with DUK_OPT_DEBUGGER_DUMPHEAP

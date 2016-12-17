@@ -1,0 +1,37 @@
+/*
+ *  Duktape public API for Duktape @DUK_VERSION_FORMATTED@.
+ *
+ *  See the API reference for documentation on call semantics.
+ *  The exposed API is inside the DUK_API_PUBLIC_H_INCLUDED
+ *  include guard.  Other parts of the header are Duktape
+ *  internal and related to platform/compiler/feature detection.
+ *
+ *  Git commit @GIT_COMMIT@ (@GIT_DESCRIBE@).
+ *  Git branch @GIT_BRANCH@.
+ *
+ *  See Duktape AUTHORS.rst and LICENSE.txt for copyright and
+ *  licensing information.
+ */
+
+/* LICENSE.txt */
+@LICENSE_TXT@
+
+/* AUTHORS.rst */
+@AUTHORS_RST@
+
+#if !defined(DUKTAPE_H_INCLUDED)
+#define DUKTAPE_H_INCLUDED
+
+@DUK_SINGLE_FILE@
+
+/* External duk_config.h provides platform/compiler/OS dependent
+ * typedefs and macros, and DUK_USE_xxx config options so that
+ * the rest of Duktape doesn't need to do any feature detection.
+ */
+#include "duk_config.h"
+
+@DUK_API_PUBLIC_H@
+
+@DUK_DBLUNION_H@
+
+#endif  /* DUKTAPE_H_INCLUDED */

@@ -2,7 +2,7 @@
  *  'ajduk' specific functionality, examples for low memory techniques
  */
 
-#ifdef DUK_CMDLINE_AJSHEAP
+#if defined(DUK_CMDLINE_AJSHEAP)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -507,15 +507,16 @@ void ajsheap_extstr_free_1(const void *ptr) {
  *  is gathered during application compile time and baked into the application
  *  binary.
  *
- *  Duktape built-in strings are available from duk_build_meta.json, see
- *  util/duk_meta_to_strarray.py.  There may also be a lot of application
- *  specific strings, e.g. those used by application specific APIs.  These
- *  must be gathered through some other means, see e.g. util/scan_strings.py.
+ *  Duktape built-in strings are available from duk_source_meta.json in a
+ *  prepared source directory, see tools/duk_meta_to_strarray.py.  There
+ *  may also be a lot of application specific strings, e.g. those used by
+ *  application specific APIs.  These must be gathered through some other
+ *  means, see e.g. tools/scan_strings.py.
  */
 
 static const char *strdata_duk_builtin_strings[] = {
 	/*
-	 *  These strings are from util/duk_meta_to_strarray.py
+	 *  These strings are from tools/duk_meta_to_strarray.py
 	 */
 
 	"Logger",

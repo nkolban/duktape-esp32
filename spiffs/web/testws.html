@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Test WS</title>
+<script>
+	console.log("About to create websocket")
+	var ws = new WebSocket("ws://192.168.1.99:81");
+	ws.onopen = function() {
+		console.log("The connection is now open");
+		console.log("Sending data");
+		ws.send("AAAAAAAA");
+	}
+	ws.onclose = function() {
+		console.log("The connection has closed");
+	}
+	ws.onerror = function(err) {
+		console.log("Error detected");
+	}
+	ws.onmessage = function(data) {
+		console.log("Incoming message: " + data);
+	}
+</script>
+</head>
+<body>
+<p>Making a WS request</p>
+</body>
+</html>

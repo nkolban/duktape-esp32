@@ -79,39 +79,61 @@ function stream() {
 function stream() {
 	var dataBuffer = null;
 	var dataBufferUsed = 0;
-	var end = false;
+	var endFlag = false; // Set to true when writer has flagged an end
 	var readerCallback = null;
 	var endCallback = null;
+
 	var writer = {
+		//
+		// write
+		//
 		write: function(data) {
 			if (data === null || data === undefined) {
 				throw new Error("No data supplied for write");
 			}
+			if (endFlag) {
+				throw new Error("Request to write to stream but already ended");
+			}
+			
 			if (typeof data == "string") {
 				data = new Buffer(data);
 			}
 			if (readerCallback !== null) {
 				readerCallback(data);
-			} else {
+			}
+			// We don't have a consumer for the stream (yet) so we store the data until
+			// we have a consumer.
+			else {
 				if (dataBuffer === null) {
-					dataBuffer = new Buffer(1000);
+					dataBuffer = new Buffer(1000); // FIX .. we need to be able to increase.
 				}
 				data.copy(dataBuffer, dataBufferUsed);
 				dataBufferUsed += data.length;
 			}
 		}, // write()
+		
+		//
+		// end
+		//
 		end: function(data) {
 			if (data !== null && data !== undefined) {
 				this.write(data);
 			}
-			end = true;
+			endFlag = true;
 			if (endCallback) {
 				endCallback();
 			}
 		} // end()
 	};
 	
+	/**
+	 * Define the reader.
+	 */
 	var reader = {
+		//
+		// read
+		//
+		// Read data that has been accumulated and we have no "data" handler.
 		read: function() {
 			if (dataBufferUsed === 0) {
 				return new Buffer(0);
@@ -121,35 +143,51 @@ function stream() {
 			dataBufferUsed = 0;
 			return tempBuffer;
 		}, // read
+		
+		//
+		// on
+		//
+		// Register handlers for events sent by the writer.
 		on: function(event, callback) {
 			if (callback === null || callback === undefined) {
 				throw new Error("No callback function supplied");
 			}
+			
+			// Here the caller wishes to register a callback to receive data
+			// we may have received and accumulated data BEFORE the caller has
+			// requested it.  In this case, we must send the data that we have
+			// stored up till now.
 			if (event == "data") {
-				readerCallback = callback;
+				readerCallback = callback; // Save the readerCallback which will be invoked on writes.
 				if (dataBufferUsed > 0) {
 					var tempBuffer = new Buffer(dataBufferUsed);
 					dataBuffer.copy(tempBuffer, 0, 0, dataBufferUsed);
 					readerCallback(tempBuffer);
+					dataBuffer = null; // Release any storage we may have saved for a dataBuffer.
 					dataBufferUsed = 0;
 				}
 			} // data
+			
+			// The caller wishes to register a callback to be notified when the writer
+			// has claimed to have sent all the data.  We may have already been notified
+			// so we may need to invoke the callback immediately.
 			else if (event == "end") {
 				endCallback = callback;
-				if (end) {
-					callback();
+				if (endFlag) {
+					endCallback();
 				}
 			} // end
 			else {
 				throw new Error("Unknown event type: "+ event);
 			}
 		} // on
-
 	}; // reader()
+	
+	// Return the reader and writer.
 	return {
 		reader: reader,
 		writer: writer
 	};
-}
+} // stream
 
 module.exports = stream;

@@ -1,5 +1,5 @@
 #!/bin/bash
-cd spiffs; ls | ~/bin/mkespfsimage > ../espfs.img
+cd spiffs; ls *.js | ~/bin/mkespfsimage > ../espfs.img
 cd ..
 python /home/kolban/esp32/esptest/esp-idf/components/esptool_py/esptool/esptool.py \
  --chip esp32 --port "/dev/ttyUSB0" --baud 921600 write_flash --flash_mode "dio" \

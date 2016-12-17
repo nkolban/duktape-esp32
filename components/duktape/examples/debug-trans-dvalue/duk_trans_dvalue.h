@@ -1,4 +1,4 @@
-#ifndef DUK_TRANS_DVALUE_H_INCLUDED
+#if !defined(DUK_TRANS_DVALUE_H_INCLUDED)
 #define DUK_TRANS_DVALUE_H_INCLUDED
 
 #include "duktape.h"
@@ -108,6 +108,6 @@ duk_size_t duk_trans_dvalue_write_cb(void *udata, const char *buffer, duk_size_t
 duk_size_t duk_trans_dvalue_peek_cb(void *udata);
 void duk_trans_dvalue_read_flush_cb(void *udata);
 void duk_trans_dvalue_write_flush_cb(void *udata);
-void duk_trans_dvalue_detached_cb(void *udata);
+void duk_trans_dvalue_detached_cb(duk_context *ctx, void *udata);
 
 #endif  /* DUK_TRANS_DVALUE_H_INCLUDED */

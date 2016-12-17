@@ -20,6 +20,7 @@ function loop() {
 		var timerCallback = _timers.timerEntries[0].callback;
 		if (_timers.timerEntries[0].interval > 0) {
 			_timers.timerEntries[0].fire = new Date().getTime() + _timers.timerEntries[0].interval;
+			_timers.sort();
 		} else {
 			_timers.timerEntries.splice(0, 1);
 		}
@@ -65,7 +66,7 @@ function loop() {
 	// Process each ready to read file descriptor in turn
 	for (i=0; i<selectResult.readfds.length; i++) {
 		currentSocketFd = selectResult.readfds[i];
-		log("working on read of: " + currentSocketFd);
+		log("loop: working on read of: " + currentSocketFd);
 		currentSock = _sockets[selectResult.readfds[i]];
 		
 		// We now have the object that represents the socket.  If it is a listening
@@ -74,6 +75,7 @@ function loop() {
 			var acceptData = OS.accept({sockfd: currentSock._sockfd});
 			log("We accepted a new client connection: " + JSON.stringify(acceptData));
 			var newSocket = new net.Socket({sockfd: acceptData.sockfd});
+			newSocket._createdFromFd = currentSock._sockfd;
 			_sockets[newSocket._sockfd] = newSocket;
 			
 			newSocket.on("connect", currentSock._onConnect);
@@ -82,7 +84,7 @@ function loop() {
 			}
 		} // Socket was a server socket
 		else {
-			// We need to read data from it!
+			// We need to read data from the socket!
 			// We have a socket in currentSocket that had data ready to be read from it.  Now we
 			// read the data from that socket.
 			var myData = new Buffer(512);
@@ -100,15 +102,16 @@ function loop() {
 				// our cache list.
 			    delete _sockets[currentSock._sockfd];
 			}  // We received no data.
-			else {
+			else { // Data size was not 0.
 				if (currentSock._onData) {
 					currentSock._onData(myData.slice(0, recvSize));
 				}
-			}
+			} // Data size was not 0.
 		} // Data available and socket is NOT a server
 	} // For each socket that is able to read ... 
 	ESP32.gc();
 } // loop
 
-setInterval(loop, 100);
 log("Major function \"loop()\" registered");
+
+module.exports = loop;

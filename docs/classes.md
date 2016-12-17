@@ -327,7 +327,7 @@ HTTP request.  The signature of the `requestHandler` is:
 For example:
 
 ```
-var http = require("http");
+var HTTP = require("http");
 function requestHandler(request, response) {
    log("We have received a new HTTP client request!");
    request.on("data", function(data) {
@@ -339,10 +339,87 @@ function requestHandler(request, response) {
       log(" - headers: " + JSON.stringify(request.headers));
    });
 }
-var server = http.createServer(requestHandler);
+var server = HTTP.createServer(requestHandler);
 server.listen(80);
 ```
 
+##HTTPRequest
+The HTTPRequest object is not created directly.  Instead it is passed as the first parameter
+to an HTTP request handler.  Its purpose is to provide the data supplied by the HTTP requester.
+
+###getHeader
+Return the value of a given named header if it is present.
+
+Syntax:
+`getHeader(name)`
+
+Returns the String value of the named header or `null` if it is not present.
+
+###getSocket
+Return the raw, underlying socket object that represents the incoming connection from the partner.
+This is not expected to be commonly used.  In fact, the only known consumer of this is HTTP WebSockets
+where an HTTP request is "converted" to a socket connection.  Use with great care and only if you know
+what you are doing.
+
+Syntax:
+`getSocket()`
+
+###headers
+A property object that contains the headers supplied by the requester.  One would normally use `getHeader()` to obtain
+the current value of a header property.
+
+###method
+A property describing the method supplied by the requester.  Common examples are:
+* `GET`
+* `POST`
+* `PUT`
+* `DELETE`
+
+###on
+A callback event registration handler.
+Syntax:
+`on(eventType, callback)`
+
+The eventType can be one of:
+* `data` - An indication that new data is available.
+* `end` - An indication that the request has arrived in total.
+
+
+###path
+The Path part of the incoming request.
+
+##HTTPResponse
+The HTTPResponse object is not created directly.  Instead it is passed as the second parameter
+to an HTTP request handler.  Its purpose in life is to send responses back to a connected HTTP partner.
+
+Example:
+```
+response.writeHead(200);
+response.write("Hello world!");
+response.end();
+```
+
+###end
+Indicate that the response data is finalized.
+
+Syntax:
+`end()`
+
+###write
+Write data to the partner.  We can supply either a String or a buffer.
+
+Syntax:
+`write(data)`
+
+###writeHead
+Write the HTTP headers sent in the response.
+
+Syntax:
+`writeHead(statusCode [,statusMessage][,headers])`
+
+The status code is the HTTP code returned.
+The `statusMessage` is an optional string that specifies the message sent back with the status code.
+The `headers` is an optional object where the name/value pairs will be used as the response headers.
 
 ##HTTPParser
 Primarily designed as an internal module, this module parses HTTP protocol requests and responses.  When we are

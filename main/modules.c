@@ -308,6 +308,7 @@ static duk_ret_t js_esp32_debug(duk_context *ctx) {
 		duk_trans_socket_read_flush_cb,
 		duk_trans_socket_write_flush_cb,
 		NULL,
+		NULL,
 		NULL);
 	ESP_LOGD(tag, "<< js_esp32_debug");
 	return 0;

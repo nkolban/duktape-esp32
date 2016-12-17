@@ -89,3 +89,11 @@ To remove an element from the stack we can call:
 ```
 duk_remove(ctx, idx);
 ```
+
+##Getting the data and size of a Buffer
+We can use `duk_get_buffer()` to retrieve the data and size of the buffer.
+```
+void *duk_get_buffer_data(ctx, index, &size)
+```
+
+Returns NULL on a problem.

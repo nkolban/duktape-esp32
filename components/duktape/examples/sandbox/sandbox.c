@@ -144,15 +144,29 @@ static void sandbox_free(void *udata, void *ptr) {
  *  Sandbox setup and test
  */
 
-static duk_ret_t do_sandbox_test(duk_context *ctx) {
+static duk_ret_t duk__print(duk_context *ctx) {
+	duk_push_string(ctx, " ");
+	duk_insert(ctx, 0);
+	duk_join(ctx, duk_get_top(ctx) - 1);
+	printf("%s\n", duk_safe_to_string(ctx, -1));
+	return 0;
+}
+
+static duk_ret_t do_sandbox_test(duk_context *ctx, void *udata) {
 	FILE *f;
 	char buf[4096];
 	size_t ret;
 	const char *globobj;
 
+	(void) udata;
+
 	/*
 	 *  Setup sandbox
 	 */
+
+	/* Minimal print() provider. */
+	duk_push_c_function(ctx, duk__print, DUK_VARARGS);
+	duk_put_global_string(ctx, "print");
 
 	globobj =
 		"({\n"
@@ -212,9 +226,9 @@ static duk_ret_t do_sandbox_test(duk_context *ctx) {
  *  Main
  */
 
-static void sandbox_fatal(duk_context *ctx, duk_errcode_t code, const char *msg) {
-	(void) ctx;  /* Suppress warning. */
-	fprintf(stderr, "FATAL %ld: %s\n", (long) code, (msg ? msg : "no message"));
+static void sandbox_fatal(void *udata, const char *msg) {
+	(void) udata;  /* Suppress warning. */
+	fprintf(stderr, "FATAL: %s\n", (msg ? msg : "no message"));
 	fflush(stderr);
 	exit(1);  /* must not return */
 }
@@ -236,7 +250,7 @@ int main(int argc, char *argv[]) {
 	                      sandbox_fatal);
 
 	duk_push_string(ctx, argv[1]);
-	rc = duk_safe_call(ctx, do_sandbox_test, 1 /*nargs*/, 1 /*nrets*/);
+	rc = duk_safe_call(ctx, do_sandbox_test, NULL, 1 /*nargs*/, 1 /*nrets*/);
 	if (rc) {
 		fprintf(stderr, "ERROR: %s\n", duk_safe_to_string(ctx, -1));
 		fflush(stderr);

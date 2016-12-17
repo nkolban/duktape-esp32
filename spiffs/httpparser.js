@@ -45,7 +45,7 @@
  * parser.end();
  * 
  * The first implementation of the parser accumulated all the data that was passed into it until
- * we were told that there was going to be no more.  At that point we had ALL the data received
+ * was told that there was going to be no more.  At that point we had ALL the data received
  * from the client and could parse it as a whole.  Unfortunately this wasn't going to work.
  * Not only were we having to accumulate data, but there was an important semantic problem.
  * When data is sent over a connection, the sender doesn't "end" the socket connection after it
@@ -71,11 +71,12 @@
  * ... don't care ...
  * 
  * 
- * In our story now ... the parser will be called **repeatedly**.   Each time it is called, it will receive a bit more data.
+ * In our story now ... the parser will be called **repeatedly**.   Each time it is called,
+ * it will receive a bit more data.
  * 
  */
 /* globals require, log, module */
-var Stream = require("stream");
+var Stream = require("stream.js");
 
 
 /**
@@ -113,13 +114,21 @@ var STATE = {
 };
 	
 
+/**
+ * The implementation of the HTTP parse
+ * @param type The type of parsing either "request" or "response"
+ * @param handler A callback function that is invoked to handle the data.
+ * @returns N/A
+ */
 function httpparser(type, handler) {
 	var networkStream = new Stream();
 	var httpStream = new Stream();
+	
 	httpStream.reader.headers = {};
 	var unconsumedData = "";
 	var bodyLeftToRead;
 	var state;
+	
 	if (type == "request") {
 		state = STATE.START_REQUEST;
 	} else if (type == "response") {
@@ -129,6 +138,9 @@ function httpparser(type, handler) {
 	}
 	
 	function consume(dataToProcess) {
+		if (state == STATE.END) {
+			throw new Error("We have been asked to parse more HTTP data but we are already past the end");
+		}
 		var line = {remainder: ""};
 		if (state !== STATE.BODY) {
 			line = getLine(dataToProcess);
@@ -146,7 +158,7 @@ function httpparser(type, handler) {
 				} // End of in STATE.START_RESPONSE
 				else if (state == STATE.START_REQUEST) {
 					var splitData = line.line.split(" ");
-					httpStream.reader.method = splitData[0];
+					httpStream.reader.method = splitData[0].toUpperCase();
 					httpStream.reader.path = splitData[1];
 					log("http Method: " + httpStream.reader.method + ", path: " + httpStream.reader.path);
 					// We have finished with the start line ...
@@ -202,11 +214,12 @@ function httpparser(type, handler) {
 	handler(httpStream.reader);
 	
 	networkStream.reader.on("data", function(data) {
+		//log("HTTP parser consuming data ... state=" + state);
 		unconsumedData = consume(unconsumedData + data.toString());
 	});
 	
 	networkStream.reader.on("end", function() {
-		log("Received an end of network connection");
+		log("HTTP Parser: Received an end of network connection");
 	}); // networkStream reader on("end")
 	return networkStream.writer;
 } // httpparser

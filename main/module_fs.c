@@ -204,13 +204,17 @@ static duk_ret_t js_fs_fstatSync(duk_context *ctx) {
 } // js_fs_fstatSync
 
 
+/**
+ * Determine the stats on the file.
+ * [0] - Path name
+ */
 static duk_ret_t js_fs_statSync(duk_context *ctx) {
 	struct stat statBuf;
 	const char *path = duk_require_string(ctx, 0);
 	int rc = stat(path, &statBuf);
 	if (rc == -1) {
 		ESP_LOGD(tag, "Error from stat of file %s: %d %s", path, errno, strerror(errno));
-		return 0;
+		return DUK_RET_ERROR;
 	}
 	duk_push_object(ctx);
 	duk_push_int(ctx, statBuf.st_size);

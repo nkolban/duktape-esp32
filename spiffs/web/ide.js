@@ -30,9 +30,9 @@ $(document).ready(function() {
 			method: "POST",
 			data: script,
 			success: function() {
-				console.log("All sent");
+				console.log("Code sent for execution.");
 			}
-		});
+		}); // .ajax
 	} // runScript
 	
 	
@@ -63,7 +63,14 @@ $(document).ready(function() {
 		}		
 	} // createConsoleWebSocket
 	
-	
+	/**
+	 * We have the need to populate a <select> with the names of files stored on the ESP32.
+	 * This function performs that task by making a REST request to the ESP32 to retrieve
+	 * them.  The results are then inserted into the <select>
+	 * @param selectObj The jQuery object representing the <select>
+	 * @param callback A callback to invoke when done.
+	 * @returns N/A
+	 */
 	function populateSelectWithFiles(selectObj, callback) {
 		$.ajax({
 			url: "http://" + settings.esp32_host + ":" + settings.esp32_port + "/files",
@@ -83,10 +90,13 @@ $(document).ready(function() {
 				for (var i=0; i<data.length; i++) {
 					$(selectObj).append($("<option>", {value: data[i].name, text: data[i].name}));
 				}
-				callback();
+				if (callback) {
+					callback();
+				}
 			} // Success
-		});
+		}); // .ajax
 	} // populateSelectWithFiles
+
 	
 	// Create the page layout.
 	$("#c1").layout({
@@ -135,33 +145,21 @@ $(document).ready(function() {
 	$("#load").button().click(function() {
 		$.ajax({
 			url: "http://" + settings.esp32_host + ":" + settings.esp32_port + "/files",
-			method: "get",
+			method: "GET",
 			dataType: "json",
 			success: function(data) {
-				/*
-				debugger;
-				var s = '[{"name":"/web/ide.html","size":4898},{"name":"/web/ide.js","size":4371},{"name":"/loadStream.js","size":133},{"name":"/stream.js","size":23940},{"name":"/tests/test_http.js","size":254},{"name":"/tests/test_streams.js","size":1524},{"name":"/tests/test_net.js","size":413},{"name":"/http_save.js","size":3644},{"name":"/junk.js","size":376},{"name":"/module.js","size":301},{"name":"/http.js","size":6894},{"name":"/init.js","size":1051},{"name":"/loop.js","size":3303},{"name":"/net.js","size":3465},{"name":"/webserver.js","size":1234},{"name":"/status.js","size":87},{"name":"/testModule.js","size":239},{"name":"/gc.js","size":130},{"name":"/httpparser.js","size":6573}]';
-				var data = JSON.parse(s);
-				*/
-				data.sort(function(a, b) {
-					if (a.name < b.name) {
-						return -1;
-					}
-					if (a.name > b.name) {
-						return 1;
-					}
-					return 0;
+				populateSelectWithFiles($("#loadSelect"), function() {
+					$("#loadDialog").dialog("open");
 				});
-				$("#loadSelect").empty();
-				for (var i=0; i<data.length; i++) {
-					$("#loadSelect").append($("<option>", {value: data[i].name, text: data[i].name}));
-				}
-				$("#loadDialog").dialog("open");
-				console.log("All sent");
 			} // Success
-		});
+		}); // .ajax
 	});
 	
+	
+	/**
+	 * Handle the save button being pressed on the main window.
+	 * This will open the save dialog.
+	 */
 	$("#save").button().click(function() {
 		$("#saveDialog").dialog("open");
 	});
@@ -199,7 +197,18 @@ $(document).ready(function() {
 			{
 				text: "Save",
 				click: function() {
-					var selectedFile = $("#saveFileNameText").val();
+					var selectedFile = $("#saveFileNameText").val().trim(); // Get the input file name.
+					if (selectedFile.length == 0) { // Check that it is not empty
+						return; // No file name entered.
+					}
+
+					if (selectedFile.charAt(0) != '/') { // File must start with a "/".  Add it if not present.
+						selectedFile = "/" + selectedFile;
+					}
+					
+					// Make a REST call to the ESP32 to save the data.  The URL is:
+					// POST /files/<fileName>
+					// Body: Data to save
 					$.ajax({
 						url: "http://" + settings.esp32_host + ":" + settings.esp32_port + "/files" + selectedFile,
 						method: "POST",
@@ -207,7 +216,7 @@ $(document).ready(function() {
 						success: function(data) {
 							$(this).dialog("close");
 						}
-					});
+					}); // .ajax
 				}
 			},
 			{
@@ -217,7 +226,7 @@ $(document).ready(function() {
 				}
 			}
 		]
-	});
+	}); // #saveDialog
 			
 			
 	// Create and handle the load file dialog
@@ -231,6 +240,9 @@ $(document).ready(function() {
 				click: function() {
 					// Determine which file was selected in the list
 					var selectedFile = $("#loadSelect option:selected").val();
+					// Retrieve the content of a file from ESP32 file store.
+					// the REST request format is:
+					// GET /files/<fileName>
 					$.ajax({
 						url: "http://" + settings.esp32_host + ":" + settings.esp32_port + "/files" + selectedFile,
 						method: "GET",
