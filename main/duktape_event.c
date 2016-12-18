@@ -1,13 +1,18 @@
-#include "esp32_duktape/duktape_event.h"
-#include <string.h>
+#ifdef ESP_PLATFORM
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <esp_log.h>
+#include "sdkconfig.h"
+#endif
+#include "esp32_duktape/duktape_event.h"
+#include <string.h>
+#include "logging.h"
+
 #include <assert.h>
 #include "esp32_duktape/module_timers.h"
 #include "duktape_utils.h"
 #include "c_timeutils.h"
-#include "sdkconfig.h"
+
 
 static char tag[] = "duktape_event";
 
@@ -15,13 +20,17 @@ static char tag[] = "duktape_event";
 // queue for processing.
 #define MAX_EVENT_QUEUE_SIZE (20)
 
+#ifdef ESP_PLATFORM
 static QueueHandle_t esp32_duktape_event_queue; // The event queue (provided by FreeRTOS).
+#endif
 
 /**
  * Post the event onto the queue for handling when idle.
  */
 static void postEvent(esp32_duktape_event_t *pEvent) {
+#ifdef ESP_PLATFORM
 	xQueueSendToBack(esp32_duktape_event_queue, pEvent, portMAX_DELAY);
+#endif
 } // postEvent
 
 
@@ -30,7 +39,9 @@ static void postEvent(esp32_duktape_event_t *pEvent) {
  */
 void esp32_duktape_initEvents() {
 	// Initialize the FreeRTOS queue.
+#ifdef ESP_PLATFORM
 	esp32_duktape_event_queue = xQueueCreate(MAX_EVENT_QUEUE_SIZE, sizeof(esp32_duktape_event_t));
+#endif
 } // esp32_duktape_initEvents
 
 
@@ -41,7 +52,11 @@ void esp32_duktape_initEvents() {
  */
 int esp32_duktape_waitForEvent(esp32_duktape_event_t *pEvent) {
 	// Ask FreeRTOS to see if we have a new event.
+#ifdef ESP_PLATFORM
 	BaseType_t rc = xQueueReceive(esp32_duktape_event_queue, pEvent, 0);
+#else
+	int rc = 0;
+#endif
 	return (int)rc;
 } // esp32_duktape_waitForEvent
 
@@ -81,7 +96,7 @@ void esp32_duktape_freeEvent(duk_context *ctx, esp32_duktape_event_t *pEvent) {
 		return;
 	}
 
-	ESP_LOGD(tag, "We have been asked to free an event of type %d but don't know how",
+	LOGD("We have been asked to free an event of type %d but don't know how",
 		pEvent->type);
 } // esp32_duktape_freeEvent
 
@@ -99,7 +114,7 @@ void event_newCommandLineEvent(
 	esp32_duktape_event_t event;
 
 	if (commandLength == 0 || commandData == NULL) {
-		ESP_LOGE(tag, "event_newCommandLineEvent: problem ... length of command was %d which should be > 0 or commandData was NULL=%s ", commandLength, commandData==NULL?"yes":"no");
+		LOGE("event_newCommandLineEvent: problem ... length of command was %d which should be > 0 or commandData was NULL=%s ", (int)commandLength, commandData==NULL?"yes":"no");
 		return;
 	}
 	assert(commandLength > 0);
@@ -171,7 +186,7 @@ void event_newCallbackRequestedEvent(uint32_t callbackType, uint32_t stashKey, e
 	esp32_duktape_event_t event;
 	event.type = ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED;
 	if (callbackType != ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION) {
-		ESP_LOGE(tag, "event_newCallbackRequestedEvent: Unknown callbackType: %d", callbackType);
+		LOGE("event_newCallbackRequestedEvent: Unknown callbackType: %d", callbackType);
 		return;
 	}
 	event.callbackRequested.callbackType = callbackType;

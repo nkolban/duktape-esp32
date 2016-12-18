@@ -45,7 +45,9 @@ function loop() {
 	
 	// Invoke select() to see if there is any work to do.
 	var selectResult = OS.select({readfds: readfds, writefds: writefds, exceptfds: exceptfds});
-	//console.log("selectResult: " + JSON.stringify(selectResult));
+	if (selectResult.readfds.length > 0 || selectResult.writefds.length > 0 | selectResult.exceptfds.length > 0) {
+		log("selectResult: " + JSON.stringify(selectResult));
+	}
 	
 	var currentSocketFd;
 	var currentSock;
@@ -109,7 +111,7 @@ function loop() {
 			} // Data size was not 0.
 		} // Data available and socket is NOT a server
 	} // For each socket that is able to read ... 
-	ESP32.gc();
+	DUKF.gc();
 } // loop
 
 log("Major function \"loop()\" registered");

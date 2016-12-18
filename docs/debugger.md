@@ -11,3 +11,9 @@ See also:
  * https://github.com/svaarala/duktape/tree/master/debugger
  
  To enable heap debugging, we need to compile with DUK_OPT_DEBUGGER_DUMPHEAP
+ 
+ To attach a brower we run:
+ 
+ http://localhost:9092
+ 
+ Make sure you use the same version of the debugger as the Duktape library.

@@ -9573,7 +9573,10 @@ DUK_INTERNAL void duk_debug_log(duk_int_t level, const char *file, duk_int_t lin
 	arg_line = (long) line;
 	arg_func = (const char *) func;
 	arg_msg = (const char *) buf;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-value"
 	DUK_USE_DEBUG_WRITE(arg_level, arg_file, arg_line, arg_func, arg_msg);
+#pragma GCC diagnostic pop
 
 	va_end(ap);
 }

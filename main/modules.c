@@ -1,14 +1,22 @@
-#include <stdbool.h>
-#include <esp_log.h>
+#ifdef ESP_PLATFORM
 #include <esp_system.h>
-#include <duktape.h>
-#include <stdlib.h>
+#include <espfs.h>
+#include "esp32_specific.h"
+#include "sdkconfig.h"
+#endif
+
+#include "logging.h"
+
 #include <assert.h>
-#include <fcntl.h>
+#include <duktape.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 #include <string.h>
 #include <unistd.h>
-#include <espfs.h>
+
 #include "modules.h"
 #include "esp32_duktape/module_fs.h"
 #include "esp32_duktape/module_gpio.h"
@@ -18,10 +26,11 @@
 #include "esp32_duktape/module_wifi.h"
 #include "esp32_duktape/module_partitions.h"
 #include "esp32_duktape/module_os.h"
+#include "module_dukf.h"
 #include "duktape_utils.h"
-#include "esp32_specific.h"
-#include "duk_trans_socket.h"
-#include "sdkconfig.h"
+
+#include "duk_trans_socket.h" // The debug functions from Duktape.
+
 
 static char tag[] = "modules";
 
@@ -29,7 +38,7 @@ static char tag[] = "modules";
  * The native Console.log() static function.
  */
 static duk_ret_t js_console_log(duk_context *ctx) {
-	ESP_LOGD(tag, "js_console_log called");
+	LOGD("js_console_log called");
 	switch(duk_get_type(ctx, -1)) {
 		case DUK_TYPE_STRING: {
 			esp32_duktape_console(duk_get_string(ctx, -1));
@@ -66,11 +75,11 @@ functionTableEntry_t functionTable[] = {
  * [ 0] - String - nativeFunctionID - A string name that is used to lookup a function handle.
  */
 static duk_ret_t js_esp32_getNativeFunction(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_esp32_getNativeFunction");
+	LOGD(">> js_esp32_getNativeFunction");
 	// Check that the first parameter is a string.
 	if (duk_is_string(ctx, 0)) {
 		const char *nativeFunctionID = duk_get_string(ctx, 0);
-		ESP_LOGD(tag, "- nativeFunctionId that we are looking for is \"%s\"", nativeFunctionID);
+		LOGD("- nativeFunctionId that we are looking for is \"%s\"", nativeFunctionID);
 
 		// Lookup the handler function in a table.
 		functionTableEntry_t *ptr = functionTable;
@@ -84,19 +93,19 @@ static duk_ret_t js_esp32_getNativeFunction(duk_context *ctx) {
 		if (ptr->id != NULL) {
 			duk_push_c_function(ctx, ptr->func, ptr->paramCount);
 		} else {
-			ESP_LOGD(tag, "No native found found called %s", nativeFunctionID);
+			LOGD("No native found found called %s", nativeFunctionID);
 			duk_push_null(ctx);
 		}
 	} else {
-		ESP_LOGD(tag, "No native function id supplied");
+		LOGD("No native function id supplied");
 		duk_push_null(ctx);
 	}
 	// We will have either pushed null or a function reference onto the stack.
-	ESP_LOGD(tag, "<< js_esp32_getNativeFunction");
+	LOGD("<< js_esp32_getNativeFunction");
 	return 1;
 } // js_esp32_getNativeFunction
 
-
+#ifdef ESP_PLATFORM
 typedef struct {
 	char *levelString;
 	esp_log_level_t level;
@@ -127,7 +136,7 @@ static duk_ret_t js_esp32_setLogLevel(duk_context *ctx) {
 	char *levelString;
 	tagToChange = (char *)duk_get_string(ctx, -2);
 	levelString = (char *)duk_get_string(ctx, -1);
-	ESP_LOGD(tag, "Setting a new log level to be tag: \"%s\", level: \"%s\"", tagToChange, levelString);
+	LOGD("Setting a new log level to be tag: \"%s\", level: \"%s\"", tagToChange, levelString);
 	level_t *pLevels = levels;
 	while(pLevels->levelString != NULL) {
 		if (strcmp(pLevels->levelString, levelString) == 0) {
@@ -141,6 +150,7 @@ static duk_ret_t js_esp32_setLogLevel(duk_context *ctx) {
 	return 0;
 } // js_esp32_setLogLevel
 
+#endif
 
 /**
  * Load a file using the POSIX file I/O functions.
@@ -193,17 +203,17 @@ static duk_ret_t js_esp32_loadFile(duk_context *ctx) {
 static duk_ret_t js_esp32_loadFile(duk_context *ctx) {
 
 	const char *path = duk_get_string(ctx, -1);
-	ESP_LOGD(tag, ">> js_esp32_loadFile: %s", path);
+	LOGD(">> js_esp32_loadFile: %s", path);
 	struct stat statBuf;
 	int rc = stat(path, &statBuf);
 	if (rc < 0) {
-		ESP_LOGD(tag, "js_esp32_loadFile: stat() %d %s", errno, strerror(errno));
+		LOGD("js_esp32_loadFile: stat() %d %s", errno, strerror(errno));
 		duk_push_null(ctx);
 		return 1;
 	}
 	int fd = open(path, O_RDWR);
 	if (fd < 0) {
-		ESP_LOGD(tag, "js_esp32_loadFile: open() %d %s", errno, strerror(errno));
+		LOGD("js_esp32_loadFile: open() %d %s", errno, strerror(errno));
 		duk_push_null(ctx);
 		return 1;
 	}
@@ -214,7 +224,7 @@ static duk_ret_t js_esp32_loadFile(duk_context *ctx) {
 	while (actuallyRead < statBuf.st_size) {
 		ssize_t sizeRead = read(fd, data, UNIT_SIZE);
 		if (sizeRead <= 0) {
-			ESP_LOGD(tag, "js_esp32_loadFile: read() %d %s", errno, strerror(errno));
+			LOGD("js_esp32_loadFile: read() %d %s", errno, strerror(errno));
 			free(data);
 			close(fd);
 			duk_push_null(ctx);
@@ -227,21 +237,21 @@ static duk_ret_t js_esp32_loadFile(duk_context *ctx) {
 	duk_concat(ctx, counter);
 	close(fd); // Close the open file, we don't need it anymore.
 	free(data); // Release the dynamically read data as it is on the stack now.
-	ESP_LOGD(tag, "<< js_esp32_loadFile: Read file %s of length %d", path, actuallyRead);
+	LOGD("<< js_esp32_loadFile: Read file %s of length %d", path, actuallyRead);
 	return 1;
 } // js_esp32_loadFile
 
-
+#ifdef ESP_PLATFORM
 /**
  * Load a text file and push it onto the stack using the ESPFS technologies.
  */
 static duk_ret_t js_esp32_loadFileESPFS(duk_context *ctx) {
 	const char *path = duk_get_string(ctx, -1);
-	ESP_LOGD(tag, ">> js_esp32_loadFileESPFS: %s", path);
+	LOGD(">> js_esp32_loadFileESPFS: %s", path);
 	size_t fileSize;
 	const char *fileText = esp32_loadFileESPFS(path, &fileSize);
 	if (fileText == NULL) {
-		ESP_LOGD(tag, " Failed to open file %s", path);
+		LOGD(" Failed to open file %s", path);
 		duk_push_null(ctx);
 		return 1;
 	}
@@ -255,12 +265,7 @@ static duk_ret_t js_esp32_dumpESPFS(duk_context *ctx) {
 	return 0;
 } // js_esp32_dumpESPFS
 
-
-// Ask JS to perform a gabrage collection.
-static duk_ret_t js_esp32_gc(duk_context *ctx) {
-	duk_gc(ctx, 0);
-	return 0;
-} // js_esp32_gc
+#endif
 
 
 /**
@@ -271,7 +276,7 @@ static duk_ret_t js_esp32_reset(duk_context *ctx) {
 	return 0;
 } // js_esp32_reset
 
-
+#ifdef ESP_PLATFORM
 /**
  * ESP32.getState()
  * Return an object that describes the state of the ESP32 environment.
@@ -290,29 +295,7 @@ static duk_ret_t js_esp32_getState(duk_context *ctx) {
 
 	return 1;
 } // js_esp32_getState
-
-
-/**
- * Attach the debugger.
- */
-static duk_ret_t js_esp32_debug(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_esp32_debug");
-	duk_trans_socket_init();
-	duk_trans_socket_waitconn();
-	ESP_LOGD(tag, "Debugger reconnected, call duk_debugger_attach()");
-
-	duk_debugger_attach(ctx,
-		duk_trans_socket_read_cb,
-		duk_trans_socket_write_cb,
-		duk_trans_socket_peek_cb,
-		duk_trans_socket_read_flush_cb,
-		duk_trans_socket_write_flush_cb,
-		NULL,
-		NULL,
-		NULL);
-	ESP_LOGD(tag, "<< js_esp32_debug");
-	return 0;
-} // js_esp32_debug
+#endif
 
 
 /**
@@ -320,7 +303,7 @@ static duk_ret_t js_esp32_debug(duk_context *ctx) {
  * as the global log("message").
  */
 static duk_ret_t js_global_log(duk_context *ctx) {
-	ESP_LOGD("debug", "%s", duk_safe_to_string(ctx, -1));
+	LOGD("%s", duk_safe_to_string(ctx, -1));
 	return 0;
 } // js_global_log
 
@@ -380,31 +363,13 @@ static void ModuleESP32(duk_context *ctx) {
 	duk_put_prop_string(ctx, -2, "reset"); // Add reset to new ESP32
 	// [0] - Global object
 	// [1] - New object
-
+#ifdef ESP_PLATFORM
 	duk_push_c_function(ctx, js_esp32_getState, 0);
 	// [0] - Global object
 	// [1] - New object
 	// [2] - c-function - js_esp32_getState
 
 	duk_put_prop_string(ctx, -2, "getState"); // Add reset to new ESP32
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_esp32_getNativeFunction, 1);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-function - js_esp32_getNativeFunction
-
-	duk_put_prop_string(ctx, -2, "getNativeFunction"); // Add getNativeFunction to new ESP32
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_esp32_debug, 0);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-function - js_esp32_debug
-
-	duk_put_prop_string(ctx, -2, "debug"); // Add debug to new ESP32
 	// [0] - Global object
 	// [1] - New object
 
@@ -417,23 +382,6 @@ static void ModuleESP32(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object
 
-	duk_push_c_function(ctx, js_esp32_gc, 0);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-function - js_esp32_gc
-
-	duk_put_prop_string(ctx, -2, "gc"); // Add gc to new ESP32
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_esp32_loadFile, 1);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-function - js_esp32_loadFile
-
-	duk_put_prop_string(ctx, -2, "loadFile"); // Add loadFile to new ESP32
-	// [0] - Global object
-	// [1] - New object
 
 	duk_push_c_function(ctx, js_esp32_loadFileESPFS, 1);
 	// [0] - Global object
@@ -452,6 +400,25 @@ static void ModuleESP32(duk_context *ctx) {
 	duk_put_prop_string(ctx, -2, "dumpESPFS"); // Add dumpESPFS to new ESP32
 	// [0] - Global object
 	// [1] - New object
+#endif
+
+	duk_push_c_function(ctx, js_esp32_getNativeFunction, 1);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_getNativeFunction
+
+	duk_put_prop_string(ctx, -2, "getNativeFunction"); // Add getNativeFunction to new ESP32
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_esp32_loadFile, 1);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_loadFile
+
+	duk_put_prop_string(ctx, -2, "loadFile"); // Add loadFile to new ESP32
+	// [0] - Global object
+	// [1] - New object
 
 	duk_put_prop_string(ctx, -2, "ESP32"); // Add ESP32 to global
 	// [0] - Global object
@@ -466,7 +433,9 @@ static void ModuleESP32(duk_context *ctx) {
  * bein the global address space/scope.
  */
 void registerModules(duk_context *ctx) {
+#ifdef ESP_PLATFORM
 	espFsInit((void *)0x360000, 4 * 64 * 1024);
+#endif
 
 	duk_idx_t top = duk_get_top(ctx);
 	ModuleConsole(ctx);
@@ -475,9 +444,13 @@ void registerModules(duk_context *ctx) {
 	assert(top == duk_get_top(ctx));
 	ModuleFS(ctx);
 	assert(top == duk_get_top(ctx));
-	ModuleGPIO(ctx);
+	ModuleOS(ctx);
 	assert(top == duk_get_top(ctx));
-	ModuleTIMERS(ctx);
+	ModuleDUKF(ctx);
+	assert(top == duk_get_top(ctx));
+
+#ifdef ESP_PLATFORM
+	ModuleGPIO(ctx);
 	assert(top == duk_get_top(ctx));
 	ModuleWIFI(ctx);
 	assert(top == duk_get_top(ctx));
@@ -485,6 +458,8 @@ void registerModules(duk_context *ctx) {
 	assert(top == duk_get_top(ctx));
 	ModulePARTITIONS(ctx);
 	assert(top == duk_get_top(ctx));
-	ModuleOS(ctx);
-	assert(top == duk_get_top(ctx));
+	//ModuleTIMERS(ctx);
+	//assert(top == duk_get_top(ctx));
+#endif
+
 } // End of registerModules

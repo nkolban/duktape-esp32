@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <title>Test WS</title>
 <script>
+	var host = "localhost:8001" 
 	console.log("About to create websocket")
-	var ws = new WebSocket("ws://192.168.1.99:81");
+	var ws = new WebSocket("ws://" + host);
 	ws.onopen = function() {
 		console.log("The connection is now open");
 		console.log("Sending data");

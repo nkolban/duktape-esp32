@@ -1,5 +1,5 @@
-/* globals Duktape, log, ESP32 */
-/* exported _sockets */
+/* globals Duktape, log, DUKF, require */
+/* exported _sockets, cancelInterval, cancelTimeout, setInterval, setTimeout, _loop */
 
 if (!String.prototype.endsWith) {
   String.prototype.endsWith = function(searchString, position) {
@@ -26,10 +26,11 @@ Duktape.modSearch = function(id, require, exports, module) {
 	if (!id.endsWith(".js")) {
 		name += ".js";
 	}
-	return ESP32.loadFileESPFS(name);
+	return DUKF.loadFile(name);
+	//return ESP32.loadFileESPFS(name);
 };
 
-ESP32.setLogLevel("*", "debug");
+//ESP32.setLogLevel("*", "debug");
 
 var _sockets= {};
 
@@ -72,21 +73,21 @@ var _timers = {
 			}
 		}
 	} // cancelTimer
-}
+};
 
-function cancelInterval2(id) {
+function cancelInterval(id) {
 	_timers.cancelTimer(id);
 }
 
-function cancelTimeout2(id) {
+function cancelTimeout(id) {
 	_timers.cancelTimer(id);
 }
 
-function setInterval2(callback, interval) {
+function setInterval(callback, interval) {
 	return _timers.setTimer(callback, interval, true);
 }
 
-function setTimeout2(callback, interval) {
+function setTimeout(callback, interval) {
 	return _timers.setTimer(callback, interval, false);
 }
 

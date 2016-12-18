@@ -2,10 +2,9 @@
  * Duktape environmental and task control functions.
 
  */
-#ifdef ESP32
+#ifdef ESP_PLATFORM
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-
 #include <esp_log.h>
 #include <esp_err.h>
 #include <esp_wifi.h>
@@ -16,14 +15,17 @@
 #include "sdkconfig.h"
 #include "esp32_memory.h"
 #endif
-#include "logging.h"
-#include <duktape.h>
-#include <assert.h>
 
+#include <assert.h>
+#include <duktape.h>
+#include <stdlib.h>
+
+#include "logging.h"
+#include "dukf_utils.h"
 #include "esp32_specific.h"
 #include "esp32_duktape/duktape_event.h"
 #include "esp32_duktape/module_timers.h"
-#include <stdlib.h>
+
 #include "modules.h"
 //#include "telnet.h"
 #include "duktape_utils.h"
@@ -49,12 +51,12 @@ void duktape_init_environment() {
 	}
 
 	esp32_duk_context = duk_create_heap_default();	// Create the Duktape context.
-	duk_module_duktape_init(esp32_duk_context);
+	duk_module_duktape_init(esp32_duk_context); // Initialize the duktape module functions.
 	esp32_duktape_stash_init(esp32_duk_context); // Initialize the stash environment.
 	registerModules(esp32_duk_context); // Register the built-in modules
 
 	size_t fileSize;
-	char *data = esp32_loadFileESPFS("init.js", &fileSize);
+	char *data = dukf_loadFile("init.js", &fileSize);
 	assert(data != NULL);
 
 	duk_push_lstring(esp32_duk_context, data, fileSize);
@@ -115,11 +117,11 @@ void duktape_init_environment() {
  */
 void processEvent(esp32_duktape_event_t *pEvent) {
 	duk_int_t callRc;
-	LOGV(tag, ">> processEvent");
+	LOGV(">> processEvent");
 	switch(pEvent->type) {
 		// Handle a new command line submitted to us.
 		case ESP32_DUKTAPE_EVENT_COMMAND_LINE: {
-			LOGD(tag, "We are about to eval: %.*s", pEvent->commandLine.commandLineLength, pEvent->commandLine.commandLine);
+			LOGD("We are about to eval: %.*s", pEvent->commandLine.commandLineLength, pEvent->commandLine.commandLine);
 			callRc = duk_peval_lstring(esp32_duk_context,	pEvent->commandLine.commandLine, pEvent->commandLine.commandLineLength);
 			// [0] - result
 
@@ -142,7 +144,7 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 
 		// Handle a new externally initiated browser request arriving at us.
 		case ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST: {
-			LOGD(tag, "Process a webserver (inbound) request event ... uri: %s, method: %s",
+			LOGD("Process a webserver (inbound) request event ... uri: %s, method: %s",
 					pEvent->httpServerRequest.uri,
 					pEvent->httpServerRequest.method);
 			// Find the global function called _httpServerRequestReceivedCallback and
@@ -176,18 +178,20 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 		}
 
 		case ESP32_DUKTAPE_EVENT_TIMER_ADDED: {
-			LOGD(tag, "Process a timer added event");
+			LOGD("Process a timer added event");
 			break;
 		}
 
 		case ESP32_DUKTAPE_EVENT_TIMER_FIRED: {
-			LOGV(tag, "Process a timer fired event: %lu", pEvent->timerFired.id);
+			LOGV("Process a timer fired event: %lu", pEvent->timerFired.id);
+#ifdef ESP_PLATFORM
 			timers_runTimer(esp32_duk_context, pEvent->timerFired.id);
+#endif
 			break;
 		}
 
 		case ESP32_DUKTAPE_EVENT_TIMER_CLEARED: {
-			LOGD(tag, "Process a timer cleared event");
+			LOGD("Process a timer cleared event");
 			break;
 		}
 
@@ -198,10 +202,9 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 			// stashKey - int
 			// context - void * - a Duktape heapptr
 			// data - char * - JSON encoded data
-			LOGD(tag, "Process a callback requested event: callbackType=%d, stashKey=%d, contextData=0x%x",
+			LOGD("Process a callback requested event: callbackType=%d, stashKey=%d",
 				pEvent->callbackRequested.callbackType,
-				pEvent->callbackRequested.stashKey,
-				(uint32_t)pEvent->callbackRequested.context
+				pEvent->callbackRequested.stashKey
 			);
 			if (pEvent->callbackRequested.callbackType == ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION) {
 				// In this case, the stashKey points to a stashed array which starts with a callback function and parameters.
@@ -214,7 +217,7 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 				int numberParams = duk_get_top(esp32_duk_context) - topStart -1;
 				//ESP_LOGD(tag, "ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: #params: %d", numberParams);
 				if (!duk_is_function(esp32_duk_context, topStart)) {
-					LOGE(tag, "ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: Not a function!");
+					LOGE("ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: Not a function!");
 					duk_pop_n(esp32_duk_context, duk_get_top(esp32_duk_context) - topStart);
 					return;
 				}
@@ -293,14 +296,11 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 
 
 		default:
-			LOGD(tag, "Unknown event type seen: %d", pEvent->type);
+			LOGD("Unknown event type seen: %d", pEvent->type);
 			break;
 	} // End of switch
-	LOGV(tag, "<< processEvent");
+	LOGV("<< processEvent");
 } // processEvent
-
-
-
 
 
 /**
@@ -313,39 +313,48 @@ void processEvent(esp32_duktape_event_t *pEvent) {
  */
 void duktape_task(void *ignore) {
 	esp32_duktape_event_t esp32_duktape_event;
-	duk_idx_t lastTop;
+	duk_idx_t lastStackTop;
 	int rc;
 
-	LOGD(tag, ">> duktape_task");
+	//ESP_LOGD(tag, "Hello");
+	LOGD(">> duktape_task");
 
 	// Mount the SPIFFS file system.
+#ifdef ESP_PLATFORM
 	esp32_duktape_spiffs_mount();
+#endif
 
 	duktape_init_environment();
 	// From here on, we have a Duktape context ...
 
+	lastStackTop = duk_get_top(esp32_duk_context); // Get the last top value of the stack from which we will use to check for leaks.
 
-	lastTop = duk_get_top(esp32_duk_context); // Get the last top value of the stack from which we will use to check for leaks.
+	// Run the one time startup scripts
+	dukf_runAtStart(esp32_duk_context);
 
 	//
 	// Master JavaScript loop.
 	//
-#ifdef ESP32
-	LOGD(tag, "Free heap at start of JavaScript main loop: %d", esp_get_free_heap_size());
+#ifdef ESP_PLATFORM
+	LOGD("Free heap at start of JavaScript main loop: %d", esp_get_free_heap_size());
 #endif
-	LOGD(tag, "Starting main loop!");
+	LOGD("Starting main loop!");
 	while(1) {
-		// call loop
+		// call the loop routine.
 		duk_push_global_object(esp32_duk_context);
 		duk_get_prop_string(esp32_duk_context, -1, "_loop");
 		assert(duk_is_function(esp32_duk_context, -1));
 
 		rc = duk_pcall(esp32_duk_context, 0);
 		if (rc != 0) {
-			LOGD(tag, "Error running loop!  free heap=%d", esp_get_free_heap_size());
+#ifdef ESP_PLATFORM
+			LOGD("Error running loop!  free heap=%d", esp_get_free_heap_size());
+#endif
 			esp32_duktape_log_error(esp32_duk_context);
 		}
 		duk_pop_2(esp32_duk_context);
+		// We have ended the loop routine.
+
 
 		rc = esp32_duktape_waitForEvent(&esp32_duktape_event);
 		if (rc != 0) {
@@ -361,25 +370,28 @@ void duktape_task(void *ignore) {
 		}
 
 		// Check for value stack leakage
-		if (duk_get_top(esp32_duk_context) != lastTop) {
-			LOGE(tag, "We have detected that the stack has leaked!");
+		if (duk_get_top(esp32_duk_context) != lastStackTop) {
+			LOGE("We have detected that the stack has leaked!");
 			esp32_duktape_dump_value_stack(esp32_duk_context);
-			lastTop = duk_get_top(esp32_duk_context);
+			lastStackTop = duk_get_top(esp32_duk_context);
 		} // End of check for value stack leakage.
-		//duk_gc(esp32_duk_context, 0);
-#ifdef ESP32
+
+#ifdef ESP_PLATFORM
 		taskYIELD();
-#endif
+
 		uint32_t heapSize = esp_get_free_heap_size();
 		if (heapSize < 10000) {
 			LOGV("heap: %d",heapSize);
 		}
+#endif
 
 	} // End while loop.
 
 	// We should never reach here ...
-	LOGD(tag, "<< duktape_task");
-#ifdef ESP32
+	LOGD("<< duktape_task");
+
+#ifdef ESP_PLATFORM
+	// We are not allowed to end a task routine without first deleting the task.
 	vTaskDelete(NULL);
 #endif
 } // End of duktape_task

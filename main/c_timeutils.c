@@ -6,6 +6,7 @@
  */
 #include <sys/time.h>
 #include <stdint.h>
+#include <stdio.h>
 
 /**
  * Add a number of milliseconds to a timeval and replace the
@@ -31,8 +32,8 @@ uint32_t timeval_toMsecs(struct timeval *a) {
 struct timeval timeval_sub(struct timeval *a, struct timeval *b) {
 	struct timeval result;
 	result.tv_sec = a->tv_sec - b->tv_sec;
-	result.tv_usec = a->tv_sec - b->tv_sec;
-	if (result.tv_usec < 0) {
+	result.tv_usec = a->tv_usec - b->tv_usec;
+	if (a->tv_usec < b->tv_usec) {
 		result.tv_sec -= 1;
 		result.tv_usec += 1000000;
 	}

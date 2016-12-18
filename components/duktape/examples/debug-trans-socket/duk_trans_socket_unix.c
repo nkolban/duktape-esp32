@@ -7,10 +7,17 @@
 
 #include <stdio.h>
 #include <string.h>
+
+#ifdef ESP_PLATFORM
+#include <lwip/sockets.h>
+#include <lwip/inet.h>
+#else
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <unistd.h>
 #include <poll.h>
+#endif
+#include <unistd.h>
+
 #include <errno.h>
 #include "duktape.h"
 
@@ -253,8 +260,12 @@ duk_size_t duk_trans_socket_write_cb(void *udata, const char *buffer, duk_size_t
 }
 
 duk_size_t duk_trans_socket_peek_cb(void *udata) {
+#ifdef ESP_PLATFORM
+	fd_set rfds;
+#else
 	struct pollfd fds[1];
 	int poll_rc;
+#endif
 
 	(void) udata;  /* not needed by the example */
 
@@ -267,6 +278,20 @@ duk_size_t duk_trans_socket_peek_cb(void *udata) {
 		return 0;
 	}
 
+#ifdef ESP_PLATFORM
+	FD_ZERO(&rfds);
+	FD_SET(client_sock, &rfds);
+	struct timeval tm;
+	tm.tv_sec = tm.tv_usec = 0;
+	int selectRc = select(client_sock+1, &rfds, NULL, NULL, &tm);
+	if (selectRc == 0) {
+		return 0;
+	}
+	if (selectRc == 1) {
+		return 1;
+	}
+	goto fail;
+#else
 	fds[0].fd = client_sock;
 	fds[0].events = POLLIN;
 	fds[0].revents = 0;
@@ -287,6 +312,7 @@ duk_size_t duk_trans_socket_peek_cb(void *udata) {
 	} else {
 		return 1;  /* something to read */
 	}
+#endif
 
  fail:
 	if (client_sock >= 0) {

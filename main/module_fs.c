@@ -2,17 +2,23 @@
  * Create the FS Module which provides I/O operations.  These map
  * to Posix I/O operations.
  */
-#include <stdbool.h>
+#ifdef ESP_PLATFORM
 #include <esp_log.h>
 #include <esp_system.h>
+#include "duktape_spiffs.h"
+#include "sdkconfig.h"
+#endif
+#include "logging.h"
+#include <stdbool.h>
+#include <sys/stat.h>
 #include <duktape.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "duktape_spiffs.h"
+
 #include "duktape_utils.h"
-#include "sdkconfig.h"
+
 
 static char tag[] = "module_fs";
 
@@ -103,7 +109,7 @@ static duk_ret_t js_fs_writeSync(duk_context *ctx) {
 		// [2] - offset [Optional]
 		// [3] - length [Optional]
 				if (length > bufferSize) {
-					ESP_LOGW(tag, "Specified length is > buffer size");
+					LOGW("Specified length is > buffer size");
 					length = bufferSize;
 				} // length > bufferSize
 			} // We have a length
@@ -117,7 +123,7 @@ static duk_ret_t js_fs_writeSync(duk_context *ctx) {
 		length = bufferSize = strlen((char *)bufPtr);
 	}
 	if (length > (bufferSize - offset)) {
-		ESP_LOGW(tag, "Specified length + offset is > buffer size");
+		LOGW("Specified length + offset is > buffer size");
 		length = bufferSize - offset;
 	}
 	rc = write(fd, bufPtr+offset, length);
@@ -145,14 +151,14 @@ static duk_ret_t js_fs_writeSync(duk_context *ctx) {
  * [1] - Flags
  */
 static duk_ret_t js_fs_openSync(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_fs_openSync");
+	LOGD(">> js_fs_openSync");
 
 	const char *path = duk_get_string(ctx, 0); 	// Get the path
 	// [0] - Path
 	// [1] - Flags
 
 	if (path == NULL) {
-		ESP_LOGD(tag, "<< js_fs_openSync: Unable to get path");
+		LOGD("<< js_fs_openSync: Unable to get path");
 		return DUK_RET_ERROR;
 	}
 
@@ -161,22 +167,22 @@ static duk_ret_t js_fs_openSync(duk_context *ctx) {
 	// [1] - Flags
 
 	if (flags == NULL) {
-		ESP_LOGD(tag, "<< js_fs_openSync: Unable to get flags");
+		LOGD("<< js_fs_openSync: Unable to get flags");
 		return DUK_RET_ERROR;
 	}
 
-	ESP_LOGD(tag, " - Path to open is \"%s\" and flags are \"%s\"", path, flags);
+	LOGD(" - Path to open is \"%s\" and flags are \"%s\"", path, flags);
 	int posixOpenFlags = stringToPosixFlags(flags);
 
 	int fd = open(path, posixOpenFlags);
 	if (fd < 0) {
-		ESP_LOGD(tag, "<< js_fs_openSync: Error: open(%s, 0x%x): %d errno=%d [%s]", path, posixOpenFlags, fd, errno, strerror(errno));
+		LOGD("<< js_fs_openSync: Error: open(%s, 0x%x): %d errno=%d [%s]", path, posixOpenFlags, fd, errno, strerror(errno));
 		return DUK_RET_ERROR;
 	}
 	duk_push_int(ctx, fd); // Return the open file descriptor
 	// [0] - Path <string>
 	// [1] - File descriptor <numeric>
-	ESP_LOGD(tag, "<< js_fs_openSync fd: %d", fd);
+	LOGD("<< js_fs_openSync fd: %d", fd);
 
   return 1;
 } // js_fs_openSync
@@ -194,7 +200,7 @@ static duk_ret_t js_fs_fstatSync(duk_context *ctx) {
 	int fd = duk_require_int(ctx, 0);
 	int rc = fstat(fd, &statBuf);
 	if (rc == -1) {
-		ESP_LOGD(tag, "Error from stat of fd %d: %d %s", fd, errno, strerror(errno));
+		LOGD("Error from stat of fd %d: %d %s", fd, errno, strerror(errno));
 		return 0;
 	}
 	duk_push_object(ctx);
@@ -213,7 +219,7 @@ static duk_ret_t js_fs_statSync(duk_context *ctx) {
 	const char *path = duk_require_string(ctx, 0);
 	int rc = stat(path, &statBuf);
 	if (rc == -1) {
-		ESP_LOGD(tag, "Error from stat of file %s: %d %s", path, errno, strerror(errno));
+		LOGD("Error from stat of file %s: %d %s", path, errno, strerror(errno));
 		return DUK_RET_ERROR;
 	}
 	duk_push_object(ctx);
@@ -227,7 +233,9 @@ static duk_ret_t js_fs_statSync(duk_context *ctx) {
  * * size - Number of bytes in the file.
  */
 static duk_ret_t js_fs_dump(duk_context *ctx) {
+#ifdef ESP_PLATFORM
 	esp32_duktape_dump_spiffs();
+#endif
 	return 0;
 }
 
@@ -247,7 +255,7 @@ static duk_ret_t js_fs_dump(duk_context *ctx) {
  * Number of bytes read.
  */
 static duk_ret_t js_fs_readSync(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_fs_readSync");
+	LOGD(">> js_fs_readSync");
 	//esp32_duktape_dump_value_stack(ctx);
 	int fd = duk_require_int(ctx, 0);
 	// [0] - fd <Integer>
@@ -282,9 +290,9 @@ static duk_ret_t js_fs_readSync(duk_context *ctx) {
 	// [4] - position <Integer>
 
 	if (bufPtr == NULL) {
-		ESP_LOGD(tag, "Failed to get the buffer pointer");
+		LOGD("Failed to get the buffer pointer");
 	}
-	ESP_LOGD(tag, "Buffer pointer size returned as %d", bufferSize);
+	LOGD("Buffer pointer size returned as %d", (int)bufferSize);
 
 	// Length can't be <= 0.
 	// FIX ... PERFORM CHECK HERE
@@ -292,7 +300,7 @@ static duk_ret_t js_fs_readSync(duk_context *ctx) {
 	// Check that writeOffset is within range.  If the buffer is "buffer.length" bytes in size
 	// then the writeOffset must be < buffer.length
 	if (writeOffset >= bufferSize) {
-		ESP_LOGD(tag, "Invalid writeOffset");
+		LOGD("Invalid writeOffset");
 	}
 
 	// Position can't be < 0
@@ -306,7 +314,7 @@ static duk_ret_t js_fs_readSync(duk_context *ctx) {
 	// Read the data from the underlying file.
 	sizeRead = read(fd, bufPtr+writeOffset, maxToRead);
 	if (sizeRead < 0) {
-		ESP_LOGD(tag, "js_fs_readSync: read() error: %d %s", errno, strerror(errno));
+		LOGD("js_fs_readSync: read() error: %d %s", errno, strerror(errno));
 		sizeRead = 0;
 	}
 
@@ -318,7 +326,7 @@ static duk_ret_t js_fs_readSync(duk_context *ctx) {
 	// [4] - position <Integer>
 	// [5] - size read <Integer>
 
-	ESP_LOGD(tag, "<< js_fs_readSync: sizeRead: %d", sizeRead);
+	LOGD("<< js_fs_readSync: sizeRead: %d", (int)sizeRead);
 	return 1;
 } // js_fs_readSync
 
@@ -332,14 +340,16 @@ static duk_ret_t js_fs_unlink(duk_context *ctx) {
 	return 0;
 } // js_fs_unlink
 
-
+#ifdef ESP_PLATFORM
 /**
  * Get a listing of SPIFFs files.
  */
 static duk_ret_t js_fs_spiffsDir(duk_context *ctx) {
+
 	esp32_duktape_dump_spiffs_array(ctx);
 	return 1;
 } // js_fs_spiffsDir
+#endif
 
 /**
  * Create the FS module in Global.
@@ -424,6 +434,7 @@ void ModuleFS(duk_context *ctx) {
 	// [0] - Global
 	// [1] - FS Object
 
+#ifdef ESP_PLATFORM
 	duk_push_c_function(ctx, js_fs_spiffsDir, 0);
 	// [0] - Global
 	// [1] - FS Object
@@ -432,6 +443,7 @@ void ModuleFS(duk_context *ctx) {
 	duk_put_prop_string(ctx, -2, "spiffsDir"); // Add spiffsDir to new FS
 	// [0] - Global
 	// [1] - FS Object
+#endif
 
 	duk_put_prop_string(ctx, -2, "FS"); // Add FS to global
 	// [0] - Global

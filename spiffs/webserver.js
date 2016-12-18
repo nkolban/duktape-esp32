@@ -78,17 +78,17 @@ function requestHandler(request, response) {
       		var fileName = "/" + pathParts.splice(1).join("/");
       		if (request.method == "GET") {
             	log("Load the file called " + fileName);
-            	sendFile("/spiffs" + fileName, response);
+            	sendFile(DUKF.FILE_SYSTEM_ROOT + fileName, response);
       		}
       		else if (request.method == "POST") {
       			log("Writing to file " + fileName);
       			log("Data: " + postData);
-      			saveFile("/spiffs" + fileName, postData);
+      			saveFile(DUKF.FILE_SYSTEM_ROOT + fileName, postData);
       		}
       	}
       }  else {
 	      try {
-	      	var fileName = "/spiffs" + request.path;
+	      	var fileName = DUKF.FILE_SYSTEM_ROOT + request.path;
 	      	FS.statSync(fileName);
 	         response.writeHead(200);
 	      	sendFile(fileName, response);
@@ -102,8 +102,11 @@ function requestHandler(request, response) {
 }
 
 var server = http.createServer(requestHandler);
-server.listen(80);
+var PORT = 8000;
+server.listen(PORT);
+log("WebServer listening on port " + PORT);
 
+/*
 setInterval(function() {
 	var heap = ESP32.getState().heapSize;
 	if (heap < 20000) {
@@ -111,3 +114,4 @@ setInterval(function() {
 		log("Sockets: "+ JSON.stringify(_sockets));
 	}
 }, 1000);
+*/

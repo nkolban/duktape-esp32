@@ -72,10 +72,35 @@ Log a text string to the console.
 Syntax:
 `console.log(string)`
 
-
-##ESP32
+##DUKF
 ###debug
 Attach the debugger.
+
+###FILE_SYSTEM_ROOT
+This is a string property that is the `local` file system root.
+
+###gc
+Perform a garbage collection.
+
+Syntax:
+`gc()`
+
+###loadFile
+Load a text file from the local file system.  If the file can not be found or read
+then the result is `null`.
+
+Syntax:
+
+`loadFile(path)`
+
+For example:
+```
+var text = DUKF.loadFile("/index.html");
+log("About to send: " + text);
+```
+
+##ESP32
+
 
 ###dumpESPFS
 Dump the files contained in the ESPFS to the log.
@@ -83,11 +108,7 @@ Dump the files contained in the ESPFS to the log.
 Syntax:
 `dumpESPFS()`
 
-###gc
-Perform a garbage collection.
 
-Syntax:
-`gc()`
 
 
 ###getNativeFunction
@@ -121,19 +142,6 @@ setInterval(function() {
 }, 2000);
 ```
 
-###loadFile
-Load a text file from the local file system.  If the file can not be found or read
-then the result is `null`.
-
-Syntax:
-
-`loadFile(path)`
-
-For example:
-```
-var text = ESP32.loadFile("/index.html");
-log("About to send: " + text);
-```
 
 ###loadFileESPFS
 Load a text file from the ESPFS file system.  If the file can not be found or read

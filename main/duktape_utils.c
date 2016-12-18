@@ -1,9 +1,13 @@
-#include <duktape.h>
+#ifdef ESP_PLATFORM
 #include <esp_log.h>
-#include <sys/time.h>
 #include "telnet.h"
-#include "duktape_utils.h"
 #include "sdkconfig.h"
+#endif
+
+#include <duktape.h>
+#include <sys/time.h>
+#include "logging.h"
+#include "duktape_utils.h"
 
 static char tag[] = "duktape_utils";
 
@@ -46,7 +50,7 @@ void esp32_duktape_log_error(duk_context *ctx) {
 	const char *message = duk_get_string(ctx, -3);
 	int lineNumber = duk_get_int(ctx, -2);
 	const char *stack = duk_get_string(ctx, -1);
-	ESP_LOGD(tag, "Error: %s: %s\nline: %d\nStack: %s",
+	LOGD("Error: %s: %s\nline: %d\nStack: %s",
 			name!=NULL?name:"NULL",
 			message!=NULL?message:"NULL",
 			lineNumber,
@@ -85,7 +89,7 @@ void esp32_duktape_unstash_object(duk_context *ctx, uint32_t key) {
 	if (duk_get_prop_string(ctx, -1, CALLBACK_STASH_OBJECT_NAME) ==0) {
 		// [0] - Global object
 		// [1] - Undefined
-		ESP_LOGE(tag, "esp32_duktape_unstash_object: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
+		LOGE("esp32_duktape_unstash_object: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
 		duk_remove(ctx, -2);
 		// [0] - Undefined
 		return;
@@ -103,7 +107,7 @@ void esp32_duktape_unstash_object(duk_context *ctx, uint32_t key) {
 		// [1] - CALLBACK_STASH_OBJECT_NAME object
 		// [2] - Undefined
 
-		ESP_LOGE(tag, "esp32_duktape_unstash_object: No such stash key: %d", key);
+		LOGE("esp32_duktape_unstash_object: No such stash key: %d", key);
 
 		duk_remove(ctx, -2);
 		// [0] - Global object
@@ -150,7 +154,7 @@ size_t esp32_duktape_unstash_array(duk_context *ctx, uint32_t key) {
 	if (duk_get_prop_string(ctx, -1, CALLBACK_STASH_OBJECT_NAME) == 0) {
 		// [0] - Global object
 		// [1] - Undefined
-		ESP_LOGE(tag, "esp32_duktape_unstash_array: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
+		LOGE("esp32_duktape_unstash_array: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
 		duk_pop_2(ctx);
 		// <Empty Stack>
 		return 0;
@@ -163,7 +167,7 @@ size_t esp32_duktape_unstash_array(duk_context *ctx, uint32_t key) {
 		// [1] - CALLBACK_STASH_OBJECT_NAME object
 		// [2] - [undefined]
 		// We were unable to find a stashed value with the given stash key.
-		ESP_LOGE(tag, "Unable to find a stashed array with key: %d", key);
+		LOGE("Unable to find a stashed array with key: %d", key);
 		duk_pop_3(ctx);
 		return 0;
 	}
@@ -206,7 +210,7 @@ void esp32_duktape_stash_delete(duk_context *ctx, uint32_t key) {
 	if (duk_get_prop_string(ctx, -1, CALLBACK_STASH_OBJECT_NAME) == 0) {
 		// [0] - Global
 		// [1] - undefined
-		ESP_LOGE(tag, "esp32_duktape_stash_delete: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
+		LOGE("esp32_duktape_stash_delete: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
 		duk_pop_2(ctx);
 		// Empty stack
 		return;
@@ -245,7 +249,7 @@ uint32_t esp32_duktape_stash_object(duk_context *ctx) {
 		// [0] - object to stash
 		// [1] - global
 		// [2] - undefined
-		ESP_LOGE(tag, "esp32_duktape_stash_object: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
+		LOGE("esp32_duktape_stash_object: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
 		duk_pop_3(ctx);
 		// Empty stack
 		return 0;
@@ -298,7 +302,7 @@ uint32_t esp32_duktape_stash_array(duk_context *ctx, int count) {
 
 	int i;
 	if (duk_get_top(ctx) < count) {
-		ESP_LOGE(tag, "Can't stash %d items when only %d items on value stack.", count, duk_get_top(ctx));
+		LOGE("Can't stash %d items when only %d items on value stack.", count, duk_get_top(ctx));
 		return 0;
 	}
 
@@ -330,7 +334,7 @@ uint32_t esp32_duktape_stash_array(duk_context *ctx, int count) {
 		// [0] - array
 		// [1] - global
 		// [2] - undefined
-		ESP_LOGE(tag, "esp32_duktape_stash_array: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
+		LOGE("esp32_duktape_stash_array: No such object called \"%s\"", CALLBACK_STASH_OBJECT_NAME);
 		duk_pop_3(ctx);
 		// Empty stack
 		return 0;
@@ -387,8 +391,8 @@ void esp32_duktape_set_reset(int value) {
  * Log a message to the duktape console.
  */
 void esp32_duktape_console(const char *message) {
-	telnet_esp32_sendData((uint8_t *)message, strlen(message));
-	ESP_LOGD(tag, "Console: %s", message);
+	//telnet_esp32_sendData((uint8_t *)message, strlen(message));
+	LOGD("Console: %s", message);
 } // esp32_duktape_console
 
 
@@ -413,56 +417,56 @@ void esp32_duktape_addGlobalFunction(
 void esp32_duktape_dump_value_stack(duk_context *ctx) {
 	duk_idx_t topIdx = duk_get_top(ctx);
 	duk_idx_t i;
-	ESP_LOGD(tag, ">> Stack dump of %d items", topIdx);
+	LOGD(">> Stack dump of %d items", topIdx);
 	for(i=0; i<topIdx; i++) {
 		duk_int_t type = duk_get_type(ctx, i);
 		switch(type) {
 		case DUK_TYPE_BOOLEAN:
-			ESP_LOGD(tag, "[%2d] BOOLEAN = %d", i, duk_get_boolean(ctx, i));
+			LOGD("[%2d] BOOLEAN = %d", i, duk_get_boolean(ctx, i));
 			break;
 		case DUK_TYPE_BUFFER:
-			ESP_LOGD(tag, "[%2d] BUFFER", i);
+			LOGD("[%2d] BUFFER", i);
 			break;
 		case DUK_TYPE_LIGHTFUNC:
-			ESP_LOGD(tag, "[%2d] LIGHTFUNC", i);
+			LOGD("[%2d] LIGHTFUNC", i);
 			break;
 		case DUK_TYPE_NONE:
-			ESP_LOGD(tag, "[%2d] NONE", i);
+			LOGD("[%2d] NONE", i);
 			break;
 		case DUK_TYPE_NULL:
-			ESP_LOGD(tag, "[%2d] NULL", i);
+			LOGD("[%2d] NULL", i);
 			break;
 		case DUK_TYPE_NUMBER:
-			ESP_LOGD(tag, "[%2d] NUMBER = %f", i, duk_get_number(ctx, i));
+			LOGD("[%2d] NUMBER = %f", i, duk_get_number(ctx, i));
 			break;
 
 		case DUK_TYPE_OBJECT:{
 			if (duk_is_function(ctx, i)) {
-				ESP_LOGD(tag, "[%2d] OBJECT - Function", i);
+				LOGD("[%2d] OBJECT - Function", i);
 			} else {
 				duk_dup(ctx, i);
 				const char *json = duk_json_encode(ctx, -1);
-				ESP_LOGD(tag, "[%2d] OBJECT - %s", i, json!=NULL?json:"NULL");
+				LOGD("[%2d] OBJECT - %s", i, json!=NULL?json:"NULL");
 				duk_pop(ctx);
 			}
 			break;
 		}
 
 		case DUK_TYPE_POINTER:
-			ESP_LOGD(tag, "[%2d] POINTER", i);
+			LOGD("[%2d] POINTER", i);
 			break;
 		case DUK_TYPE_STRING:
-			ESP_LOGD(tag, "[%2d] STRING = %s", i, duk_get_string(ctx, i));
+			LOGD("[%2d] STRING = %s", i, duk_get_string(ctx, i));
 			break;
 		case DUK_TYPE_UNDEFINED:
-			ESP_LOGD(tag, "[%2d] UNDEFINED", i);
+			LOGD("[%2d] UNDEFINED", i);
 			break;
 		default:
-			ESP_LOGD(tag, "[%2d] *** Unknown ***", i);
+			LOGD("[%2d] *** Unknown ***", i);
 			break;
 		} // End of switch
 	} // End of for loop
-	ESP_LOGD(tag, "<< End stack dump.")
+	LOGD("<< End stack dump.");
 } // dumpValueStack
 
 

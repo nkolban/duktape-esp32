@@ -15,7 +15,7 @@ all: run
 
 .PHONY: run
 run: node_modules static/socket.io-1.2.0.js static/jquery-1.11.1.min.js static/reset.css static/jquery-ui.min.js static/jquery-ui.min.css static/images
-	"$(NODE)" duk_debug.js --source-dirs=$(SOURCEDIRS)
+	"$(NODE)" duk_debug.js --source-dirs="/home/kolban/esp32/esptest/apps/workspace/duktape/spiffs"
 
 rundebug: node_modules static/socket.io-1.2.0.js static/jquery-1.11.1.min.js static/reset.css static/jquery-ui.min.js static/jquery-ui.min.css static/images
 	"$(NODE)" duk_debug.js --source-dirs=$(SOURCEDIRS) --verbose --log-messages /tmp/dukdebug-messages --dump-debug-pretty /tmp/dukdebug-pretty

@@ -26,6 +26,7 @@ var net = {
 		if (options && options.sockfd !== undefined) {
 			sockfd = options.sockfd;
 		} else {
+			// hello
 			sockfd = OS.socket().sockfd;
 		}
 		var ret = {
