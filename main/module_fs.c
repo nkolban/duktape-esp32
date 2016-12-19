@@ -7,23 +7,25 @@
 #include <esp_system.h>
 #include "duktape_spiffs.h"
 #include "sdkconfig.h"
+#else
+#include <dirent.h>
 #endif
-#include "logging.h"
-#include <stdbool.h>
-#include <sys/stat.h>
+
 #include <duktape.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "duktape_utils.h"
+#include "logging.h"
 
-
-static char tag[] = "module_fs";
+LOG_TAG("module_fs");
 
 /**
- * Convert a string to posix flags.
+ * Convert a string to posix open() flags.
  * "r" - O_RDONLY
  * "w" - O_WRONLY
  */
@@ -50,7 +52,10 @@ static int stringToPosixFlags(const char *flags) {
 	return posixFlags;
 } // stringToPosixFlags
 
+
 /**
+ * Write data to a file synchronously.
+ *
  * [0] - file descriptor
  * [1] - buffer
  * [2] - offset [Optional]
@@ -340,16 +345,47 @@ static duk_ret_t js_fs_unlink(duk_context *ctx) {
 	return 0;
 } // js_fs_unlink
 
-#ifdef ESP_PLATFORM
+
 /**
  * Get a listing of SPIFFs files.
  */
 static duk_ret_t js_fs_spiffsDir(duk_context *ctx) {
-
+#ifdef ESP_PLATFORM
 	esp32_duktape_dump_spiffs_array(ctx);
 	return 1;
-} // js_fs_spiffsDir
+
+#else
+	duk_push_array(ctx); // Push a new empty array onto the stack.
+	DIR *d;
+	struct dirent *dir;
+	duk_push_global_object(ctx);
+	duk_get_prop_string(ctx, -1, "DUKF");
+	duk_get_prop_string(ctx, -1, "FILE_SYSTEM_ROOT");
+	const char *path = duk_get_string(ctx, -1);
+	if (path == NULL) {
+		LOGE("Unable to get DUKF.FILE_SYSTEM_ROOT");
+		return 0;
+	}
+	d = opendir(path);
+	duk_pop_3(ctx);
+	if (d != NULL) {
+		int i=0;
+		while((dir = readdir(d)) != NULL) {
+			// The dir object now points to a dirent
+			duk_push_object(ctx);
+			duk_push_string(ctx, dir->d_name);
+			duk_put_prop_string(ctx, -2, "name");
+			duk_push_int(ctx, 0);
+			duk_put_prop_string(ctx, -2, "size");
+			duk_put_prop_index(ctx, -2, i);
+			i++;
+		}
+		closedir(d);
+	}
+	return 1;
 #endif
+} // js_fs_spiffsDir
+
 
 /**
  * Create the FS module in Global.
@@ -434,7 +470,6 @@ void ModuleFS(duk_context *ctx) {
 	// [0] - Global
 	// [1] - FS Object
 
-#ifdef ESP_PLATFORM
 	duk_push_c_function(ctx, js_fs_spiffsDir, 0);
 	// [0] - Global
 	// [1] - FS Object
@@ -443,7 +478,6 @@ void ModuleFS(duk_context *ctx) {
 	duk_put_prop_string(ctx, -2, "spiffsDir"); // Add spiffsDir to new FS
 	// [0] - Global
 	// [1] - FS Object
-#endif
 
 	duk_put_prop_string(ctx, -2, "FS"); // Add FS to global
 	// [0] - Global

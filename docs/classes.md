@@ -66,6 +66,14 @@ The `function` is a function which will be invoked after the delay interval.
 it has fired.
 
 ##console
+###handler
+This property (if set) should be a function with the signature:
+```
+function(message)
+```
+
+It is called to write a console message in place of the default function.
+
 ###log
 Log a text string to the console.
 
@@ -90,7 +98,6 @@ Load a text file from the local file system.  If the file can not be found or re
 then the result is `null`.
 
 Syntax:
-
 `loadFile(path)`
 
 For example:
@@ -98,6 +105,12 @@ For example:
 var text = DUKF.loadFile("/index.html");
 log("About to send: " + text);
 ```
+
+###runFile
+Run a script loaded from the named file.
+
+Syntax:
+`runFile(path)`
 
 ##ESP32
 
@@ -279,6 +292,19 @@ while(1) {
 FS.closeSync(fd);
  ```
  
+###spiffsDir
+Returns an array of SPIFFS file system files.
+
+Syntax:
+`spiffsDir()`
+
+The result is an array where each element of the array contains:
+```
+{
+   name: <The file name>
+   size: <The file size in bytes>
+}
+```
 
 ###statSync
 Retrieve details about the file.
@@ -880,6 +906,74 @@ The return is an object:
    query: <An object with the query parts broken out>
 }
 ```	 
+
+##WS
+This module provides WebSocket support.
+
+For example:
+```
+var PORT = 8002;
+var ws = require("ws.js");
+var webSocketServer = ws.Server();
+
+webSocketServer.on("connection", function(wsConnection) {
+	log("We have received a new WebSocket connection");
+	wsConnection.on("message", function(data) {
+		log("We have received an incoming message: " + data);
+		wsConnection.send("Hello back");
+		wsConnection.close();
+	});
+});
+webSocketServer.listen(PORT);
+log("Being a WebSocket server on port " + PORT);
+```
+
+###Server
+Create a web socket server instance.
+
+Syntax:
+`Server()`
+
+The return from the function is a WebSocket server instance.
+
+##WebSocketConnection
+This object is not created manually but is instead passed to a WebSocketServer
+`on("connection")` handler.
+
+###close
+Close the connection to the partner.
+Syntax:
+`close()`
+
+
+###on
+Register an event handler.  The event handlers are:
+* `message` - A frame received from a WebSocket partner.
+
+###path
+The path of the websocket connection.
+
+###send
+Send a message to the partner.
+
+Syntax:
+`send(data)`
+
+##WebSocketServer
+This object is not created manually but is instead created by calling
+`WS.Server()`.
+
+###listen
+Start listening on a given port number.
+
+Syntax:
+`listen(port)`
+
+###on
+Register an event handler.  The event handlers are:
+
+* `connection` - Called when there is a new connection from a 
+WebSocket client.  A WebSocketConnection object is passed.
 
 ##WIFI
 Thus module provides WiFi processing.  It is built in and should not be required.

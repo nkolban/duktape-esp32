@@ -2623,7 +2623,8 @@ typedef struct duk_hthread duk_context;
 #define DUK_USE_BASE64_FASTPATH
 #define DUK_USE_BOOLEAN_BUILTIN
 #define DUK_USE_BUFFEROBJECT_SUPPORT
-#undef DUK_USE_BUFLEN16
+// Kolban - default = undef
+#define DUK_USE_BUFLEN16
 #define DUK_USE_BYTECODE_DUMP_SUPPORT
 #define DUK_USE_COMMONJS_MODULES
 #define DUK_USE_COMPILER_RECLIMIT 2500
@@ -2638,19 +2639,20 @@ typedef struct duk_hthread duk_context;
 #undef DUK_USE_DATE_GET_NOW
 #undef DUK_USE_DATE_PARSE_STRING
 #undef DUK_USE_DATE_PRS_GETDATE
-// Edited by Kolban
 #undef DUK_USE_DEBUG
 // Edited by Kolban
 #define DUK_USE_DEBUGGER_DUMPHEAP
 #undef DUK_USE_DEBUGGER_INSPECT
 #undef DUK_USE_DEBUGGER_PAUSE_UNCAUGHT
 // Edited by Kolban
-#undef DUK_USE_DEBUGGER_SUPPORT
+#define DUK_USE_DEBUGGER_SUPPORT
 #define DUK_USE_DEBUGGER_THROW_NOTIFY
 #undef DUK_USE_DEBUGGER_TRANSPORT_TORTURE
-#define DUK_USE_DEBUG_BUFSIZE 65536L
+// Kolban - default 65536
+#define DUK_USE_DEBUG_BUFSIZE 2048
 #define DUK_USE_DEBUG_LEVEL 0
 #define DUK_USE_DEBUG_WRITE
+// Kolban - default = defined
 #define DUK_USE_DOUBLE_LINKED_HEAP
 #define DUK_USE_DUKTAPE_BUILTIN
 #define DUK_USE_ENCODING_BUILTINS
@@ -2693,9 +2695,11 @@ typedef struct duk_hthread duk_context;
 #define DUK_USE_HEX_FASTPATH
 #define DUK_USE_HOBJECT_HASH_PART
 #define DUK_USE_HSTRING_ARRIDX
-#define DUK_USE_HSTRING_CLEN
+// Kolban - default = define
+#undef DUK_USE_HSTRING_CLEN
 #undef DUK_USE_HSTRING_EXTDATA
 #define DUK_USE_IDCHAR_FASTPATH
+// Kolban
 #define DUK_USE_INTERRUPT_COUNTER
 #undef DUK_USE_INTERRUPT_DEBUG_FIXUP
 #define DUK_USE_JC
@@ -2729,12 +2733,15 @@ typedef struct duk_hthread duk_context;
 #define DUK_USE_NONSTD_STRING_FROMCHARCODE_32BIT
 #define DUK_USE_NUMBER_BUILTIN
 #define DUK_USE_OBJECT_BUILTIN
-#undef DUK_USE_OBJSIZES16
+// Kolban - default = undef
+#define DUK_USE_OBJSIZES16
 #undef DUK_USE_PARANOID_ERRORS
 #define DUK_USE_PC2LINE
 #undef DUK_USE_PREFER_SIZE
 #define DUK_USE_PROVIDE_DEFAULT_ALLOC_FUNCTIONS
-#undef DUK_USE_REFCOUNT16
+// Kolban - default = undef
+#define DUK_USE_REFCOUNT16
+// Kolban - default = define
 #define DUK_USE_REFERENCE_COUNTING
 #define DUK_USE_REFLECT_BUILTIN
 #undef DUK_USE_REFZERO_FINALIZER_TORTURE
@@ -2751,13 +2758,15 @@ typedef struct duk_hthread duk_context;
 #undef DUK_USE_SELF_TESTS
 #undef DUK_USE_SHUFFLE_TORTURE
 #define DUK_USE_SOURCE_NONBMP
-#undef DUK_USE_STRHASH16
+// Kolban - default = undef
+#define DUK_USE_STRHASH16
 #undef DUK_USE_STRHASH_DENSE
 #define DUK_USE_STRHASH_SKIP_SHIFT 5
 #define DUK_USE_STRICT_DECL
 #undef DUK_USE_STRICT_UTF8_SOURCE
 #define DUK_USE_STRING_BUILTIN
-#undef DUK_USE_STRLEN16
+// Kolban - default = undef
+#define DUK_USE_STRLEN16
 #undef DUK_USE_STRTAB_CHAIN
 #undef DUK_USE_STRTAB_CHAIN_SIZE
 #define DUK_USE_STRTAB_PROBE

@@ -13,8 +13,7 @@
 #include "duktape_utils.h"
 #include "c_timeutils.h"
 
-
-static char tag[] = "duktape_event";
+LOG_TAG("duktape_event");
 
 // The maximum number of concurrent events we can have on the
 // queue for processing.

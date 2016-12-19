@@ -9,7 +9,7 @@
 #include "logging.h"
 #include "duktape_utils.h"
 
-static char tag[] = "duktape_utils";
+LOG_TAG("duktape_utils");
 
 #define CALLBACK_STASH_OBJECT_NAME "callbackStash"
 
@@ -66,7 +66,7 @@ void esp32_duktape_log_error(duk_context *ctx) {
  * CALLBACK_STASH_OBJECT_NAME that is an object.
  */
 void esp32_duktape_stash_init(duk_context *ctx) {
-	g_stashCounter = 1;
+	g_stashCounter = 1; /// Initialize the handle/counter for the next stash key to be returned.
 	duk_push_global_object(ctx);
 	// [0] - Global object
 

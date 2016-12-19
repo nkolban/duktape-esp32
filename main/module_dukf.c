@@ -7,12 +7,12 @@
 #include "dukf_utils.h"
 #include "duk_trans_socket.h"
 
-static char tag[] = "module_dukfc";
+LOG_TAG("module_dukf");
 
 static duk_ret_t js_dukf_loadFile(duk_context *ctx) {
 	size_t fileSize;
 	char *fileName = (char *)duk_get_string(ctx, -1);
-	char *data = dukf_loadFile(fileName, &fileSize);
+	const char *data = dukf_loadFile(fileName, &fileSize);
 	if (data == NULL) {
 		duk_push_null(ctx);
 	} else {
@@ -20,6 +20,17 @@ static duk_ret_t js_dukf_loadFile(duk_context *ctx) {
 	}
 	return 1;
 } // js_dukf_loadFile
+
+
+/**
+ * Run the contents of the names file.
+ * [0] - fileName
+ */
+static duk_ret_t js_dukf_runFile(duk_context *ctx) {
+	const char *fileName = duk_get_string(ctx, -1);
+	dukf_runFile(ctx, fileName);
+	return 0;
+} // js_dukf_runFile
 
 
 // Ask JS to perform a gabrage collection.
@@ -83,6 +94,15 @@ void ModuleDUKF(duk_context *ctx) {
 	// [2] - C Function - js_dukf_gc
 
 	duk_put_prop_string(ctx, -2, "gc"); // Add gc to new DUKF
+	// [0] - Global object
+	// [1] - New object - DUKF Object
+
+	duk_push_c_function(ctx, js_dukf_runFile, 1);
+	// [0] - Global object
+	// [1] - New object - DUKF Object
+	// [2] - C Function - js_dukf_runFile
+
+	duk_put_prop_string(ctx, -2, "runFile"); // Add runFile to new DUKF
 	// [0] - Global object
 	// [1] - New object - DUKF Object
 

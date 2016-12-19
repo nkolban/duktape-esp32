@@ -1,5 +1,8 @@
 #ifndef _LOGGING_H
 #define _LOGGING_H
+
+#define LOG_TAG(_TAG) static char tag[] = _TAG
+
 #ifdef ESP_PLATFORM
 #include <esp_log.h>
 #include "sdkconfig.h"
@@ -10,11 +13,11 @@
 #define LOGW(...) ESP_LOGW(tag, __VA_ARGS__)
 
 #else
-extern void dukf_log(char type, char *fmt, ...);
-#define LOGV(...) dukf_log('V', __VA_ARGS__)
-#define LOGE(...) dukf_log('E', __VA_ARGS__)
-#define LOGD(...) dukf_log('D', __VA_ARGS__)
-#define LOGW(...) dukf_log('W', __VA_ARGS__)
+extern void dukf_log(char *tag, char type, char *fmt, ...);
+#define LOGV(...) dukf_log(tag, 'V', __VA_ARGS__)
+#define LOGE(...) dukf_log(tag, 'E', __VA_ARGS__)
+#define LOGD(...) dukf_log(tag, 'D', __VA_ARGS__)
+#define LOGW(...) dukf_log(tag, 'W', __VA_ARGS__)
 /*
 #define LOGV(...)  { \
 	printf("(V) %s: ", tag); \

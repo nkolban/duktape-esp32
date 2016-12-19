@@ -1,3 +1,15 @@
+/**
+ * Provide a built-in WebServer used to service Duktape commands.  Primarily
+ * a REST service provided.  The following are exposed:
+ * 
+ * POST /run - Execute the JavaScript code supplied in the POST data.
+ * GET  /run/<name> - Execute the contents of the file named.
+ * GET  /files - Return a JSON encoded list of files.
+ * GET  /files/<name> - Return the contents of the named file.
+ * POST /files/<name> - Save the content of the POST data in the named file.
+ * GET  /<other> - Return the contents of the path as a regular WebServer.
+ * 
+ */
 /* globals require, FS, Buffer, log, ESP32, _sockets*/
 
 var http = require("http.js");
@@ -44,7 +56,7 @@ function requestHandler(request, response) {
    request.on("data", function(data) {
       log("HTTP Request on(data) passed: " + data);
       postData += data;
-   });
+   }); // on("data")
    request.on("end", function() {
       log("HTTP Request on(end):");
       log(" - method: " + request.method);
@@ -58,16 +70,28 @@ function requestHandler(request, response) {
          return;
       }
       pathParts = pathParts.splice(1); // Remove the first element which will be "/"
-      if (pathParts[0] == "run") {
+      // pathParts[0] = the first part of the path
+      // request.method = the command.
+      if (pathParts[0] == "run" && request.method == "POST") {
       	// request to run a script ...
       	log("We are about to run: " + postData);
       	try {
       		eval(postData);
       	} catch(e) {
-      		log("Oh my!! The code we read over the net threw an exception! - " + e);
+      		//log(e.name + ": " + e.message);
+      		//log("" + e.fileName + " [" + e.lineNumber + "]");
+      		log(e.stack);
       	}
       	response.writeHead(200);
-      } else if (pathParts[0] == "files") {
+      } // Path begins "/run" and method is "POST"
+      else if (pathParts[0] == "run" && request.method == "GET") {
+      	if (pathParts.length > 1) {
+      		var fileName = "/" + pathParts.splice(1).join("/");
+         	DUKF.runFile(fileName);
+      	}
+      	response.writeHead(200);
+      } 
+      else if (pathParts[0] == "files") {
          response.writeHead(200);
       	// Process files here ...
       	// if GET /files  -- then pathParts.length == 1
@@ -97,21 +121,13 @@ function requestHandler(request, response) {
 	         response.writeHead(404);
 	      }
       }
+      postData = null;
       response.end();
-   });
-}
+   }); // on("end")
+} // requestHandler
+
 
 var server = http.createServer(requestHandler);
 var PORT = 8000;
 server.listen(PORT);
 log("WebServer listening on port " + PORT);
-
-/*
-setInterval(function() {
-	var heap = ESP32.getState().heapSize;
-	if (heap < 20000) {
-		log("Heap: " + ESP32.getState().heapSize);
-		log("Sockets: "+ JSON.stringify(_sockets));
-	}
-}, 1000);
-*/

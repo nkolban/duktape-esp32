@@ -18,7 +18,7 @@
 #include "esp32_duktape/module_os.h"
 #include "duktape.h"
 
-static char tag[] = "module_os";
+LOG_TAG("module_os");
 
 /**
  * Create a SHA1 encoding of data.

@@ -1,6 +1,10 @@
+/**
+ * Common utilities for the ESP32-Duktape framework.
+ */
 #ifdef ESP_PLATFORM
 #include <esp_log.h>
 #include <espfs.h>
+#include <esp_system.h>
 #else
 #include <sys/mman.h>
 #endif
@@ -17,28 +21,45 @@
 #include "duktape_utils.h"
 
 #define MAX_RUN_AT_START (5)
+
+LOG_TAG("dukf_utils");
+
+// Number of scripts registered to run at the start.
 static int g_runAtStartCount = 0;
+
+// Array of scripts to run at start.
 static char *g_runAtStartFileNames[MAX_RUN_AT_START];
-static char tag[] = "dukf_utils";
+
+/**
+ * Log the heap value to the console.
+ */
+void dukf_log_heap(char *tag) {
+#ifdef ESP_PLATFORM
+	LOGD("%s: heap=%d", esp_get_free_heap_size());
+#endif
+}
+
 
 /**
  * Run the files that were registered to be run at startup.
  */
 void dukf_runAtStart(duk_context *ctx) {
+	LOGD("Running scripts registered to auto start:");
 	int i;
 	for (i=0;i<g_runAtStartCount; i++) {
+		LOGD(" autostart: %s", g_runAtStartFileNames[i]);
 		dukf_runFile(ctx, g_runAtStartFileNames[i]);
 	}
 } // dukf_runAtStart
 
 
 /**
- * Load the given file and run it in a JS environment.
+ * Load the named file and run it in a JS environment.
  */
-void dukf_runFile(duk_context *ctx, char *fileName) {
+void dukf_runFile(duk_context *ctx, const char *fileName) {
 	LOGD(">> dukf_runFile: %s", fileName);
 	size_t fileSize;
-	char *fileData = dukf_loadFile(fileName, &fileSize);
+	const char *fileData = dukf_loadFile(fileName, &fileSize);
 	if (fileData == NULL) {
 		LOGE("<< dukf_runFile: Failed to load file");
 		return;
@@ -63,17 +84,24 @@ void dukf_runFile(duk_context *ctx, char *fileName) {
 /**
  * Record the name of a file we wish to run at the start.
  */
-void dukf_addRunAtStart(char *fileName) {
+void dukf_addRunAtStart(const char *fileName) {
+	// Add the filename to the list of scripts to run at the start after first
+	// checking that we haven't tried to remember too many.
 	if (g_runAtStartCount < MAX_RUN_AT_START) {
-		g_runAtStartFileNames[g_runAtStartCount] = fileName;
+		g_runAtStartFileNames[g_runAtStartCount] = (char *)fileName;
 		g_runAtStartCount++;
 	} else {
 		LOGE("Can't run program %s at start ... too many already", fileName);
 	}
 } // dukf_addRunAtStart
 
+
 #ifdef ESP_PLATFORM
-char *dukf_loadFile(char *path, size_t *fileSize) {
+/**
+ * Load the named file and return the data and the size of it.
+ * We load the file from the DUKF file system.
+ */
+const char *dukf_loadFile(const char *path, size_t *fileSize) {
 	EspFsFile *fh = espFsOpen((char *)path);
 	if (fh == NULL) {
 		ESP_LOGD(tag, " Failed to open file %s", path);
@@ -84,16 +112,17 @@ char *dukf_loadFile(char *path, size_t *fileSize) {
   espFsClose(fh);
   // Note ... because data is mapped in memory from flash ... it will be good
   // past the file close.
-  ESP_LOGD(tag, "esp32_loadFileESPFS: Read file %s for size %d", path, *fileSize);
+  ESP_LOGD(tag, "duk_loadFile: Read file %s for size %d", path, *fileSize);
   return data;
 } // dukf_loadFile
 
 #else
 /**
- * Load a named file from the DUKF file system
+ * Load the named file and return the data and the size of it.
+ * We load the file from the DUKF file system.
  */
 #define DUKF_BASE_DIR "/home/kolban/esp32/esptest/apps/workspace/duktape/spiffs"
-char *dukf_loadFile(char *path, size_t *fileSize) {
+const char *dukf_loadFile(const char *path, size_t *fileSize) {
 
 	char fileName[256];
 	sprintf(fileName, "%s/%s", DUKF_BASE_DIR, path);

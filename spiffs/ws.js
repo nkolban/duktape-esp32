@@ -1,9 +1,13 @@
 /**
+ * WebSocket module
+ * 
  * References:
  * Writing web socket servers: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers
  * RFC6455 - The WebSocket Protocol - https://datatracker.ietf.org/doc/rfc6455/
  * 
  * Here is an example of a web socket initiation request from a client:
+ * 
+ * -----------
  * 
  * GET /chat HTTP/1.1
  * Host: example.com:8000
@@ -12,15 +16,27 @@
  * Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
  * Sec-WebSocket-Version: 13
  * 
+ * -----------
+ * 
  * A response will be:
+ * 
+ * -----------
+ * 
  * HTTP/1.1 101 Switching Protocols
  * Upgrade: websocket
  * Connection: Upgrade
  * Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+ * 
+ * -----------
+ * 
  */
 
 /* globals Buffer, log, require, Duktape, OS, module */
 
+/*
+ * These are the possible WebSocket operation codes as documented in the WebSocket
+ * protocol specification.
+ */
 var OPCODE= {
 	CONTINUATION: 0x0,
 	TEXT_FRAME:   0x1,
@@ -30,7 +46,9 @@ var OPCODE= {
 	PONG:         0xA
 };
 var HTTP=require("http.js");
+
 var connectionCallback = null;
+var onMessageCallback = null;
 
 /*
 Frame format:  
@@ -111,32 +129,57 @@ or
 
 /**
  * Build a WebSocket frame from the payload
- * @param payload The payload to send.
- * @param mask A boolean indicating whether we are to mask or not.
+ * @param options Options controlling the construction of the frame.  These include:
+ * * payload - The data to be transmitted.  May be null or omitted.
+ * * mask - A boolean, if true then we wish to mask data.
+ * * close - A boolean, if true, then we wish to close the connection.
  * @returns The frame to transmit.
  */
-function constructFrame(payload, mask) {
-	if (typeof payload == "string") {
-		payload = new Buffer(payload);
+function constructFrame(options) {
+	var payloadLen;
+	var payload;
+	if (options.hasOwnProperty("payload")) {
+		if (typeof options.payload == "string") {
+			payload = new Buffer(options.payload);
+		} else {
+			payload = options.payload;
+		}
+		log("Data to construct is " + payload);
+		payloadLen = payload.length;
+		
+	} else {
+		payloadLen = 0;
 	}
-	log("Data to construct is " + payload);
-	var payloadLen = payload.length;
+	// If the payload we wish to send is a string, convert it to a Buffer.
+	
+	
+	// Calculate the size of the frame.
 	var frameSize = 2 + payloadLen;
-	if (mask) {
+	if (options.mask) {
 		frameSize += 4;
 	}
 	if (payloadLen >= 126 ) {
 		frameSize +=2 ;
 	}
+	
+	// We now know the frame size, allocate a buffer that is big enough.
 	var frame = new Buffer(frameSize); // Allocate the buffer for the final frame.
+	
+	// Let us now populate the frame.
 	var i = 0;
-	frame[i] = 0x80 | OPCODE.TEXT_FRAME; // FIN + size
+	if (options.close) {
+		frame[i] = 0x80 | OPCODE.CLOSE; // FIN + CLOSE
+	} else {
+		frame[i] = 0x80 | OPCODE.TEXT_FRAME; // FIN + TEXT
+	}
+
 	i++;
 	
 	if (payloadLen < 126) {
 		frame[i] = 0x00 | payloadLen; // No mask
 		i++;
-	} else {
+	}
+	else {
 		frame[i] = 0x0 | 126; // No mask
 		i++;
 		frame[i] = (payloadLen & 0xff00) >> 8;
@@ -146,28 +189,39 @@ function constructFrame(payload, mask) {
 	}
 	
 	// Here we do mask processing to mask the data (if requested)
-	if (mask) {
-		var maskValue = new Buffer(4);
-		var j;
-		for (j=0; j<4; j++) {
-			maskValue[j] = Math.floor(Math.random() * 256);
+	if (payloadLen > 0) {
+		if (options.mask) {
+			var maskValue = new Buffer(4);
+			var j;
+			for (j=0; j<4; j++) {
+				maskValue[j] = Math.floor(Math.random() * 256);
+			}
+			maskValue.copy(frame, i, 0);
+			i+=4;
+			
+			payload.copy(frame, i, 0);
+			for (j=0; j<payloadLen; j++) {
+				frame[i] = frame[i] ^ maskValue[j%4];
+				i++;
+			}
+		} else {
+			payload.copy(frame, i, 0);
 		}
-		maskValue.copy(frame, i, 0);
-		i+=4;
-		
-		payload.copy(frame, i, 0);
-		for (j=0; j<payloadLen; j++) {
-			frame[i] = frame[i] ^ maskValue[j%4];
-			i++;
-		}
-	} else {
-		payload.copy(frame, i, 0);
 	}
 	log("Frame size is " + frame.length);
 	return frame;
-}
+} // constructFrame
 
 
+/**
+ * Parse an incoming frame
+ * @param data
+ * @returns An object that describes the parsed frame:
+ * {
+ *    payload: <data>
+ *    opcode: <opcode of the frame>
+ * }
+ */
 function parseFrame(data) {
 	// Data is a buffer
 	var fin = (data[0] & 0x80) >> 7; // 1000 0000
@@ -208,14 +262,15 @@ function parseFrame(data) {
 		}
 	}
 	log("WS Frame: fin=" + fin + ", opCode=" + opCode + ", mask=" + mask + ", payloadLen=" + payloadLen + ", data=" + payloadData);
-	return payloadData;
+	return {
+		payload: payloadData,
+		opcode: opCode
+	};
 } // parseFrame
 
 
 
 function requestHandler(request, response) {
-	debugger;
-	log("*****");
    log("***** We have received a new WS HTTP client request!");
    request.on("data", function(data) {
       log("WS HTTP Request handler: " + data);
@@ -228,6 +283,7 @@ function requestHandler(request, response) {
       log("WS HTTP request received:");
       log(" - method: " + request.method);
       log(" - headers: " + JSON.stringify(request.headers));
+      log(" - path: " + request.path);
       if (request.method != "GET") {
       	log("Method is not GET");
       	fail();
@@ -261,23 +317,59 @@ function requestHandler(request, response) {
       // We have now gone native!!! ... we are now working in RAW sockets ...
 
       if (connectionCallback !== null) {
+   		var closeSent = false;
+   		var newConnection;
+   		
    		var sock = request.getSocket();
-      	var newConnection = {
+   		sock.on("data", function(incomingFrame) {
+				var parsedFrame = parseFrame(incomingFrame);
+				log("We have parsed a frame: " + JSON.stringify(parsedFrame));
+				if (parsedFrame.opcode == OPCODE.BINARY_FRAME || parsedFrame.opcode == OPCODE.TEXT_FRAME) {
+					if (onMessageCallback !== null) {
+						onMessageCallback(parsedFrame.payload);
+					}
+				}
+				else if (parsedFrame.opcode == OPCODE.CLOSE) {
+					// Handle the close request.
+					if (closeSent) {
+						response.end();
+					} else {
+						newConnection.close();
+					}
+				}
+         }); // sock.on("data", ...) 
+   		
+
+      	newConnection = {
+      		//
+      		// path
+      		//
+      		path: request.path,
+      		
+      		//
+      		// on
+      		//
       		on: function(eventType, callback) {
       			if (eventType == "message") {
-      				sock.on("data", function(incomingFrame) {        	
-      					log("Received WS data!");
-   		         	var incomingData = parseFrame(incomingFrame);
-   		         	callback(incomingData);
-   		         });      				
+      				onMessageCallback = callback;			
       			} // eventType == message
       		}, // on
+      		
+      		//
+      		// send
+      		//
       		send: function(data) {
-      			var frame = constructFrame(data, false);
-            	sock.write(frame);
+            	sock.write(constructFrame({ payload: data }));
       		}, // send
+      		
+      		//
+      		// close
+      		//
       		close: function() {
-      			response.end();
+      			if (closeSent !== true) {
+	            	closeSent = true;
+	            	sock.write(constructFrame({ close: true }));
+      			}
       		}
       	};
       	connectionCallback(newConnection);
@@ -288,16 +380,23 @@ function requestHandler(request, response) {
 
 function Server(port) {
 	var server = HTTP.createServer(requestHandler);
-	server.listen(port);
-	var wsret = {
-		// connection
+	var webSocketServer = {
+		// 
+		// on
+		//
 		on: function(eventType, callback) {
 			if (eventType == "connection") {
 				connectionCallback = callback;
 			}
 		}, // on
-	}; // wsret;
-	return wsret;
+		//
+		// listen
+		//
+		listen: function(port) {
+			server.listen(port);
+		}
+	}; // webSocketServer;
+	return webSocketServer;
 } // Server
 
 module.exports = {

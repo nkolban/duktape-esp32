@@ -26,6 +26,7 @@
 #include "esp32_duktape/module_wifi.h"
 #include "esp32_duktape/module_partitions.h"
 #include "esp32_duktape/module_os.h"
+#include "module_rtos.h"
 #include "module_dukf.h"
 #include "duktape_utils.h"
 
@@ -35,21 +36,28 @@
 static char tag[] = "modules";
 
 /**
- * The native Console.log() static function.
+ * The native Console.log() static function.  This function is
+ * also cognizant of the console.handler callback function
  */
 static duk_ret_t js_console_log(duk_context *ctx) {
-	LOGD("js_console_log called");
-	switch(duk_get_type(ctx, -1)) {
-		case DUK_TYPE_STRING: {
-			esp32_duktape_console(duk_get_string(ctx, -1));
-			break;
-		}
+	LOGD(">> js_console_log called");
+	duk_safe_to_string(ctx, -1);
+	const char *message = duk_get_string(ctx, -1);
 
-		default: {
-			duk_to_string(ctx, -1);
-			esp32_duktape_console(duk_get_string(ctx, -1));
-			break;
-		}
+	// Let us now see if there is a console callback.  It will be
+	// console.handler = function(message)
+	duk_push_global_object(ctx);
+	duk_get_prop_string(ctx, -1, "console");
+	duk_get_prop_string(ctx, -1, "handler");
+	if (duk_is_function(ctx, -1)) {
+		// Aha ... there is a console.handler callback!
+		// Let us now call it.
+		duk_push_string(ctx, message);
+		duk_pcall(ctx, 1);
+	} // Check for a handler
+	else {
+		// No handler ... so just log
+		esp32_duktape_console(message);
 	}
   return 0;
 } // js_console_log
@@ -457,6 +465,8 @@ void registerModules(duk_context *ctx) {
 	ModuleRMT(ctx);
 	assert(top == duk_get_top(ctx));
 	ModulePARTITIONS(ctx);
+	assert(top == duk_get_top(ctx));
+	ModuleRTOS(ctx);
 	assert(top == duk_get_top(ctx));
 	//ModuleTIMERS(ctx);
 	//assert(top == duk_get_top(ctx));

@@ -18,16 +18,14 @@ static void init() {
  * Write a log message to stdout.  The function takes the "type" of the
  * message as a single character which is likely to be 'E' for Error, 'W' for
  * Warning, 'D' for Debug and 'V' for Verbose.  Then there is a printf format
- * string followed by parameters.  The output is of the form:
- * nnnnn (<type>): <message>
- * where "nnnnn" is the delta milliseconds since the startup.
+ * string followed by parameters.  The output is of the same form as ESP32 logging.
  */
-void dukf_log(char type, char *fmt, ...) {
+void dukf_log(char *tag, char type, char *fmt, ...) {
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	struct timeval diff_tv = timeval_sub(&now, &startTime);
 	uint32_t diff = timeval_toMsecs(&diff_tv);
-	printf("%5d (%c): ", diff, type);
+	printf("%c (%d) %s: ", type, diff, tag);
 	va_list vl;
 	va_start(vl, fmt);
 	vprintf(fmt, vl);

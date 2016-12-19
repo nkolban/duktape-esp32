@@ -1,5 +1,6 @@
 /* globals _sockets, OS, log, Buffer, require */
-var net = require("net");
+var net = require("net.js");
+
 /**
  * Primary loop that processes events.
  * @returns

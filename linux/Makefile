@@ -3,42 +3,88 @@
 # Makefile does just that.
 #
 
-OBJS=../main/duktape_task.o \
-../main/modules.o \
-../main/duktape_event.o \
-../main/duktape_utils.o \
-../main/logging.o \
-../main/module_fs.o \
-../main/module_os.o \
-../main/module_dukf.o \
-../main/dukf_utils.o \
-../main/c_timeutils.o \
-main.o \
-../components/duktape/examples/debug-trans-socket/duk_trans_socket_unix.o \
-../components/duktape/src/duktape.o \
-../components/duktape/extras/module-duktape/duk_module_duktape.o
-LOBJS=duktape_task.o main.o duktape.o modules.o duktape_utils.o duktape_event.o module_fs.o \
-dukf_utils.o \
-logging.o \
+OBJS=\
 c_timeutils.o \
-module_os.o \
-module_dukf.o \
 duk_trans_socket_unix.o \
-duk_module_duktape.o
+duk_module_duktape.o \
+dukf_utils.o \
+duktape.o \
+duktape_event.o \
+duktape_task.o \
+duktape_utils.o \
+logging.o \
+main.o \
+modules.o \
+module_dukf.o \
+module_fs.o \
+module_os.o
+
+
 CFLAGS=-g
-INCLUDES=-I../components/duktape/src -I../components/duktape/extras/module-duktape \
+INCLUDES=\
+-I../components/duktape/src \
+-I../components/duktape/extras/module-duktape \
 -I../components/duktape/examples/debug-trans-socket \
 -I../main
 LIBS=-lm -lcrypto
 
-all: $(OBJS)
+define cc-command
+@echo "CC $<"
+@$(CC) -c $(CFLAGS) $< $(INCLUDES)
+endef
+
+
+all: dtest
+
+dtest: $(OBJS)
 	@echo "CC -o dtest"
-	@$(CC) -o dtest $(LOBJS) $(LIBS)
+	@$(CC) -o dtest $(OBJS) $(LIBS)
 
+c_timeutils.o: ../main/c_timeutils.c
+	$(cc-command)	
 
+duk_trans_socket_unix.o: ../components/duktape/examples/debug-trans-socket/duk_trans_socket_unix.c
+	$(cc-command)
+		
+duk_module_duktape.o: ../components/duktape/extras/module-duktape/duk_module_duktape.c
+	$(cc-command)
+	
+dukf_utils.o: ../main/dukf_utils.c
+	$(cc-command)
+
+duktape.o: ../components/duktape/src/duktape.c
+	$(cc-command)	
+
+duktape_event.o: ../main/duktape_event.c
+	$(cc-command)
+	
+duktape_task.o: ../main/duktape_task.c
+	$(cc-command)
+
+duktape_utils.o: ../main/duktape_utils.c
+	$(cc-command)
+
+logging.o: ../main/logging.c
+	$(cc-command)
+		
+main.o: main.c
+	$(cc-command)	
+	
+modules.o: ../main/modules.c
+	$(cc-command)
+
+module_dukf.o: ../main/module_dukf.c
+	$(cc-command)
+
+module_fs.o: ../main/module_fs.c
+	$(cc-command)
+
+module_os.o: ../main/module_os.c
+	$(cc-command)	
+	
 .c.o:
 	@echo "CC $<"
 	@$(CC) -c $(CFLAGS) $< $(INCLUDES)
 	
 clean:
-	rm -f $(LOBJS)
+	rm -f $(OBJS)

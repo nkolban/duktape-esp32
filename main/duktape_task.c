@@ -35,7 +35,7 @@
 
 #include "duk_module_duktape.h"
 
-static char tag[] = "duktape_task";
+LOG_TAG("duktape_task");
 
 // The Duktape context.
 duk_context *esp32_duk_context;
@@ -50,21 +50,18 @@ void duktape_init_environment() {
 		duk_destroy_heap(esp32_duk_context);
 	}
 
+
 	esp32_duk_context = duk_create_heap_default();	// Create the Duktape context.
+	dukf_log_heap("Heap after duk create heap");
+
+
 	duk_module_duktape_init(esp32_duk_context); // Initialize the duktape module functions.
+	dukf_log_heap("Heap before after duk_module_duktape_init");
+
 	esp32_duktape_stash_init(esp32_duk_context); // Initialize the stash environment.
+
 	registerModules(esp32_duk_context); // Register the built-in modules
-
-	size_t fileSize;
-	char *data = dukf_loadFile("init.js", &fileSize);
-	assert(data != NULL);
-
-	duk_push_lstring(esp32_duk_context, data, fileSize);
-	int rc = duk_peval(esp32_duk_context);
-	if (rc != 0) {
-		esp32_duktape_log_error(esp32_duk_context);
-	}
-	duk_pop(esp32_duk_context);
+	dukf_log_heap("Heap after duk register modules");
 
 
 	// Print a console logo.
@@ -86,6 +83,21 @@ void duktape_init_environment() {
 	" ESP32 port/framework: Neil Kolban\n\n"
 	);
 	esp32_duktape_set_reset(0); // Flag the environment as having been reset.
+
+	LOGD("Running \"init.js\"");
+	size_t fileSize;
+	const char *data = dukf_loadFile("init.js", &fileSize);
+	assert(data != NULL);
+
+	duk_push_lstring(esp32_duk_context, data, fileSize);
+	int rc = duk_peval(esp32_duk_context);
+	if (rc != 0) {
+		esp32_duktape_log_error(esp32_duk_context);
+	}
+	duk_pop(esp32_duk_context);
+
+	dukf_log_heap("Heap after init.js");
+
 	esp32_duktape_console("esp32_duktape> "); // Log a prompt.
 } // duktape_init_environment
 
@@ -318,6 +330,10 @@ void duktape_task(void *ignore) {
 
 	//ESP_LOGD(tag, "Hello");
 	LOGD(">> duktape_task");
+	dukf_log_heap("duktape_task");
+
+	// Define the scripts which are to run at boot time
+	dukf_addRunAtStart("webserver.js");
 
 	// Mount the SPIFFS file system.
 #ifdef ESP_PLATFORM
@@ -355,12 +371,13 @@ void duktape_task(void *ignore) {
 		duk_pop_2(esp32_duk_context);
 		// We have ended the loop routine.
 
-
+/*
 		rc = esp32_duktape_waitForEvent(&esp32_duktape_event);
 		if (rc != 0) {
 			processEvent(&esp32_duktape_event);
 			esp32_duktape_freeEvent(esp32_duk_context, &esp32_duktape_event);
 		}
+*/
 
 
 		// If we have been requested to reset the environment

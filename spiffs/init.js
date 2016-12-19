@@ -91,4 +91,4 @@ function setTimeout(callback, interval) {
 	return _timers.setTimer(callback, interval, false);
 }
 
-var _loop = require("loop");
+var _loop = require("loop.js");

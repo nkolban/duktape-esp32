@@ -10,8 +10,7 @@ $(document).ready(function() {
 		settings = JSON.parse(localStorage.settings);
 	} else {
 		var settings = {
-			esp32_host: "192.168.1.99",
-			esp32_port: 80,
+			esp32_host: location.host,
 			theme: "eclipse"
 		}	
 	}
@@ -25,7 +24,7 @@ $(document).ready(function() {
 	 */
 	function runScript(script) {
 		$.ajax({
-			url: "http://" + settings.esp32_host + ":" + settings.esp32_port + "/run",
+			url: "http://" + settings.esp32_host + "/run",
 			contentType: "application/javascript",
 			method: "POST",
 			data: script,
@@ -43,7 +42,7 @@ $(document).ready(function() {
 	 */
 	function createConsoleWebSocket(onOpen) {
 		return;
-		var ws = new WebSocket("ws://" + settings.esp32_host + ":" + settings.esp32_port + "/console");
+		var ws = new WebSocket("ws://" + settings.esp32_host + "/console");
 		// When a console message arrives, append it to the console log and scroll so that it is visible.
 		ws.onmessage = function(event) {
 			$("#console").val($("#console").val() + event.data);
@@ -73,7 +72,7 @@ $(document).ready(function() {
 	 */
 	function populateSelectWithFiles(selectObj, callback) {
 		$.ajax({
-			url: "http://" + settings.esp32_host + ":" + settings.esp32_port + "/files",
+			url: "http://" + settings.esp32_host + "/files",
 			method: "GET",
 			dataType: "json",
 			success: function(data) {
@@ -144,7 +143,7 @@ $(document).ready(function() {
 	
 	$("#load").button().click(function() {
 		$.ajax({
-			url: "http://" + settings.esp32_host + ":" + settings.esp32_port + "/files",
+			url: "http://" + settings.esp32_host + "/files",
 			method: "GET",
 			dataType: "json",
 			success: function(data) {
@@ -169,7 +168,6 @@ $(document).ready(function() {
 		icon: "ui-icon-wrench" // Set the icon on the button to be the wrench.
 	}).click(function() {
 		$("#settingsHost").val(settings.esp32_host);
-		$("#settingsPort").val(settings.esp32_port);
 		$("#fontSize").val(editor.getFontSize());
 		$("#theme").val(settings.theme);
 		$("#settingsDialog").dialog("open");
@@ -210,7 +208,7 @@ $(document).ready(function() {
 					// POST /files/<fileName>
 					// Body: Data to save
 					$.ajax({
-						url: "http://" + settings.esp32_host + ":" + settings.esp32_port + "/files" + selectedFile,
+						url: "http://" + settings.esp32_host + "/files" + selectedFile,
 						method: "POST",
 						data: editor.getValue(),
 						success: function(data) {
@@ -236,6 +234,20 @@ $(document).ready(function() {
 		width: 400,
 		buttons: [
 			{
+				text: "Run",
+				click: function() {
+					// Determine which file was selected in the list
+					var selectedFile = $("#loadSelect option:selected").val();
+					// Run the named file.
+					$.ajax({
+						url: "http://" + settings.esp32_host + "/run" + selectedFile,
+						method: "GET",
+						dataType: "text",
+						success: function(data) {}
+					});
+				}
+			},
+			{
 				text: "Load",
 				click: function() {
 					// Determine which file was selected in the list
@@ -244,7 +256,7 @@ $(document).ready(function() {
 					// the REST request format is:
 					// GET /files/<fileName>
 					$.ajax({
-						url: "http://" + settings.esp32_host + ":" + settings.esp32_port + "/files" + selectedFile,
+						url: "http://" + settings.esp32_host + "/files" + selectedFile,
 						method: "GET",
 						dataType: "text",
 						success: function(data) {
@@ -274,7 +286,6 @@ $(document).ready(function() {
 				text: "OK",
 				click: function() {
 					settings.esp32_host = $("#settingsHost").val();
-					settings.esp32_port = $("#settingsPort").val();
 					settings.theme = $("#theme option:selected").val();
 					localStorage = JSON.stringify(settings);
 					

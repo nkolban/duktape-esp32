@@ -73,7 +73,7 @@ void socket_server(void *ignore);
 static void init() {
 	// At this point we should have a WiFi network
 	esp_event_loop_set_cb(esp32_wifi_eventHandler, NULL);
-	esp32_duktape_initEvents();
+	//esp32_duktape_initEvents();
 	setupVFS(); // Setup the Virtual File System.
 	//setupWebVFS("/web", "http://192.168.1.105");
 	//xTaskCreatePinnedToCore(&telnetTask, "telnetTask", 8048, NULL, 5, NULL, 0);
