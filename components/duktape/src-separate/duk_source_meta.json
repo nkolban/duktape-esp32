@@ -4,7 +4,7 @@
     "type": "duk_source_meta", 
     "duk_version": 19999, 
     "git_branch": "master", 
-    "git_commit": "6413d4d10619269686f22aeb300cf031fad34f9f", 
+    "git_commit": "5a7aa72b3d3aec2031ea8313fb02f41170a57841", 
     "builtin_strings_info": [
         {
             "plain": "Undefined", 
@@ -15,6 +15,11 @@
             "plain": "Null", 
             "base64": "TnVsbA==", 
             "define": "DUK_STRIDX_UC_NULL"
+        }, 
+        {
+            "plain": "Symbol", 
+            "base64": "U3ltYm9s", 
+            "define": "DUK_STRIDX_UC_SYMBOL"
         }, 
         {
             "plain": "Arguments", 
@@ -280,6 +285,11 @@
             "plain": "string", 
             "base64": "c3RyaW5n", 
             "define": "DUK_STRIDX_LC_STRING"
+        }, 
+        {
+            "plain": "symbol", 
+            "base64": "c3ltYm9s", 
+            "define": "DUK_STRIDX_LC_SYMBOL"
         }, 
         {
             "plain": "object", 
@@ -855,6 +865,7 @@
     "builtin_strings_base64": [
         "VW5kZWZpbmVk", 
         "TnVsbA==", 
+        "U3ltYm9s", 
         "QXJndW1lbnRz", 
         "T2JqZWN0", 
         "RnVuY3Rpb24=", 
@@ -908,6 +919,7 @@
         "Ym9vbGVhbg==", 
         "bnVtYmVy", 
         "c3RyaW5n", 
+        "c3ltYm9s", 
         "b2JqZWN0", 
         "dW5kZWZpbmVk", 
         "TmFO", 
@@ -1023,10 +1035,11 @@
         "c3RhdGlj", 
         "eWllbGQ="
     ], 
-    "git_describe": "v1.5.0-1241-g6413d4d", 
+    "git_describe": "v1.5.0-1298-g5a7aa72", 
     "builtin_strings": [
         "Undefined", 
         "Null", 
+        "Symbol", 
         "Arguments", 
         "Object", 
         "Function", 
@@ -1080,6 +1093,7 @@
         "boolean", 
         "number", 
         "string", 
+        "symbol", 
         "object", 
         "undefined", 
         "NaN", 

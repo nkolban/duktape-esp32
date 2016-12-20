@@ -50,10 +50,14 @@ void duktape_init_environment() {
 	esp32_duk_context = duk_create_heap_default();	// Create the Duktape context.
 	dukf_log_heap("Heap after duk create heap");
 
+	duk_eval_string_noresult(esp32_duk_context, "Duktape = Object.create(Duktape);");
+
 	duk_module_duktape_init(esp32_duk_context); // Initialize the duktape module functions.
 	dukf_log_heap("Heap before after duk_module_duktape_init");
 
 	esp32_duktape_stash_init(esp32_duk_context); // Initialize the stash environment.
+
+
 
 	registerModules(esp32_duk_context); // Register the built-in modules
 	dukf_log_heap("Heap after duk register modules");
@@ -328,6 +332,7 @@ void duktape_task(void *ignore) {
 
 	// Define the scripts which are to run at boot time
 	dukf_addRunAtStart("webserver.js");
+	dukf_addRunAtStart("test_ide_ws.js");
 
 	// Mount the SPIFFS file system.
 #if defined(ESP_PLATFORM)

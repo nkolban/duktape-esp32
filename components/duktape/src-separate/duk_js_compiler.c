@@ -585,11 +585,11 @@ DUK_LOCAL void duk__reset_func_for_pass2(duk_compiler_ctx *comp_ctx) {
 	 */
 	DUK_BW_RESET_SIZE(thr, &func->bw_code);
 
-	duk_hobject_set_length_zero(thr, func->h_consts);
+	duk_set_length(ctx, func->consts_idx, 0);
 	/* keep func->h_funcs; inner functions are not reparsed to avoid O(depth^2) parsing */
 	func->fnum_next = 0;
-	/* duk_hobject_set_length_zero(thr, func->h_funcs); */
-	duk_hobject_set_length_zero(thr, func->h_labelnames);
+	/* duk_set_length(ctx, func->funcs_idx, 0); */
+	duk_set_length(ctx, func->labelnames_idx, 0);
 	duk_hbuffer_reset(thr, func->h_labelinfos);
 	/* keep func->h_argnames; it is fixed for all passes */
 
@@ -2272,7 +2272,9 @@ DUK_LOCAL void duk__ivalue_toplain_raw(duk_compiler_ctx *comp_ctx, duk_ivalue *x
 					return;
 				}
 			} else if (x->op == DUK_OP_ADD && DUK_TVAL_IS_STRING(tv1) && DUK_TVAL_IS_STRING(tv2)) {
-				/* inline string concatenation */
+				/* Inline string concatenation.  No need to check for
+				 * symbols, as all inputs are valid Ecmascript strings.
+				 */
 				duk_dup(ctx, x->x1.valstack_idx);
 				duk_dup(ctx, x->x2.valstack_idx);
 				duk_concat(ctx, 2);
@@ -2760,13 +2762,9 @@ DUK_LOCAL void duk__lookup_active_label(duk_compiler_ctx *comp_ctx, duk_hstring 
 DUK_LOCAL void duk__reset_labels_to_length(duk_compiler_ctx *comp_ctx, duk_int_t len) {
 	duk_hthread *thr = comp_ctx->thr;
 	duk_context *ctx = (duk_context *) thr;
-	duk_size_t new_size;
 
-	/* XXX: duk_set_length */
-	new_size = sizeof(duk_labelinfo) * (duk_size_t) len;
-	duk_push_int(ctx, len);
-	duk_put_prop_stridx(ctx, comp_ctx->curr_func.labelnames_idx, DUK_STRIDX_LENGTH);
-	duk_hbuffer_resize(thr, comp_ctx->curr_func.h_labelinfos, new_size);
+	duk_set_length(ctx, comp_ctx->curr_func.labelnames_idx, (duk_size_t) len);
+	duk_hbuffer_resize(thr, comp_ctx->curr_func.h_labelinfos, sizeof(duk_labelinfo) * (duk_size_t) len);
 }
 
 /*
@@ -2951,8 +2949,8 @@ DUK_LOCAL void duk__objlit_flush_keys(duk_compiler_ctx *comp_ctx, duk__objlit_st
 		                st->temp_start,
 		                st->num_pairs * 2);
 		st->num_pairs = 0;
-		DUK__SETTEMP(comp_ctx, st->temp_start);
 	}
+	DUK__SETTEMP(comp_ctx, st->temp_start);
 }
 
 DUK_LOCAL duk_bool_t duk__objlit_load_key(duk_compiler_ctx *comp_ctx, duk_ivalue *res, duk_token *tok, duk_reg_t reg_temp) {
@@ -3075,6 +3073,7 @@ DUK_LOCAL void duk__nud_object_literal(duk_compiler_ctx *comp_ctx, duk_ivalue *r
 
 			duk__objlit_flush_keys(comp_ctx, &st);
 			DUK_ASSERT(DUK__GETTEMP(comp_ctx) == st.temp_start);  /* 2 regs are guaranteed to be allocated w.r.t. temp_max */
+			reg_temp = DUK__ALLOCTEMPS(comp_ctx, 2);
 
 			if (duk__objlit_load_key(comp_ctx, res, &comp_ctx->curr_token, reg_temp) != 0) {
 				goto syntax_error;
@@ -7602,7 +7601,7 @@ DUK_LOCAL duk_int_t duk__parse_func_like_fnum(duk_compiler_ctx *comp_ctx, duk_sm
 	comp_ctx->curr_func.is_function = 1;
 	DUK_ASSERT(comp_ctx->curr_func.is_eval == 0);
 	DUK_ASSERT(comp_ctx->curr_func.is_global == 0);
-	comp_ctx->curr_func.is_setget = (flags & DUK__FUNC_FLAG_GETSET);
+	comp_ctx->curr_func.is_setget = ((flags & DUK__FUNC_FLAG_GETSET) != 0);
 	comp_ctx->curr_func.is_namebinding = !(flags & (DUK__FUNC_FLAG_GETSET |
 	                                                DUK__FUNC_FLAG_METDEF |
 	                                                DUK__FUNC_FLAG_DECL));  /* no name binding for: declarations, objlit getset, objlit method def */

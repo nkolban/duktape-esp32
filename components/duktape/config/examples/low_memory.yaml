@@ -65,8 +65,8 @@ DUK_USE_HSTRING_ARRIDX: false
 #DUK_USE_EXTSTR_FREE
 
 # Consider removing Node.js Buffer and Khronos/ES6 typed array support if not
-# needed (about 8-9 kB code footprint difference on x64)
-#DUK_USE_BUFFEROBJECT_SUPPORT: false
+# needed (about 10 kB code footprint difference on x64)
+DUK_USE_BUFFEROBJECT_SUPPORT: false
 
 # Consider to reduce code footprint at the expense of more erratic RAM usage
 #DUK_USE_REFERENCE_COUNTING: false
@@ -100,3 +100,4 @@ DUK_USE_ENCODING_BUILTINS: false
 DUK_USE_ES6_UNICODE_ESCAPE: false
 DUK_USE_REFLECT_BUILTIN: false
 DUK_USE_ES6: false
+DUK_USE_SYMBOL_BUILTIN: false

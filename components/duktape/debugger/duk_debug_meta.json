@@ -1778,6 +1778,7 @@
         "RegExp", 
         "String", 
         "global", 
+        "Symbol", 
         "ObjEnv", 
         "DecEnv", 
         "Pointer", 

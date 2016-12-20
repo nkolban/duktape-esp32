@@ -27,8 +27,9 @@
 #include "esp32_duktape/module_wifi.h"
 #include "logging.h"
 #include "modules.h"
-#include "module_rtos.h"
 #include "module_dukf.h"
+#include "module_nvs.h"
+#include "module_rtos.h"
 
 LOG_TAG("modules");
 
@@ -460,26 +461,38 @@ void registerModules(duk_context *ctx) {
 	duk_idx_t top = duk_get_top(ctx);
 	ModuleConsole(ctx);
 	assert(top == duk_get_top(ctx));
+
 	ModuleESP32(ctx);
 	assert(top == duk_get_top(ctx));
+
 	ModuleFS(ctx);
 	assert(top == duk_get_top(ctx));
+
 	ModuleOS(ctx);
 	assert(top == duk_get_top(ctx));
+
 	ModuleDUKF(ctx);
 	assert(top == duk_get_top(ctx));
 
 #if defined(ESP_PLATFORM)
-	ModuleGPIO(ctx);
+	ModuleGPIO(ctx); // Load the GPIO module
 	assert(top == duk_get_top(ctx));
-	ModuleWIFI(ctx);
+
+	ModuleWIFI(ctx); // Load the WiFi module
 	assert(top == duk_get_top(ctx));
+
 	ModuleRMT(ctx);
 	assert(top == duk_get_top(ctx));
-	ModulePARTITIONS(ctx);
+
+	ModulePARTITIONS(ctx); // Load the partitions module
 	assert(top == duk_get_top(ctx));
-	ModuleRTOS(ctx);
+
+	ModuleRTOS(ctx); // Load the RTOS module
 	assert(top == duk_get_top(ctx));
+
+	ModuleNVS(ctx); // Load the Non Volatile Storage module
+	assert(top == duk_get_top(ctx));
+
 	//ModuleTIMERS(ctx);
 	//assert(top == duk_get_top(ctx));
 #endif /* ESP_PLATFORM */

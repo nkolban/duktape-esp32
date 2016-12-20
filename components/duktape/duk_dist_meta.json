@@ -4,6 +4,6 @@
     "type": "duk_dist_meta", 
     "duk_version": 19999, 
     "git_branch": "master", 
-    "git_commit": "6413d4d10619269686f22aeb300cf031fad34f9f", 
-    "git_describe": "v1.5.0-1241-g6413d4d"
+    "git_commit": "5a7aa72b3d3aec2031ea8313fb02f41170a57841", 
+    "git_describe": "v1.5.0-1298-g5a7aa72"
 }

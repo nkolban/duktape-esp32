@@ -97,3 +97,21 @@ void *duk_get_buffer_data(ctx, index, &size)
 ```
 
 Returns NULL on a problem.
+
+
+##Creating and populating a buffer
+Imagine we have some data where we know its size and want to return this from C to JS
+as a Buffer.
+
+```
+void *data = duk_push_fixed_buffer(ctx, size);
+memcpy(data, original, size);
+duk_push_buffer_object(ctx, -1, 0, size, DUK_BUFOBJ_NODEJS_BUFFER);
+```
+
+##Throwing an error from C
+```
+duk_error(ctx, code, fmtString, ...);
+```
+
+The code should be > 0.

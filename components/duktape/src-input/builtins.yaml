@@ -32,7 +32,8 @@
 # Property format:
 #
 #    - key: verbatim string key, codepoints U+0000...U+00FF map to bytes,
-#           so that \u00ff is 0xFF prefix
+#           so that \u00ff is 0xFF prefix.  Key can also be a symbol, with
+#           the same format as for symbol values
 #    - value: see below
 #    - attributes: string of format /w?e?c?a?/, e.g. "wc" is writable and
 #                  configurable
@@ -60,6 +61,15 @@
 #      - treated as Ecmascript null
 #    - Plain string:
 #      - treated as plain string, string data as with keys
+#    - Plain symbol:
+#      - type: symbol
+#      - variant: global, hidden, wellknown
+#      - string: symbol string without any prefix
+#      - NOTE: ES6 well-known symbols are local symbols with 'string' as
+#        their description, and a fixed suffix never overlapping with
+#        runtime local symbols
+#      - NOTE: "hidden symbols" are Duktape specific internal properties
+#        (called just internal properties in 1.x)
 #    - Plain number:
 #      - treated as a fastint/ieee double
 #    - IEEE double:
@@ -97,6 +107,7 @@
 #      - nargs: function nargs (optional, defaults to length)
 #      - varargs: if true, function is vararg (nargs = DUK_VARARGS)
 #      - magic: magic value for function (see below)
+#      - name: optional, provides .name property (non-writable, non-enumerable, non-configurable)
 #    - Accessor (setter/getter) shorthand:
 #      - type: accessor
 #      - getter: native function name
@@ -277,6 +288,12 @@ objects:
           id: bi_reflect
         es6: true
         present_if: DUK_USE_REFLECT_BUILTIN
+      - key: "Symbol"
+        value:
+          type: object
+          id: bi_symbol_constructor
+        es6: true
+        present_if: DUK_USE_SYMBOL_BUILTIN
 
       # Node.js Buffer
       - key: "Buffer"
@@ -485,7 +502,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -493,7 +510,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "Object"
-        attributes: ""
+        attributes: "c"
 
       - key: "getPrototypeOf"
         value:
@@ -519,7 +536,7 @@ objects:
           type: function
           native: duk_bi_object_constructor_keys_shared
           length: 1
-          magic: 0
+          magic: 1
       - key: "assign"
         value:
           type: function
@@ -585,7 +602,15 @@ objects:
           type: function
           native: duk_bi_object_constructor_keys_shared
           length: 1
+          magic: 0
+      - key: "getOwnPropertySymbols"
+        value:
+          type: function
+          native: duk_bi_object_constructor_keys_shared
+          length: 1
           magic: 2
+        es6: true
+        present_if: DUK_USE_ES6
       - key: "is"
         value:
           type: function
@@ -672,7 +697,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -680,7 +705,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "Function"
-        attributes: ""
+        attributes: "c"
 
   # Note, unlike other prototype objects, Function.prototype is itself
   # a Function and callable.  When invoked, it accepts any arguments
@@ -699,7 +724,7 @@ objects:
     properties:
       - key: "length"
         value: 0
-        attributes: ""
+        attributes: "c"
         present_if: DUK_USE_FUNCTION_BUILTIN
       - key: "constructor"
         value:
@@ -708,16 +733,10 @@ objects:
         attributes: "wc"
         present_if: DUK_USE_FUNCTION_BUILTIN
 
-      # Each built-in of class Function has a "name" which is
-      # non-writable (the empty string above).  Function.prototype
-      # is a special case: it is a function but we want it's name
-      # to be writable so that user code can set a "name" property
-      # for Duktape/C functions.  If the Function.prototype.name
-      # property were non-writable, that would be prevented due to
-      # standard Ecmascript property write semantics.
+      # In ES6 Function.prototype.name is not writable, but is configurable.
       - key: "name"
         value: ""
-        attributes: "w"
+        attributes: "c"
         #present_if: DUK_USE_FUNCTION_BUILTIN  # Kept even when prototype is otherwise empty to guarantee a .name for functions
 
       # test262 ch15/15.3/15.3.4/15.3.4.2/S15.3.4.2_A11 checks that Function.prototype.toString.length
@@ -750,6 +769,14 @@ objects:
           varargs: true
         present_if: DUK_USE_FUNCTION_BUILTIN
 
+      # ES6
+      #- key:  # @@hasInstance
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.hasInstance"
+      #  value: XXX
+      #  es6: true
+
   - id: bi_array_constructor
     class: Function
     internal_prototype: bi_function_prototype
@@ -763,7 +790,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -771,12 +798,19 @@ objects:
         attributes: ""
       - key: "name"
         value: "Array"
-        attributes: ""
+        attributes: "c"
       - key: "isArray"
         value:
           type: function
           native: duk_bi_array_constructor_is_array
           length: 1
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_array_prototype
     class: Array
@@ -961,6 +995,19 @@ objects:
           magic: -1  # magic: idx_step = -1
         present_if: DUK_USE_ARRAY_BUILTIN
 
+      #- key:  # @@iterator
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.iterator"
+      #  value: XXX
+      #  es6: true
+      #- key:  # @@unscopables
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.unscopables"
+      #  value: XXX
+      #  es6: true
+
   - id: bi_string_constructor
     class: Function
     internal_prototype: bi_function_prototype
@@ -974,7 +1021,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -982,7 +1029,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "String"
-        attributes: ""
+        attributes: "c"
 
       - key: "fromCharCode"
         value:
@@ -1191,6 +1238,13 @@ objects:
           - DUK_USE_STRING_BUILTIN
           - DUK_USE_SECTION_B
 
+      #- key:  # @@iterator
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.iterator"
+      #  value: XXX
+      #  es6: true
+
   - id: bi_boolean_constructor
     class: Function
     internal_prototype: bi_function_prototype
@@ -1203,7 +1257,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -1211,7 +1265,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "Boolean"
-        attributes: ""
+        attributes: "c"
 
   - id: bi_boolean_prototype
     class: Boolean
@@ -1264,7 +1318,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -1272,7 +1326,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "Number"
-        attributes: ""
+        attributes: "c"
       - key: "MAX_VALUE"
         value:
           type: double
@@ -1372,7 +1426,7 @@ objects:
     properties:
       - key: "length"
         value: 7
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -1380,7 +1434,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "Date"
-        attributes: ""
+        attributes: "c"
 
       - key: "parse"
         value:
@@ -1751,6 +1805,13 @@ objects:
           magic: 39
         section_b: true
 
+      #- key:  # @@toPrimitive
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.toPrimitive"
+      #  value: XXX
+      #  es6: true
+
   - id: bi_regexp_constructor
     class: Function
     internal_prototype: bi_function_prototype
@@ -1763,7 +1824,7 @@ objects:
     properties:
       - key: "length"
         value: 2
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -1771,7 +1832,14 @@ objects:
         attributes: ""
       - key: "name"
         value: "RegExp"
-        attributes: ""
+        attributes: "c"
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_regexp_prototype
     class: Object  # Object in ES6; RegExp in ES5
@@ -1879,6 +1947,31 @@ objects:
       #  es6: true
       #  present_if: DUK_USE_ES6
 
+      #- key:  # @@match
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.match"
+      #  value: XXX
+      #  es6: true
+      #- key:  # @@replace
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.replace"
+      #  value: XXX
+      #  es6: true
+      #- key:  # @@search
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.search"
+      #  value: XXX
+      #  es6: true
+      #- key:  # @@split
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.split"
+      #  value: XXX
+      #  es6: true
+
   - id: bi_error_constructor
     class: Function
     internal_prototype: bi_function_prototype
@@ -1893,7 +1986,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -1901,7 +1994,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "Error"
-        attributes: ""
+        attributes: "c"
 
   - id: bi_error_prototype
     class: Error
@@ -2000,7 +2093,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -2008,7 +2101,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "EvalError"
-        attributes: ""
+        attributes: "c"
 
   - id: bi_eval_error_prototype
     class: Error
@@ -2040,7 +2133,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -2048,7 +2141,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "RangeError"
-        attributes: ""
+        attributes: "c"
 
   - id: bi_range_error_prototype
     class: Error
@@ -2080,7 +2173,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -2088,7 +2181,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "ReferenceError"
-        attributes: ""
+        attributes: "c"
 
   - id: bi_reference_error_prototype
     class: Error
@@ -2120,7 +2213,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -2128,7 +2221,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "SyntaxError"
-        attributes: ""
+        attributes: "c"
 
   - id: bi_syntax_error_prototype
     class: Error
@@ -2160,7 +2253,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -2168,7 +2261,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "TypeError"
-        attributes: ""
+        attributes: "c"
 
   - id: bi_type_error_prototype
     class: Error
@@ -2200,7 +2293,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
       - key: "prototype"
         value:
           type: object
@@ -2208,7 +2301,7 @@ objects:
         attributes: ""
       - key: "name"
         value: "URIError"
-        attributes: ""
+        attributes: "c"
 
   - id: bi_uri_error_prototype
     class: Error
@@ -2462,6 +2555,13 @@ objects:
             funcname: "trunc"  # BI_MATH_TRUNC_IDX
         es6: true
         present_if: DUK_USE_ES6
+      - key:
+          type: symbol
+          variant: wellknown
+          string: "Symbol.toStringTag"
+        value: "Math"
+        attributes: "c"
+        es6: true
 
   - id: bi_json
     class: JSON
@@ -2486,6 +2586,13 @@ objects:
           native: duk_bi_json_object_stringify
           length: 3
 
+      #- key:  # @@toStringTag
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.toStringTag"
+      #  value: XXX
+      #  es6: true
+
   # E5 Section 13.2.3
   - id: bi_type_error_thrower
     class: Function
@@ -2498,11 +2605,12 @@ objects:
     properties:
       - key: "length"
         value: 0
-        attributes: ""
-      # custom name, matches V8
+        attributes: "c"
+      # Custom name, matches V8; ES2016 describes %ThrowTypeError% as being
+      # anonymous.
       - key: "name"
         value: "ThrowTypeError"
-        attributes: ""
+        attributes: "c"
         duktape: true
 
   #
@@ -2604,7 +2712,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
         duktape: true
       - key: "prototype"
         value:
@@ -2614,7 +2722,7 @@ objects:
         duktape: true
       - key: "name"
         value: "Thread"
-        attributes: ""
+        attributes: "c"
         duktape: true
 
       # "yield" is a reserved word but does not prevent its use as a property name
@@ -2687,7 +2795,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
         duktape: true
       - key: "prototype"
         value:
@@ -2697,7 +2805,7 @@ objects:
         duktape: true
       - key: "name"
         value: "Pointer"
-        attributes: ""
+        attributes: "c"
         duktape: true
 
   - id: bi_pointer_prototype
@@ -2775,11 +2883,11 @@ objects:
     properties:
       - key: "length"
         value: 2
-        attributes: ""
+        attributes: "c"
         es6: true
       - key: "name"
         value: "Proxy"
-        attributes: ""
+        attributes: "c"
         es6: true
       #- key: "revocable"
       #  value:
@@ -2862,7 +2970,7 @@ objects:
           type: function
           native: duk_bi_object_constructor_keys_shared
           length: 1
-          magic: 1
+          magic: 3
         es6: true
       - key: "preventExtensions"
         value:
@@ -2886,6 +2994,188 @@ objects:
           magic: 2
         es6: true
 
+  - id: bi_symbol_constructor
+    class: Function
+    internal_prototype: bi_function_prototype
+    native: duk_bi_symbol_constructor_shared
+    callable: true
+    constructable: false  # new Symbol() not allowed
+    es6: true
+    nargs: 1
+    magic: 0
+    bidx: true
+    present_if: DUK_USE_SYMBOL_BUILTIN
+
+    properties:
+      - key: "length"
+        value: 0
+        attributes: "c"
+        es6: true
+      - key: "name"
+        value: "Symbol"
+        attributes: "c"
+        es6: true
+      - key: "prototype"
+        value:
+          type: object
+          id: bi_symbol_prototype
+        attributes: ""
+        es6: true
+
+      - key: "for"
+        value:
+          type: function
+          native: duk_bi_symbol_constructor_shared
+          magic: 1
+          length: 1
+          nargs: 1
+        attributes: "wc"
+        es6: true
+      - key: "keyFor"
+        value:
+          type: function
+          native: duk_bi_symbol_key_for
+          length: 1
+          nargs: 1
+        attributes: "wc"
+        es6: true
+
+      #- key: "hasInstance"
+      #  value:
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.hasInstance"
+      #  attributes: ""
+      #  es6: true
+      #- key: "isConcatSpreadable"
+      #  value:
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.isConcatSpreadable"
+      #  attributes: ""
+      #  es6: true
+      - key: "iterator"
+        value:
+          type: symbol
+          variant: wellknown
+          string: "Symbol.iterator"
+        attributes: ""
+        es6: true
+      #- key: "match"
+      #  value:
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.match"
+      #  attributes: ""
+      #  es6: true
+      #- key: "replace"
+      #  value:
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.replace"
+      #  attributes: ""
+      #  es6: true
+      #- key: "search"
+      #  value:
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.search"
+      #  attributes: ""
+      #  es6: true
+      #- key: "species"
+      #  value:
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  attributes: ""
+      #  es6: true
+      #- key: "split"
+      #  value:
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.split"
+      #  attributes: ""
+      #  es6: true
+      - key: "toPrimitive"
+        value:
+          type: symbol
+          variant: wellknown
+          string: "Symbol.toPrimitive"
+        attributes: ""
+        es6: true
+      - key: "toStringTag"
+        value:
+          type: symbol
+          variant: wellknown
+          string: "Symbol.toStringTag"
+        attributes: ""
+        es6: true
+      #- key: "unscopables"
+      #  value:
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.unscopables"
+      #  attributes: ""
+      #  es6: true
+
+  - id: bi_symbol_prototype
+    class: Object
+    internal_prototype: bi_object_prototype
+    es6: true
+    bidx: true
+    # Present even when DUK_USE_SYMBOL_BUILTIN disabled so that symbol values
+    # created from C code can inherit through the Symbol prototype.
+
+    properties:
+      - key: "constructor"
+        value:
+          type: object
+          id: bi_symbol_constructor
+        attributes: "wc"
+        typedarray: true
+        es6: true
+        present_if: DUK_USE_SYMBOL_BUILTIN
+
+      - key: "toString"
+        value:
+          type: function
+          native: duk_bi_symbol_tostring_shared
+          nargs: 0
+          magic: 0
+        attributes: "wc"
+        es6: true
+        present_if: DUK_USE_SYMBOL_BUILTIN
+      - key: "valueOf"
+        value:
+          type: function
+          native: duk_bi_symbol_tostring_shared
+          nargs: 0
+          magic: 1
+        attributes: "wc"
+        es6: true
+        present_if: DUK_USE_SYMBOL_BUILTIN
+      - key:  # @@toPrimitive
+          type: symbol
+          variant: wellknown
+          string: "Symbol.toPrimitive"
+        value:
+          type: function
+          native: duk_bi_symbol_toprimitive
+          nargs: 0  # hint is ignored
+          length: 0
+          name: "[Symbol.toPrimitive]"
+        attributes: "c"
+        es6: true
+        present_if: DUK_USE_SYMBOL_BUILTIN
+      - key:  # @@toStringTag
+          type: symbol
+          variant: wellknown
+          string: "Symbol.toStringTag"
+        value: "symbol"
+        attributes: "c"
+        es6: true
+        present_if: DUK_USE_SYMBOL_BUILTIN
+
   #
   #  TypedArray
   #
@@ -2905,7 +3195,7 @@ objects:
     properties:
       - key: "length"
         value: 1
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -2915,12 +3205,10 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "ArrayBuffer"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
 
       - key: "isView"
         value:
@@ -2949,6 +3237,13 @@ objects:
           length: 1
           varargs: false
         duktape: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_arraybuffer_prototype
     class: Object
@@ -2979,6 +3274,13 @@ objects:
         es6: true
         present_if: DUK_USE_BUFFEROBJECT_SUPPORT
 
+      #- key:  # @@toStringTag
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.toStringTag"
+      #  value: XXX
+      #  es6: true
+
   - id: bi_dataview_constructor
     class: Function
     internal_prototype: bi_function_prototype
@@ -2994,7 +3296,7 @@ objects:
     properties:
       - key: "length"
         value: 3
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -3004,12 +3306,17 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "DataView"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_dataview_prototype
     class: Object
@@ -3256,8 +3563,54 @@ objects:
         typedarray: true
         es6: true
 
-  # %TypedArrayPrototype%
+      #- key:  # @@toStringTag
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.toStringTag"
+      #  value: XXX
+      #  es6: true
+
+  # %TypedArray% constructor
   # Prototype object providing properties shared by all TypedArray
+  # constructors.  Callable, but duk_bi_typedarray_constructor()
+  # rejects normal calls with TypeError; not constructable which
+  # rejects constructor calls with TypeError.
+  - id: bi_typedarray_constructor
+    class: Function
+    internal_prototype: bi_function_prototype
+    varargs: false
+    native: duk_bi_typedarray_constructor
+    callable: true
+    constructable: false
+    magic: 0
+    typedarray: true
+    es6: true
+    bidx: true
+    present_if: DUK_USE_BUFFEROBJECT_SUPPORT
+
+    properties:
+      - key: "length"
+        value: 0
+        attributes: "c"
+        typedarray: true
+        es6: true
+      - key: "prototype"
+        value:
+          type: object
+          id: bi_typedarray_prototype
+        attributes: ""
+        es6: true
+      - key: "name"
+        value: "TypedArray"
+        attributes: "c"
+        es6: true
+
+      # .from
+      # .of
+      # @@species getter
+
+  # %TypedArrayPrototype%
+  # Custom prototype object providing properties shared by all TypedArray
   # instances (reduces built-in object count).  The view specific prototypes
   # (such as Uint8Array.prototype) are still needed so that e.g. instanceof
   # will work properly.
@@ -3265,7 +3618,7 @@ objects:
   - id: bi_typedarray_prototype
     class: Object
     internal_prototype: bi_object_prototype
-    # no external_constructor (specific views provide it)
+    # no external_prototype (specific views provide it)
     typedarray: true
     es6: true
     bidx: true
@@ -3290,9 +3643,22 @@ objects:
         typedarray: true
         es6: true
 
+      #- key:  # @@iterator
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.iterator"
+      #  value: XXX
+      #  es6: true
+      #- key:  # @@toStringTag
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.toStringTag"
+      #  value: XXX
+      #  es6: true
+
   - id: bi_int8array_constructor
     class: Function
-    internal_prototype: bi_function_prototype
+    internal_prototype: bi_typedarray_constructor
     varargs: false
     native: duk_bi_typedarray_constructor
     callable: true
@@ -3309,7 +3675,7 @@ objects:
     properties:
       - key: "length"
         value: 3
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -3319,16 +3685,22 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "Int8Array"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
       - key: "BYTES_PER_ELEMENT"
         value: 1
         attributes: ""
         typedarray: true
         es6: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_int8array_prototype
     internal_prototype: bi_typedarray_prototype
@@ -3349,7 +3721,7 @@ objects:
 
   - id: bi_uint8array_constructor
     class: Function
-    internal_prototype: bi_function_prototype
+    internal_prototype: bi_typedarray_constructor
     varargs: false
     native: duk_bi_typedarray_constructor
     callable: true
@@ -3366,7 +3738,7 @@ objects:
     properties:
       - key: "length"
         value: 3
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -3376,16 +3748,22 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "Uint8Array"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
       - key: "BYTES_PER_ELEMENT"
         value: 1
         attributes: ""
         typedarray: true
         es6: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_uint8array_prototype
     class: Object
@@ -3406,7 +3784,7 @@ objects:
 
   - id: bi_uint8clampedarray_constructor
     class: Function
-    internal_prototype: bi_function_prototype
+    internal_prototype: bi_typedarray_constructor
     varargs: false
     native: duk_bi_typedarray_constructor
     callable: true
@@ -3423,7 +3801,7 @@ objects:
     properties:
       - key: "length"
         value: 3
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -3433,16 +3811,22 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "Uint8ClampedArray"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
       - key: "BYTES_PER_ELEMENT"
         value: 1
         attributes: ""
         typedarray: true
         es6: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_uint8clampedarray_prototype
     class: Object
@@ -3463,7 +3847,7 @@ objects:
 
   - id: bi_int16array_constructor
     class: Function
-    internal_prototype: bi_function_prototype
+    internal_prototype: bi_typedarray_constructor
     varargs: false
     native: duk_bi_typedarray_constructor
     callable: true
@@ -3480,7 +3864,7 @@ objects:
     properties:
       - key: "length"
         value: 3
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -3490,16 +3874,22 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "Int16Array"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
       - key: "BYTES_PER_ELEMENT"
         value: 2
         attributes: ""
         typedarray: true
         es6: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_int16array_prototype
     class: Object
@@ -3520,7 +3910,7 @@ objects:
 
   - id: bi_uint16array_constructor
     class: Function
-    internal_prototype: bi_function_prototype
+    internal_prototype: bi_typedarray_constructor
     varargs: false
     native: duk_bi_typedarray_constructor
     callable: true
@@ -3537,7 +3927,7 @@ objects:
     properties:
       - key: "length"
         value: 3
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -3547,16 +3937,22 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "Uint16Array"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
       - key: "BYTES_PER_ELEMENT"
         value: 2
         attributes: ""
         typedarray: true
         es6: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_uint16array_prototype
     class: Object
@@ -3577,7 +3973,7 @@ objects:
 
   - id: bi_int32array_constructor
     class: Function
-    internal_prototype: bi_function_prototype
+    internal_prototype: bi_typedarray_constructor
     varargs: false
     native: duk_bi_typedarray_constructor
     callable: true
@@ -3594,7 +3990,7 @@ objects:
     properties:
       - key: "length"
         value: 3
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -3604,16 +4000,22 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "Int32Array"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
       - key: "BYTES_PER_ELEMENT"
         value: 4
         attributes: ""
         typedarray: true
         es6: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_int32array_prototype
     class: Object
@@ -3634,7 +4036,7 @@ objects:
 
   - id: bi_uint32array_constructor
     class: Function
-    internal_prototype: bi_function_prototype
+    internal_prototype: bi_typedarray_constructor
     varargs: false
     native: duk_bi_typedarray_constructor
     callable: true
@@ -3651,7 +4053,7 @@ objects:
     properties:
       - key: "length"
         value: 3
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -3661,16 +4063,22 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "Uint32Array"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
       - key: "BYTES_PER_ELEMENT"
         value: 4
         attributes: ""
         typedarray: true
         es6: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_uint32array_prototype
     class: Object
@@ -3691,7 +4099,7 @@ objects:
 
   - id: bi_float32array_constructor
     class: Function
-    internal_prototype: bi_function_prototype
+    internal_prototype: bi_typedarray_constructor
     varargs: false
     native: duk_bi_typedarray_constructor
     callable: true
@@ -3708,7 +4116,7 @@ objects:
     properties:
       - key: "length"
         value: 3
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -3718,16 +4126,22 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "Float32Array"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
       - key: "BYTES_PER_ELEMENT"
         value: 4
         attributes: ""
         typedarray: true
         es6: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_float32array_prototype
     class: Object
@@ -3748,7 +4162,7 @@ objects:
 
   - id: bi_float64array_constructor
     class: Function
-    internal_prototype: bi_function_prototype
+    internal_prototype: bi_typedarray_constructor
     varargs: false
     native: duk_bi_typedarray_constructor
     callable: true
@@ -3765,7 +4179,7 @@ objects:
     properties:
       - key: "length"
         value: 3
-        attributes: ""
+        attributes: "c"
         typedarray: true
         es6: true
       - key: "prototype"
@@ -3775,16 +4189,22 @@ objects:
         attributes: ""
         typedarray: true
         es6: true
-      # matches V8, not specified explicitly in Khronos spec
       - key: "name"
         value: "Float64Array"
-        attributes: ""
-        duktape: true
+        attributes: "c"
+        es6: true
       - key: "BYTES_PER_ELEMENT"
         value: 8
         attributes: ""
         typedarray: true
         es6: true
+
+      #- key:  # @@species
+      #    type: symbol
+      #    variant: wellknown
+      #    string: "Symbol.species"
+      #  value: XXX
+      #  es6: true
 
   - id: bi_float64array_prototype
     class: Object
@@ -3821,7 +4241,7 @@ objects:
     properties:
       - key: "length"
         value: 2
-        attributes: ""
+        attributes: "c"
         nodejs_buffer: true
       - key: "prototype"
         value:
@@ -3831,7 +4251,7 @@ objects:
         nodejs_buffer: true
       - key: "name"
         value: "Buffer"
-        attributes: ""
+        attributes: "c"
         nodejs_buffer: true
 
       - key: "concat"
@@ -4432,7 +4852,7 @@ objects:
     properties:
       - key: "length"
         value: 0
-        attributes: ""
+        attributes: "c"
         encoding_api: true
       - key: "prototype"
         value:
@@ -4442,7 +4862,7 @@ objects:
         encoding_api: true
       - key: "name"
         value: "TextEncoder"
-        attributes: ""
+        attributes: "c"
         encoding_api: true
 
   - id: bi_textencoder_prototype
@@ -4490,7 +4910,7 @@ objects:
     properties:
       - key: "length"
         value: 0
-        attributes: ""
+        attributes: "c"
         encoding_api: true
       - key: "prototype"
         value:
@@ -4500,7 +4920,7 @@ objects:
         encoding_api: true
       - key: "name"
         value: "TextDecoder"
-        attributes: ""
+        attributes: "c"
         encoding_api: true
 
   - id: bi_textdecoder_prototype

@@ -598,6 +598,79 @@ new incoming connection requests.  It has the following methods:
 
 
 
+##NVS
+
+For example:
+
+```
+var NVS = require("nvs");
+var nvsNamespace = NVS.open("neil", "readwrite");
+try {
+    var val = nvsNamespace.get("i1", "int");
+    log("Value of i1 is " + val);
+} catch(e) {
+    log(e);
+}
+
+
+nvsNamespace.set("i1", 9876, "int");
+try {
+    var val = nvsNamespace.get("i2", "int");
+    log("Value of i2 is " + val);
+}
+catch(e) {
+    log(e);
+}
+nvsNamespace.close();
+```
+
+
+###open
+Open the given namespace.
+
+Syntax:
+`var nvsNamespace = open(namespace, mode)`
+
+The mode can be either:
+
+* `readonly`
+* `readwrite`
+
+##nvsNamespace
+
+###close
+Close a previously opened namespace.
+Syntax:
+`close()`
+
+###get
+Get the value of a given key.
+
+Syntax:
+`get(key, type)`
+
+The type must be one of:
+* int
+* blob
+* string
+
+For example:
+```
+var value = namespace.get("name", "string");
+```
+
+###set
+Set the value of a given key to a value.
+
+Syntax:
+`set(key, value, type)`
+
+The type must be one of:
+* int
+* blob
+* string
+
+
 ##OS
 
 ###accept
@@ -993,7 +1066,14 @@ Register an event handler.  The event handlers are:
 WebSocket client.  A WebSocketConnection object is passed.
 
 ##WIFI
-Thus module provides WiFi processing.  It is built in and should not be required.
+Thus module provides WiFi processing.  It is built in and should not be explicitly required.
+
+* connect - Connect to an access point.
+* disconnect - Disconnect from an access point.
+* getDNS - Get the DNS settings.
+* getState - Get the current WiFi state.
+* listen - Start being an access point.
+* scan - Scan for access points.
 
 ###connect
 Connect to an access point.
@@ -1032,16 +1112,17 @@ WIFI.connect({
 });
 ```
 
+
 ###disconnect
-Disconnect from the currently connected access point when we are a station.
+Disconnect from the currently connected access point when we are connected as a station.
 
 Syntax:
 
 `disconnect()`
 
+
 ###getDNS
-Retrieve an array of the two IP addresses (as strings) that represent the two
-DNS servers that we may know about.
+Retrieve an array of the IP addresses (as strings) that represent the DNS servers that we may know about.
 
 Syntax:
 
@@ -1065,6 +1146,7 @@ This returns an object which contains:
 }
 ```
 
+
 ###listen
 Start being an access point.
 
@@ -1074,8 +1156,8 @@ Syntax:
 The `options` is an object that declares how we are going to be an access point.  It contains
 ```
 {
-   ssid: <The ssid of the access point we will advertize>
-   auth: <The authentication mechanism used to connect by clients>
+   ssid:     <The ssid of the access point we will advertize>
+   auth:     <The authentication mechanism used to connect by clients>
    password: <The password to connect to the access point used by clients> [optional if auth is "open"]
 }
 ```
@@ -1101,7 +1183,7 @@ The `callback` is an array of objects where each object contains:
 ```
 {
    ssid - The SSID of the network.
-   mac - The MAC address of the access point.  Format is xx:xx:xx:xx:xx:xx.
+   mac  - The MAC address of the access point.  Format is xx:xx:xx:xx:xx:xx.
    rssi - Signal strength.
    auth - One of "open", "wep", "wpa", "wpa2", "wpa_wpa2"
 }

@@ -5,19 +5,30 @@
  *  After that data is just passed through.
  */
 
+/*
+ *  The select() vs poll() story.  The two system calls called
+ *  "select()" and "poll()" are similar but not necessarily available
+ *  on all platforms.  The default implementation is to use "poll()"
+ *  but we can switch that by defining "USE_SELECT" within this
+ *  file.  For example:
+ *
+ *  #define USE_SELECT
+ *
+ *  If set, instead of leveraging "poll()", this code will leverage
+ *  "select()".   Discussions on "poll()" vs "select()" can be read
+ *  about here: https://daniel.haxx.se/docs/poll-vs-select.html
+ */
+#define USE_SELECT
 #include <stdio.h>
 #include <string.h>
-
-#ifdef ESP_PLATFORM
-#include <lwip/sockets.h>
-#include <lwip/inet.h>
-#else
 #include <sys/socket.h>
+#if !defined(ESP_PLATFORM)
 #include <netinet/in.h>
-#include <poll.h>
-#endif
+#endif /* ESP_PLATFORM */
 #include <unistd.h>
-
+#if !defined(USE_SELECT)
+#include <poll.h>
+#endif /* ! USE_SELECT */
 #include <errno.h>
 #include "duktape.h"
 
@@ -260,12 +271,12 @@ duk_size_t duk_trans_socket_write_cb(void *udata, const char *buffer, duk_size_t
 }
 
 duk_size_t duk_trans_socket_peek_cb(void *udata) {
-#ifdef ESP_PLATFORM
+#if defined(USE_SELECT)
 	fd_set rfds;
-#else
+#else /* USE_SELECT */
 	struct pollfd fds[1];
 	int poll_rc;
-#endif
+#endif /* USE_SELECT */
 
 	(void) udata;  /* not needed by the example */
 
@@ -277,21 +288,20 @@ duk_size_t duk_trans_socket_peek_cb(void *udata) {
 	if (client_sock < 0) {
 		return 0;
 	}
-
-#ifdef ESP_PLATFORM
+#if defined(USE_SELECT)
 	FD_ZERO(&rfds);
 	FD_SET(client_sock, &rfds);
 	struct timeval tm;
 	tm.tv_sec = tm.tv_usec = 0;
-	int selectRc = select(client_sock+1, &rfds, NULL, NULL, &tm);
-	if (selectRc == 0) {
+	int select_rc = select(client_sock + 1, &rfds, NULL, NULL, &tm);
+	if (select_rc == 0) {
 		return 0;
 	}
-	if (selectRc == 1) {
+	if (select_rc == 1) {
 		return 1;
 	}
 	goto fail;
-#else
+#else /* USE_SELECT */
 	fds[0].fd = client_sock;
 	fds[0].events = POLLIN;
 	fds[0].revents = 0;
@@ -312,8 +322,7 @@ duk_size_t duk_trans_socket_peek_cb(void *udata) {
 	} else {
 		return 1;  /* something to read */
 	}
-#endif
-
+#endif /* USE_SELECT */
  fail:
 	if (client_sock >= 0) {
 		(void) close(client_sock);

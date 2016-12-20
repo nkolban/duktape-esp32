@@ -6,6 +6,7 @@
 #include <esp_vfs.h>
 #include <espfs.h>
 #include <fcntl.h>
+#include <nvs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -286,3 +287,58 @@ void setupWebVFS(const char *mountPoint, char *baseURL) {
 		file_records[i].fd = i;
 	}
 } // createWebVFS
+
+
+/*
+ *  Return a string representation of an esp_err_t value.
+ */
+char *esp32_errToString(esp_err_t value) {
+	switch(value) {
+	case ESP_OK:
+		return "OK";
+	case ESP_FAIL:
+		return "Fail";
+	case ESP_ERR_NO_MEM:
+		return "No memory";
+	case ESP_ERR_INVALID_ARG:
+		return "Invalid argument";
+	case ESP_ERR_INVALID_SIZE:
+		return "Invalid state";
+	case ESP_ERR_INVALID_STATE:
+		return "Invalid state";
+	case ESP_ERR_NOT_FOUND:
+		return "Not found";
+	case ESP_ERR_NOT_SUPPORTED:
+		return "Not supported";
+	case ESP_ERR_TIMEOUT:
+		return "Timeout";
+	case ESP_ERR_NVS_NOT_INITIALIZED:
+		return "ESP_ERR_NVS_NOT_INITIALIZED";
+	case ESP_ERR_NVS_NOT_FOUND:
+		return "ESP_ERR_NVS_NOT_FOUND";
+	case ESP_ERR_NVS_TYPE_MISMATCH:
+		return "ESP_ERR_NVS_TYPE_MISMATCH";
+	case ESP_ERR_NVS_READ_ONLY:
+		return "ESP_ERR_NVS_READ_ONLY";
+	case ESP_ERR_NVS_NOT_ENOUGH_SPACE:
+		return "ESP_ERR_NVS_NOT_ENOUGH_SPACE";
+	case ESP_ERR_NVS_INVALID_NAME:
+		return "ESP_ERR_NVS_INVALID_NAME";
+	case ESP_ERR_NVS_INVALID_HANDLE:
+		return "ESP_ERR_NVS_INVALID_HANDLE";
+	case ESP_ERR_NVS_REMOVE_FAILED:
+		return "ESP_ERR_NVS_REMOVE_FAILED";
+	case ESP_ERR_NVS_KEY_TOO_LONG:
+		return "ESP_ERR_NVS_KEY_TOO_LONG";
+	case ESP_ERR_NVS_PAGE_FULL:
+		return "ESP_ERR_NVS_PAGE_FULL";
+	case ESP_ERR_NVS_INVALID_STATE:
+		return "ESP_ERR_NVS_INVALID_STATE";
+	case ESP_ERR_NVS_INVALID_LENGTH:
+		return "ESP_ERR_NVS_INVALID_LENGTH";
+	}
+	if (value >= ESP_ERR_WIFI_BASE) {
+		return "WiFi error";
+	}
+	return "Unknown ESP_ERR error";
+} // espToString
