@@ -1,11 +1,9 @@
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 #include <esp_system.h>
 #include <espfs.h>
 #include "esp32_specific.h"
 #include "sdkconfig.h"
-#endif
-
-#include "logging.h"
+#endif /* ESP_PLATFORM */
 
 #include <assert.h>
 #include <duktape.h>
@@ -17,23 +15,22 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "modules.h"
+#include "duk_trans_socket.h" // The debug functions from Duktape.
+#include "duktape_utils.h"
 #include "esp32_duktape/module_fs.h"
 #include "esp32_duktape/module_gpio.h"
-#include "esp32_duktape/module_timers.h"
-#include "esp32_duktape/module_rmt.h"
 #include "esp32_duktape/module_http.h"
-#include "esp32_duktape/module_wifi.h"
-#include "esp32_duktape/module_partitions.h"
 #include "esp32_duktape/module_os.h"
+#include "esp32_duktape/module_partitions.h"
+#include "esp32_duktape/module_rmt.h"
+#include "esp32_duktape/module_timers.h"
+#include "esp32_duktape/module_wifi.h"
+#include "logging.h"
+#include "modules.h"
 #include "module_rtos.h"
 #include "module_dukf.h"
-#include "duktape_utils.h"
 
-#include "duk_trans_socket.h" // The debug functions from Duktape.
-
-
-static char tag[] = "modules";
+LOG_TAG("modules");
 
 /**
  * The native Console.log() static function.  This function is
@@ -56,7 +53,7 @@ static duk_ret_t js_console_log(duk_context *ctx) {
 		duk_pcall(ctx, 1);
 	} // Check for a handler
 	else {
-		// No handler ... so just log
+		// No handler (either doesn't exist or not a function ... so just log
 		esp32_duktape_console(message);
 	}
   return 0;
@@ -71,8 +68,8 @@ typedef struct {
 
 
 functionTableEntry_t functionTable[] = {
-		// Must be last entry
-		{NULL, NULL, 0 }
+	// Must be last entry
+	{NULL, NULL, 0 }
 };
 
 
@@ -113,7 +110,7 @@ static duk_ret_t js_esp32_getNativeFunction(duk_context *ctx) {
 	return 1;
 } // js_esp32_getNativeFunction
 
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 typedef struct {
 	char *levelString;
 	esp_log_level_t level;
@@ -157,8 +154,12 @@ static duk_ret_t js_esp32_setLogLevel(duk_context *ctx) {
 	}
 	return 0;
 } // js_esp32_setLogLevel
-
-#endif
+#else /* ESP_PLATFORM */
+static duk_ret_t js_esp32_setLogLevel(duk_context *ctx) {
+	LOGD("set Log Level not implemented");
+	return 0;
+}
+#endif /* ESP_PLATFORM */
 
 /**
  * Load a file using the POSIX file I/O functions.
@@ -249,7 +250,7 @@ static duk_ret_t js_esp32_loadFile(duk_context *ctx) {
 	return 1;
 } // js_esp32_loadFile
 
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 /**
  * Load a text file and push it onto the stack using the ESPFS technologies.
  */
@@ -273,7 +274,7 @@ static duk_ret_t js_esp32_dumpESPFS(duk_context *ctx) {
 	return 0;
 } // js_esp32_dumpESPFS
 
-#endif
+#endif /* ESP_PLATFORM */
 
 
 /**
@@ -284,13 +285,14 @@ static duk_ret_t js_esp32_reset(duk_context *ctx) {
 	return 0;
 } // js_esp32_reset
 
-#ifdef ESP_PLATFORM
 /**
  * ESP32.getState()
  * Return an object that describes the state of the ESP32 environment.
  * - heapSize - The available heap size.
  */
 static duk_ret_t js_esp32_getState(duk_context *ctx) {
+
+#if defined(ESP_PLATFORM)
 	// [0] - New object
 	duk_push_object(ctx); // Create new getState object
 
@@ -300,10 +302,20 @@ static duk_ret_t js_esp32_getState(duk_context *ctx) {
 
 	// [0] - New object
 	duk_put_prop_string(ctx, -2, "heapSize"); // Add heapSize to new getState
+#else /* ESP_PLATFORM */
+	// [0] - New object
+	duk_push_object(ctx); // Create new getState object
 
+	// [0] - New object
+	// [1] - heap size
+	duk_push_number(ctx, (double)999999);
+
+	// [0] - New object
+	duk_put_prop_string(ctx, -2, "heapSize"); // Add heapSize to new getState
+#endif /* ESP_PLATFORM */
 	return 1;
 } // js_esp32_getState
-#endif
+
 
 
 /**
@@ -311,7 +323,7 @@ static duk_ret_t js_esp32_getState(duk_context *ctx) {
  * as the global log("message").
  */
 static duk_ret_t js_global_log(duk_context *ctx) {
-	LOGD("%s", duk_safe_to_string(ctx, -1));
+	LOGD_TAG("log", "%s", duk_safe_to_string(ctx, -1));
 	return 0;
 } // js_global_log
 
@@ -371,7 +383,7 @@ static void ModuleESP32(duk_context *ctx) {
 	duk_put_prop_string(ctx, -2, "reset"); // Add reset to new ESP32
 	// [0] - Global object
 	// [1] - New object
-#ifdef ESP_PLATFORM
+
 	duk_push_c_function(ctx, js_esp32_getState, 0);
 	// [0] - Global object
 	// [1] - New object
@@ -390,7 +402,7 @@ static void ModuleESP32(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object
 
-
+#if defined(ESP_PLATFORM)
 	duk_push_c_function(ctx, js_esp32_loadFileESPFS, 1);
 	// [0] - Global object
 	// [1] - New object
@@ -408,7 +420,7 @@ static void ModuleESP32(duk_context *ctx) {
 	duk_put_prop_string(ctx, -2, "dumpESPFS"); // Add dumpESPFS to new ESP32
 	// [0] - Global object
 	// [1] - New object
-#endif
+#endif /* ESP_PLATFORM */
 
 	duk_push_c_function(ctx, js_esp32_getNativeFunction, 1);
 	// [0] - Global object
@@ -441,9 +453,9 @@ static void ModuleESP32(duk_context *ctx) {
  * bein the global address space/scope.
  */
 void registerModules(duk_context *ctx) {
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 	espFsInit((void *)0x360000, 4 * 64 * 1024);
-#endif
+#endif /* ESP_PLATFORM */
 
 	duk_idx_t top = duk_get_top(ctx);
 	ModuleConsole(ctx);
@@ -457,7 +469,7 @@ void registerModules(duk_context *ctx) {
 	ModuleDUKF(ctx);
 	assert(top == duk_get_top(ctx));
 
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 	ModuleGPIO(ctx);
 	assert(top == duk_get_top(ctx));
 	ModuleWIFI(ctx);
@@ -470,6 +482,6 @@ void registerModules(duk_context *ctx) {
 	assert(top == duk_get_top(ctx));
 	//ModuleTIMERS(ctx);
 	//assert(top == duk_get_top(ctx));
-#endif
+#endif /* ESP_PLATFORM */
 
 } // End of registerModules

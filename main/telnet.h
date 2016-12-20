@@ -1,4 +1,4 @@
-#ifndef _TELNET_H
+#if !defined(_TELNET_H)
 #define _TELNET_H
 #include <sys/types.h>
 #include "freertos/FreeRTOS.h"

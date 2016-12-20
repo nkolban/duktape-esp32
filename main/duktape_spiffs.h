@@ -5,7 +5,7 @@
  *      Author: kolban
  */
 
-#ifndef MAIN_DUKTAPE_SPIFFS_H_
+#if !defined(MAIN_DUKTAPE_SPIFFS_H_)
 #define MAIN_DUKTAPE_SPIFFS_H_
 #include <spiffs.h>
 #include <duktape.h>

@@ -2,18 +2,18 @@
  * ESP32 specific functions supporting the Duktape project.
  */
 
-#include <esp_vfs.h>
 #include <esp_log.h>
-#include <stdlib.h>
+#include <esp_vfs.h>
+#include <espfs.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <espfs.h>
+
+#include "logging.h"
 #include "sdkconfig.h"
 
-
-
-static char tag[] = "esp32_specific";
+LOG_TAG("esp32_specific");
 
 static char *g_baseURL;
 
@@ -34,7 +34,7 @@ static file_record_t *getFilerecord(int fd);
 char *esp32_loadFileESPFS(char *path, size_t *fileSize) {
 	EspFsFile *fh = espFsOpen((char *)path);
 	if (fh == NULL) {
-		ESP_LOGD(tag, " Failed to open file %s", path);
+		LOGD(" Failed to open file %s", path);
 		return NULL;
 	}
   char *data;
@@ -42,50 +42,51 @@ char *esp32_loadFileESPFS(char *path, size_t *fileSize) {
   espFsClose(fh);
   // Note ... because data is mapped in memory from flash ... it will be good
   // past the file close.
-  ESP_LOGD(tag, "esp32_loadFileESPFS: Read file %s for size %d", path, *fileSize);
+  LOGD("esp32_loadFileESPFS: Read file %s for size %d", path, *fileSize);
   return data;
 } // esp32_loadFileESPFS
+
 
 /**
  * Log the flags that are specified in an open() call.
  */
 static void logFlags(int flags) {
-	ESP_LOGD(tag, "flags:");
+	LOGD("flags:");
 	if (flags & O_APPEND) {
-		ESP_LOGD(tag, "- O_APPEND");
+		LOGD("- O_APPEND");
 	}
 	if (flags & O_CREAT) {
-		ESP_LOGD(tag, "- O_CREAT");
+		LOGD("- O_CREAT");
 	}
 	if (flags & O_TRUNC) {
-		ESP_LOGD(tag, "- O_TRUNC");
+		LOGD("- O_TRUNC");
 	}
 	if (flags & O_RDONLY) {
-		ESP_LOGD(tag, "- O_RDONLY");
+		LOGD("- O_RDONLY");
 	}
 	if (flags & O_WRONLY) {
-		ESP_LOGD(tag, "- O_WRONLY");
+		LOGD("- O_WRONLY");
 	}
 	if (flags & O_RDWR) {
-		ESP_LOGD(tag, "- O_RDWR");
+		LOGD("- O_RDWR");
 	}
 } // End of logFlags
 
 
 static size_t vfs_write(int fd, const void *data, size_t size) {
-	ESP_LOGI(tag, ">> write fd=%d, data=0x%lx, size=%d", fd, (unsigned long)data, size);
+	LOGD(">> write fd=%d, data=0x%lx, size=%d", fd, (unsigned long)data, size);
 	return 0;
 }
 
 
 static off_t vfs_lseek(int fd, off_t offset, int whence) {
-	ESP_LOGI(tag, ">> lseek fd=%d, offset=%d, whence=%d", fd, (int)offset, whence);
+	LOGD(">> lseek fd=%d, offset=%d, whence=%d", fd, (int)offset, whence);
 	return 0;
 }
 
 
 static ssize_t vfs_read(int fd, void *dst, size_t size) {
-	ESP_LOGI(tag, ">> read fd=%d, dst=0x%lx, size=%d", fd, (unsigned long)dst, size);
+	LOGD(">> read fd=%d, dst=0x%lx, size=%d", fd, (unsigned long)dst, size);
 	return 0;
 }
 
@@ -103,38 +104,38 @@ static ssize_t vfs_read(int fd, void *dst, size_t size) {
  * The mode are access mode flags.
  */
 static int vfs_open(const char *path, int flags, int accessMode) {
-	ESP_LOGI(tag, ">> open path=%s, flags=0x%x, accessMode=0x%x", path, flags, accessMode);
+	LOGD(">> open path=%s, flags=0x%x, accessMode=0x%x", path, flags, accessMode);
 	logFlags(flags);
 	return -1;
 }
 
 
 static int vfs_close(int fd) {
-	ESP_LOGI(tag, ">> close fd=%d", fd);
+	LOGD(">> close fd=%d", fd);
 	return 0;
 }
 
 
 static int vfs_fstat(int fd, struct stat *st) {
-	ESP_LOGI(tag, ">> fstat fd=%d", fd);
+	LOGD(">> fstat fd=%d", fd);
 	return 0;
 }
 
 
 static int vfs_stat(const char *path, struct stat *st) {
-	ESP_LOGI(tag, ">> stat path=%s", path);
+	LOGD(">> stat path=%s", path);
 	return 0;
 }
 
 
 static int vfs_link(const char *oldPath, const char *newPath) {
-	ESP_LOGI(tag, ">> link oldPath=%s, newPath=%s", oldPath, newPath);
+	LOGD(">> link oldPath=%s, newPath=%s", oldPath, newPath);
 	return 0;
 }
 
 
 static int vfs_rename(const char *oldPath, const char *newPath) {
-	ESP_LOGI(tag, ">> rename oldPath=%s, newPath=%s", oldPath, newPath);
+	LOGD(">> rename oldPath=%s, newPath=%s", oldPath, newPath);
 	return 0;
 }
 
@@ -151,7 +152,7 @@ void registerTestVFS(char *mountPoint) {
 
 
 void setupVFS() {
-	ESP_LOGD(tag, ">> setupVFS");
+	LOGD(">> setupVFS");
 	char *mountPoint = "/modules";
 	esp_vfs_t vfs;
 	esp_err_t err;
@@ -170,9 +171,9 @@ void setupVFS() {
 
 	err = esp_vfs_register(mountPoint, &vfs, NULL);
 	if (err != ESP_OK) {
-		ESP_LOGE(tag, "setupVFS: esp_vfs_register: err=%d", err);
+		LOGE("setupVFS: esp_vfs_register: err=%d", err);
 	}
-	ESP_LOGD(tag, "<< setupVFS");
+	LOGD("<< setupVFS");
 } // setupVFS
 
 
@@ -190,17 +191,17 @@ static int web_vfs_open(const char *path, int flags, int accessMode) {
 
 
 static int web_vfs_close(int fd) {
-	ESP_LOGI(tag, ">> web_vfs_close fd=%d", fd);
+	LOGD(">> web_vfs_close fd=%d", fd);
 	if (fd == -1) {
 		return 0;
 	}
 	file_record_t *pFileRecord = getFilerecord(fd);
 	if (pFileRecord == NULL) {
-		ESP_LOGD(tag, "File record for fd=%d not found", fd);
+		LOGD("File record for fd=%d not found", fd);
 		return -1;
 	}
 	if (pFileRecord->inUse == 0) {
-		ESP_LOGD(tag, "Unexpected state ... closing fd=%d but it appear to be free", fd);
+		LOGD("Unexpected state ... closing fd=%d but it appear to be free", fd);
 		return -1;
 	}
 	free(pFileRecord->data);
@@ -223,7 +224,7 @@ static ssize_t web_vfs_read(
 	) {
 	ssize_t retSize;
 	file_record_t *pFileRecord = &file_records[0];
-	ESP_LOGI(tag, ">> web_vfs_read fd=%d, dst=0x%lx, bufferSize=%d", fd, (unsigned long)dst, bufferSize);
+	LOGD(">> web_vfs_read fd=%d, dst=0x%lx, bufferSize=%d", fd, (unsigned long)dst, bufferSize);
 	// We must check that the amount of file data requested to copy will fit in the
 	// buffer.  If we have been passed in a buffer that is less than the size of
 	// the file we read, then we need to adjust.
@@ -235,7 +236,7 @@ static ssize_t web_vfs_read(
 	memcpy(dst, pFileRecord->data + pFileRecord->fptr, retSize);
 	pFileRecord->fptr += retSize;
 
-	ESP_LOGD(tag, "<< web_vfs_read  retSize = %d", retSize);
+	LOGD("<< web_vfs_read  retSize = %d", retSize);
 	return retSize;
 } // web_vfs_read
 
@@ -277,7 +278,7 @@ void setupWebVFS(const char *mountPoint, char *baseURL) {
 
 	err = esp_vfs_register(mountPoint, &vfs, NULL);
 	if (err != ESP_OK) {
-		ESP_LOGE(tag, "createWebVFS: esp_vfs_register: err=%d", err);
+		LOGE("createWebVFS: esp_vfs_register: err=%d", err);
 	}
 	int i;
 	for (i=0; i<MAX_WEB_FILE_RECORDS; i++) {

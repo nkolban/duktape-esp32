@@ -10,18 +10,20 @@
  * * txConfig
  */
 
-#include <stdbool.h>
+#include <driver/rmt.h>
+#include <duktape.h>
+#include <errno.h>
 #include <esp_log.h>
 #include <esp_system.h>
-#include <duktape.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
-#include <driver/rmt.h>
+
 #include "duktape_utils.h"
+#include "logging.h"
 #include "sdkconfig.h"
 
-static char tag[] = "module_rmt";
+LOG_TAG("module_rmt");
 
 /**
  * Get the state of a channel.
@@ -151,17 +153,17 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
 	bool waitForWrite = 1;
 
 	if (!duk_is_number(ctx, 0)) {
-		ESP_LOGD(tag, "jms_rmt_write - param 1 is not a number")
+		LOGD("jms_rmt_write - param 1 is not a number")
 		return 0;
 	}
 	channel = duk_get_int(ctx, 0); // Get the channel number from parameter 0.
 	if (channel <0 || channel >= RMT_CHANNEL_MAX) {
-		ESP_LOGD(tag, "jms_rmt_write - channel is out of range")
+		LOGD("jms_rmt_write - channel is out of range")
 		return 0;
 	}
 
 	if (!duk_is_array(ctx, 1)) {
-		ESP_LOGD(tag, "jms_rmt_write - param 2 is not an array")
+		LOGD("jms_rmt_write - param 2 is not an array")
 		return 0;
 	}
 	length = duk_get_length(ctx, 1);
@@ -171,9 +173,9 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
 	duk_pop(ctx); // Pop the level
 	*/
 
-	ESP_LOGD(tag, "Length of array is %d", length);
+	LOGD("Length of array is %d", length);
 	if (length == 0) {
-		ESP_LOGD(tag, "jms_rmt_write - length of items is 0")
+		LOGD("jms_rmt_write - length of items is 0")
 		return 0;
 	}
 
@@ -207,7 +209,7 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
 
 		setItem(level, duration, i, itemArray);
 
-		ESP_LOGD(tag, "item: %d - level=%d, duration=%d", i, level, duration);
+		LOGD("item: %d - level=%d, duration=%d", i, level, duration);
 	}
 	setItem(0, 0, length, itemArray); // Set the trailer
 	ESP_ERROR_CHECK(rmt_driver_install(channel, 0, 19));
@@ -234,7 +236,7 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
  * [1] - object - Configuration
  */
 static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_rmt_txConfig");
+	LOGD(">> js_rmt_txConfig");
 	rmt_channel_t channel;
 	gpio_num_t gpio;
 	uint8_t memBlocks = 1;
@@ -243,14 +245,14 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 
 	channel = duk_get_int(ctx, 0);
 	if (channel >= RMT_CHANNEL_MAX) {
-		ESP_LOGE(tag, "Channel out of range");
+		LOGE("Channel out of range");
 		return 0;
 	}
 
 	if (duk_get_prop_string(ctx, 1, "gpio")) {
 		gpio = duk_get_int(ctx, -1);
 	} else {
-		ESP_LOGE(tag, "No mandatory gpio supplied");
+		LOGE("No mandatory gpio supplied");
 		return 0;
 	}
 	duk_pop(ctx);
@@ -258,7 +260,7 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 	if (duk_get_prop_string(ctx, 1, "memBlocks")) {
 		memBlocks = duk_get_int(ctx, -1);
 		if (memBlocks == 0) {
-			ESP_LOGE(tag, "memBlocks must be >= 1");
+			LOGE("memBlocks must be >= 1");
 			return 0;
 		}
 	}
@@ -276,7 +278,7 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 	if (duk_get_prop_string(ctx, 1, "clockDiv")) {
 		clockDiv = duk_get_int(ctx, -1);
 		if (clockDiv == 0) {
-			ESP_LOGE(tag, "clockDiv must be >= 1");
+			LOGE("clockDiv must be >= 1");
 		}
 	}
 	duk_pop(ctx);
@@ -297,7 +299,7 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 	ESP_ERROR_CHECK(rmt_config(&config));
 
 
-	ESP_LOGD(tag, "<< js_rmt_txConfig");
+	LOGD("<< js_rmt_txConfig");
   return 0;
 } // js_fs_openSync
 

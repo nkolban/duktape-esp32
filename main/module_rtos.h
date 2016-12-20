@@ -5,7 +5,7 @@
  *      Author: kolban
  */
 
-#ifndef MAIN_MODULE_RTOS_H_
+#if !defined(MAIN_MODULE_RTOS_H_)
 #define MAIN_MODULE_RTOS_H_
 
 void ModuleRTOS(duk_context *ctx);

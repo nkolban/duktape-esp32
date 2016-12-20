@@ -1,16 +1,26 @@
 #Modules
 Built into the solution are a variety of Modules.
 
+* [Globals](#globals)
 * [console](#console)
+* [DUKF](#DUKF)
 * [ESP32](#esp32)
 * [FS](#fs)
 * [HTTP](#http)
+* [HTTPRequest](#HTTPRequest)
+* [HTTPResponse](#HTTPResponse)
 * [HTTPParser](#httpparser)
 * [net](#net)
 * [OS](#os)
 * [PARTITIONS](#partitions)
 * [RMT](#rmt)
 * [Stream](#stream)
+* [StreamReader](#StreamReader)
+* [StreamWriter](#StreamWriter)
+* [URL](#url)
+* [WS](#WS)
+* [WebSocketConnection](#WebSocketConnection)
+* [WebSocketServer](#WebSocketServer)
 * [WiFi](#wifi)
 
 
@@ -320,7 +330,7 @@ The return is an object that contains details of the file:
 }
 ```
 
-##unlink
+###unlink
 Unlink (remove) a file.
 
 Syntax:
@@ -945,10 +955,17 @@ Close the connection to the partner.
 Syntax:
 `close()`
 
-
 ###on
 Register an event handler.  The event handlers are:
+* `close` - Called when the connection is closed.
 * `message` - A frame received from a WebSocket partner.
+
+For example:
+```
+connection.on("close", function() {
+   // do something when the connection closes.
+});
+```
 
 ###path
 The path of the websocket connection.

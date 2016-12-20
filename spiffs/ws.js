@@ -48,7 +48,7 @@ var OPCODE= {
 var HTTP=require("http.js");
 
 var connectionCallback = null;
-var onMessageCallback = null;
+
 
 /*
 Frame format:  
@@ -319,6 +319,8 @@ function requestHandler(request, response) {
       if (connectionCallback !== null) {
    		var closeSent = false;
    		var newConnection;
+   		var onMessageCallback = null;
+   		var onCloseCallback = null;
    		
    		var sock = request.getSocket();
    		sock.on("data", function(incomingFrame) {
@@ -333,6 +335,9 @@ function requestHandler(request, response) {
 					// Handle the close request.
 					if (closeSent) {
 						response.end();
+						if (onCloseCallback != null) {
+							onCloseCallback();
+						}
 					} else {
 						newConnection.close();
 					}
@@ -353,6 +358,9 @@ function requestHandler(request, response) {
       			if (eventType == "message") {
       				onMessageCallback = callback;			
       			} // eventType == message
+      			else if (eventType == "close") {
+      				onCloseCallback = callback;
+      			} // eventType == close
       		}, // on
       		
       		//

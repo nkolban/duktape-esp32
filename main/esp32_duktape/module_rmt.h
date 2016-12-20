@@ -5,7 +5,7 @@
  *      Author: kolban
  */
 
-#ifndef MAIN_MODULE_RMT_H_
+#if !defined(MAIN_MODULE_RMT_H_)
 #define MAIN_MODULE_RMT_H_
 
 void ModuleRMT(duk_context *ctx);

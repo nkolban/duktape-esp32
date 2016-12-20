@@ -5,7 +5,7 @@
  *      Author: kolban
  */
 
-#ifndef MAIN_DUKF_UTILS_H_
+#if !defined(MAIN_DUKF_UTILS_H_)
 #define MAIN_DUKF_UTILS_H_
 #include <duktape.h>
 #include <stdint.h>

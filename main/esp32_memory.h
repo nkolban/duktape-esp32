@@ -5,7 +5,7 @@
  *      Author: kolban
  */
 
-#ifndef MAIN_ESP32_MEMORY_H_
+#if !defined(MAIN_ESP32_MEMORY_H_)
 #define MAIN_ESP32_MEMORY_H_
 
 #include <esp_system.h>
@@ -23,6 +23,5 @@ static uint32_t _counter = 0;
 		_counter = 0; \
 	} else { _counter++; }\
 }
-
 
 #endif /* MAIN_ESP32_MEMORY_H_ */

@@ -10,10 +10,11 @@
 #include <errno.h>
 #include <duktape.h>
 #include "sdkconfig.h"
+#include "logging.h"
+
+LOG_TAG("duktape_spiffs");
 
 #define DUKTAPE_VFS_MOUNTPOINT "/spiffs"
-
-static char tag[] = "duktape_spiffs";
 
 // SPIFFS storage areas.
 static spiffs fs;
@@ -89,12 +90,12 @@ void esp32_duktape_dump_spiffs_array(duk_context *ctx) {
 	struct spiffs_dirent dirEnt;
 	const char rootPath[] = "/";
 
-	ESP_LOGD(tag, ">> esp32_duktape_dump_spiffs_array: rootPath=\"%s\"", rootPath);
+	LOGD(">> esp32_duktape_dump_spiffs_array: rootPath=\"%s\"", rootPath);
 
 	duk_push_array(ctx);
 
 	if (SPIFFS_opendir(&fs, rootPath, &dir) == NULL) {
-		ESP_LOGD(tag, "Unable to open %s dir", rootPath);
+		LOGD("Unable to open %s dir", rootPath);
 		return;
 	}
 	int arrayIndex = 0;
@@ -112,7 +113,7 @@ void esp32_duktape_dump_spiffs_array(duk_context *ctx) {
 		duk_put_prop_index(ctx, -2, arrayIndex);
 		arrayIndex++;
 	}
-	ESP_LOGD(tag, "<< esp32_duktape_dump_spiffs_array");
+	LOGD("<< esp32_duktape_dump_spiffs_array");
 	return;
 } // esp32_duktape_dump_spiffs_json
 
@@ -122,19 +123,19 @@ void esp32_duktape_dump_spiffs() {
 	struct spiffs_dirent dirEnt;
 	const char rootPath[] = "/";
 
-	ESP_LOGD(tag, ">> dump_fs: %s", rootPath);
+	LOGD(">> dump_fs: %s", rootPath);
 
 	if (SPIFFS_opendir(&fs, rootPath, &dir) == NULL) {
-		ESP_LOGD(tag, "Unable to open %s dir", rootPath);
+		LOGD("Unable to open %s dir", rootPath);
 		return;
 	}
 
 	while(1) {
 		if (SPIFFS_readdir(&dir, &dirEnt) == NULL) {
-			ESP_LOGD(tag, "<< dump_fs");
+			LOGD("<< dump_fs");
 			return;
 		}
-		ESP_LOGD(tag, "name=%s, id=%x, type=%s, size=%d", dirEnt.name, dirEnt.obj_id, typeToString(dirEnt.type), dirEnt.size)
+		LOGD("name=%s, id=%x, type=%s, size=%d", dirEnt.name, dirEnt.obj_id, typeToString(dirEnt.type), dirEnt.size)
 	}
 } // dump_fs
 
@@ -166,7 +167,7 @@ void esp32_duktape_spiffs_mount() {
 		sizeof(spiffs_cache_buf),
 		0);
 	if (rc != 0) {
-		ESP_LOGE(tag, "Error: rc from spiffs mount = %d", rc);
+		LOGE("Error: rc from spiffs mount = %d", rc);
 	} else {
 		spiffs_registerVFS(DUKTAPE_VFS_MOUNTPOINT, &fs);
 	}
@@ -200,32 +201,32 @@ static int spiffsErrMap(spiffs *fs) {
  * Log the flags that are specified in an open() POSIX call.
  */
 static void logOpenFlags(int flags) {
-	ESP_LOGD(tag, "flags:");
+	LOGD("flags:");
 	if (flags & O_APPEND) {
-		ESP_LOGD(tag, "- O_APPEND");
+		LOGD("- O_APPEND");
 	}
 	if (flags & O_CREAT) {
-		ESP_LOGD(tag, "- O_CREAT");
+		LOGD("- O_CREAT");
 	}
 	if (flags & O_TRUNC) {
-		ESP_LOGD(tag, "- O_TRUNC");
+		LOGD("- O_TRUNC");
 	}
 
 	int openMode = flags & 3;
 	if (openMode == O_RDONLY) {
-		ESP_LOGD(tag, "- O_RDONLY");
+		LOGD("- O_RDONLY");
 	}
 	if (openMode == O_WRONLY) {
-		ESP_LOGD(tag, "- O_WRONLY");
+		LOGD("- O_WRONLY");
 	}
 	if (openMode == O_RDWR) {
-		ESP_LOGD(tag, "- O_RDWR");
+		LOGD("- O_RDWR");
 	}
 } // End of logFlags
 
 
 static size_t vfs_write(void *ctx, int fd, const void *data, size_t size) {
-	ESP_LOGI(tag, ">> write fd=%d, data=0x%lx, size=%d", fd, (unsigned long)data, size);
+	LOGD(">> write fd=%d, data=0x%lx, size=%d", fd, (unsigned long)data, size);
 	spiffs *fs = (spiffs *)ctx;
 	size_t retSize = SPIFFS_write(fs, (spiffs_file)fd, (void *)data, size);
 	return retSize;
@@ -233,7 +234,7 @@ static size_t vfs_write(void *ctx, int fd, const void *data, size_t size) {
 
 
 static off_t vfs_lseek(void *ctx, int fd, off_t offset, int whence) {
-	ESP_LOGI(tag, ">> lseek fd=%d, offset=%d, whence=%d", fd, (int)offset, whence);
+	LOGD(">> lseek fd=%d, offset=%d, whence=%d", fd, (int)offset, whence);
 	spiffs *fs = (spiffs *)ctx;
 	int rc = SPIFFS_lseek(fs, fd, offset, whence);
 	return rc;
@@ -241,10 +242,10 @@ static off_t vfs_lseek(void *ctx, int fd, off_t offset, int whence) {
 
 
 static ssize_t vfs_read(void *ctx, int fd, void *dst, size_t size) {
-	ESP_LOGI(tag, ">> read fd=%d, dst=0x%lx, size=%d", fd, (unsigned long)dst, size);
+	LOGD(">> read fd=%d, dst=0x%lx, size=%d", fd, (unsigned long)dst, size);
 	spiffs *fs = (spiffs *)ctx;
 	ssize_t retSize = SPIFFS_read(fs, (spiffs_file)fd, dst, size);
-	ESP_LOGD(tag, "vfs_read(SPIFFS): We read %d %s", retSize, retSize<0?spiffsErrorToString(retSize):"");
+	LOGD("vfs_read(SPIFFS): We read %d %s", retSize, retSize<0?spiffsErrorToString(retSize):"");
 	return retSize;
 } // vfs_read
 
@@ -263,7 +264,7 @@ static ssize_t vfs_read(void *ctx, int fd, void *dst, size_t size) {
  * The mode are access mode flags.
  */
 static int vfs_open(void *ctx, const char *path, int flags, int accessMode) {
-	ESP_LOGI(tag, ">> open path=%s, flags=0x%x, accessMode=0x%x", path, flags, accessMode);
+	LOGD(">> open path=%s, flags=0x%x, accessMode=0x%x", path, flags, accessMode);
 	logOpenFlags(flags);
 	spiffs *fs = (spiffs *)ctx;
 	int spiffsFlags = 0;
@@ -298,7 +299,7 @@ static int vfs_open(void *ctx, const char *path, int flags, int accessMode) {
 
 
 static int vfs_close(void *ctx, int fd) {
-	ESP_LOGI(tag, ">> close fd=%d", fd);
+	LOGD(">> close fd=%d", fd);
 	spiffs *fs = (spiffs *)ctx;
 	int rc = SPIFFS_close(fs, (spiffs_file)fd);
 	return rc;
@@ -307,7 +308,7 @@ static int vfs_close(void *ctx, int fd) {
 
 static int vfs_fstat(void *ctx, int fd, struct stat *st) {
 	spiffs_stat spiffsStat;
-	ESP_LOGI(tag, ">> fstat fd=%d", fd);
+	LOGD(">> fstat fd=%d", fd);
 	spiffs *fs = (spiffs *)ctx;
 	SPIFFS_fstat(fs, fd, &spiffsStat);
 	st->st_size = spiffsStat.size;
@@ -316,7 +317,7 @@ static int vfs_fstat(void *ctx, int fd, struct stat *st) {
 
 
 static int vfs_stat(void *ctx, const char *path, struct stat *st) {
-	ESP_LOGI(tag, ">> stat path=%s", path);
+	LOGD(">> stat path=%s", path);
 	spiffs_stat spiffsStat;
 	spiffs *fs = (spiffs *)ctx;
 	SPIFFS_stat(fs, path, &spiffsStat);
@@ -326,7 +327,7 @@ static int vfs_stat(void *ctx, const char *path, struct stat *st) {
 
 
 static int vfs_unlink(void *ctx, const char *path) {
-	ESP_LOGI(tag, ">> unlink path=%s", path);
+	LOGD(">> unlink path=%s", path);
 	spiffs *fs = (spiffs *)ctx;
 	SPIFFS_remove(fs, path);
 	return 0;
@@ -334,14 +335,14 @@ static int vfs_unlink(void *ctx, const char *path) {
 
 
 static int vfs_link(void *ctx, const char *oldPath, const char *newPath) {
-	ESP_LOGI(tag, ">> link oldPath=%s, newPath=%s", oldPath, newPath);
+	LOGD(">> link oldPath=%s, newPath=%s", oldPath, newPath);
 	return 0;
 } // vfs_link
 
 
 
 static int vfs_rename(void *ctx, const char *oldPath, const char *newPath) {
-	ESP_LOGI(tag, ">> rename oldPath=%s, newPath=%s", oldPath, newPath);
+	LOGD(">> rename oldPath=%s, newPath=%s", oldPath, newPath);
 	spiffs *fs = (spiffs *)ctx;
 	int rc = SPIFFS_rename(fs, oldPath, newPath);
 	return rc;
@@ -373,7 +374,6 @@ static void spiffs_registerVFS(char *mountPoint, spiffs *fs) {
 
 	err = esp_vfs_register(mountPoint, &vfs, (void *)fs);
 	if (err != ESP_OK) {
-		ESP_LOGE(tag, "esp_vfs_register: err=%d", err);
+		LOGE("esp_vfs_register: err=%d", err);
 	}
 } // spiffs_registerVFS
-

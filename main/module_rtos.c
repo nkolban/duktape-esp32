@@ -29,10 +29,10 @@ static duk_ret_t js_rtos_systemState(duk_context *ctx) {
 	free(statusData);
 	LOGD("<< js_rtos_systemState");
 	return 0;
-#else
+#else /* configUSE_TRACE_FACILITY */
 	LOGD(">> js_rtos_systemState not enabled ... configUSE_TRACE_FACILITY <> 1");
 	return 0;
-#endif
+#endif /* configUSE_TRACE_FACILITY */
 }
 
 /**

@@ -1,7 +1,3 @@
-#include <stdbool.h>
-#include <esp_log.h>
-#include <esp_system.h>
-#include <duktape.h>
 /**
  * Implement the GPIO functions.
  *
@@ -13,20 +9,28 @@
  * * pinMode
  *
  */
+#include <driver/gpio.h>
+#include <duktape.h>
+#include <errno.h>
+#include <esp_log.h>
+#include <esp_system.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
-#include <driver/gpio.h>
 #include "duktape_utils.h"
+#include "logging.h"
 #include "sdkconfig.h"
 
-static char tag[] = "module_gpio";
+LOG_TAG("module_gpio");
 
 
+/**
+ * Get the pin mode.
+ */
 static duk_ret_t js_gpio_getPinMode(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_gpio_getPinMode");
-	ESP_LOGD(tag, "Not implemented");
-	ESP_LOGD(tag, "<< js_gpio_getPinMode");
+	LOGD(">> js_gpio_getPinMode");
+	LOGD("Not implemented");
+	LOGD("<< js_gpio_getPinMode");
 	return 0;
 } // js_gpio_getPinMode
 
@@ -36,14 +40,14 @@ static duk_ret_t js_gpio_getPinMode(duk_context *ctx) {
  * [0] - Integer - pin number
  */
 static duk_ret_t js_gpio_digitalRead(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_gpio_digitalRead");
+	LOGD(">> js_gpio_digitalRead");
 	int pinNumber = duk_get_int(ctx, 0);
 	if (pinNumber < 0 || pinNumber >39) {
-		ESP_LOGD(tag, "Pin out of range");
+		LOGD("Pin out of range");
 		return 0;
 	}
 	duk_push_boolean(ctx, gpio_get_level(pinNumber));
-	ESP_LOGD(tag, "<< js_gpio_digitalRead");
+	LOGD("<< js_gpio_digitalRead");
 	return 1;
 } // js_gpio_digitalRead
 
@@ -54,15 +58,15 @@ static duk_ret_t js_gpio_digitalRead(duk_context *ctx) {
  * [1] - boolean - value
  */
 static duk_ret_t js_gpio_digitalWrite(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_gpio_digitalWrite");
+	LOGD(">> js_gpio_digitalWrite");
 	int pinNumber = duk_get_int(ctx, 0);
 	int value = duk_get_boolean(ctx, 1);
 	if (pinNumber < 0 || pinNumber >39) {
-		ESP_LOGD(tag, "Pin out of range");
+		LOGD("Pin out of range");
 		return 0;
 	}
 	gpio_set_level(pinNumber, value);
-	ESP_LOGD(tag, "<< js_gpio_digitalWrite");
+	LOGD("<< js_gpio_digitalWrite");
 	return 0;
 } // js_gpio_digitalWrite
 
@@ -73,7 +77,7 @@ static duk_ret_t js_gpio_digitalWrite(duk_context *ctx) {
  * [1] - String - mode - analog, input, output
  */
 static duk_ret_t js_gpio_pinMode(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_gpio_pinMode");
+	LOGD(">> js_gpio_pinMode");
 	int pinNumber = duk_get_int(ctx, 0);
 	const char *modeString = duk_get_string(ctx, 1);
 	gpio_mode_t mode;
@@ -84,16 +88,16 @@ static duk_ret_t js_gpio_pinMode(duk_context *ctx) {
 	} if (strcmp(modeString, "output") == 0) {
 		mode = GPIO_MODE_OUTPUT;
 	} else {
-		ESP_LOGD(tag, "Unknown mode: %s", modeString);
+		LOGD("Unknown mode: %s", modeString);
 		return 0;
 	}
 	if (pinNumber < 0 || pinNumber >39) {
-		ESP_LOGD(tag, "Pin out of range");
+		LOGD("Pin out of range");
 		return 0;
 	}
 	gpio_pad_select_gpio(pinNumber); // Ask the ESP32 to use the specified pin for GPIO.
 	gpio_set_direction(pinNumber, mode); // Set the GPIO mode.
-	ESP_LOGD(tag, "<< js_gpio_pinMode");
+	LOGD("<< js_gpio_pinMode");
 	return 0;
 } // js_gpio_pinMode
 

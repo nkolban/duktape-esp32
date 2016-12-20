@@ -5,7 +5,7 @@
  *      Author: kolban
  */
 
-#ifndef MAIN_ESP32_DUKTAPE_C_TIMEUTILS_H_
+#if !defined(MAIN_ESP32_DUKTAPE_C_TIMEUTILS_H_)
 #define MAIN_ESP32_DUKTAPE_C_TIMEUTILS_H_
 #include <sys/time.h>
 #include <stdint.h>

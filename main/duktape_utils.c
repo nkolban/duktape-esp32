@@ -6,8 +6,8 @@
 
 #include <duktape.h>
 #include <sys/time.h>
-#include "logging.h"
 #include "duktape_utils.h"
+#include "logging.h"
 
 LOG_TAG("duktape_utils");
 
@@ -16,23 +16,31 @@ LOG_TAG("duktape_utils");
 // Global flag for whether or not a reset has been request.
 static int g_reset = 0;
 
+// Global counter for the next "stash" key.
 static uint32_t g_stashCounter = 1;
 
+
+/**
+ * Get the next stash key.
+ * Return a unique integer value that is the stash key to return for
+ * someone who needs a new stash key value.
+ */
 static uint32_t getNextStashKey() {
 	uint32_t stashKey = g_stashCounter;
 	g_stashCounter++;
 	return stashKey;
 } // getNextStashKey
 
+
 /**
- *
-Property
-name	  Compatibility	Description
-name	     standard	 Name of error, e.g. TypeError, inherited
-message	   standard	 Optional message of error, own property, empty message inherited if absent
-fileName	 Rhino     Filename related to error source, inherited accessor
-lineNumber Rhino     Linenumber related to error source, inherited accessor
-stack	     V8        Traceback as a multi-line human redable string, inherited accessor
+ *  Log a Duktape Error.
+ *  Property
+ *  name	  Compatibility	Description
+ *  name	     standard	 Name of error, e.g. TypeError, inherited
+ *  message	   standard	 Optional message of error, own property, empty message inherited if absent
+ *  fileName	 Rhino     Filename related to error source, inherited accessor
+ *  lineNumber Rhino     Linenumber related to error source, inherited accessor
+ *  stack	     V8        Traceback as a multi-line human redable string, inherited accessor
  */
 void esp32_duktape_log_error(duk_context *ctx) {
 	duk_idx_t errObjIdx = duk_get_top_index(ctx);
@@ -62,11 +70,12 @@ void esp32_duktape_log_error(duk_context *ctx) {
 
 /**
  * Initialize the stash environment.  This must be called before any other
- * stash functions.  We create a global variable called defined in
+ * stash functions.  We create a global variable that is defined in
  * CALLBACK_STASH_OBJECT_NAME that is an object.
  */
 void esp32_duktape_stash_init(duk_context *ctx) {
-	g_stashCounter = 1; /// Initialize the handle/counter for the next stash key to be returned.
+	g_stashCounter = 1; // Initialize the handle/counter for the next stash key to be returned.
+
 	duk_push_global_object(ctx);
 	// [0] - Global object
 
@@ -82,6 +91,10 @@ void esp32_duktape_stash_init(duk_context *ctx) {
 } // esp32_duktape_stash_init
 
 
+/**
+ *  Unstash an object that has been previously stashed.
+ *  * key - the key to a previously stashed object.
+ */
 void esp32_duktape_unstash_object(duk_context *ctx, uint32_t key) {
 	duk_push_global_object(ctx);
 	// [0] - Global object
@@ -132,15 +145,11 @@ void esp32_duktape_unstash_object(duk_context *ctx, uint32_t key) {
 
 
 /**
- * Unstash a previously stashed array object.  Return the number of new
- * elements on the value stack.
+ *  Unstash a previously stashed array object.  Return the number of new
+ *  elements on the value stack.
+ *  * key - the key to a previously stashed array object.
  */
 size_t esp32_duktape_unstash_array(duk_context *ctx, uint32_t key) {
-	duk_size_t arraySize;
-	int i;
-	duk_idx_t objIdx;
-	duk_idx_t delIdx;
-
 	// Push the global onto the stack.
 	// Push the CALLBACK_STASH_OBJECT_NAME object onto the stack.
 	// Push each of the array elements onto the stack.
@@ -148,7 +157,7 @@ size_t esp32_duktape_unstash_array(duk_context *ctx, uint32_t key) {
 	duk_push_global_object(ctx);
 	// [0] - Global object
 
-	delIdx = duk_get_top_index(ctx);
+	duk_idx_t delIdx = duk_get_top_index(ctx);
 	// [0] - Global object
 
 	if (duk_get_prop_string(ctx, -1, CALLBACK_STASH_OBJECT_NAME) == 0) {
@@ -175,9 +184,11 @@ size_t esp32_duktape_unstash_array(duk_context *ctx, uint32_t key) {
 	// [1] - CALLBACK_STASH_OBJECT_NAME object
 	// [2] - Callback array
 
-	objIdx = duk_get_top_index(ctx);
+	duk_idx_t objIdx = duk_get_top_index(ctx);
 
-	arraySize = duk_get_length(ctx, -1);
+	duk_size_t arraySize = duk_get_length(ctx, -1);
+
+	int i;
 	for (i=arraySize-1; i>=0; i--) {
 		duk_get_prop_index(ctx, objIdx, i);
 	}
@@ -300,7 +311,7 @@ uint32_t esp32_duktape_stash_array(duk_context *ctx, int count) {
 	// [.] - ...
 	// [count-1] - Item Count
 
-	int i;
+
 	if (duk_get_top(ctx) < count) {
 		LOGE("Can't stash %d items when only %d items on value stack.", count, duk_get_top(ctx));
 		return 0;
@@ -321,6 +332,7 @@ uint32_t esp32_duktape_stash_array(duk_context *ctx, int count) {
 	// [.] - ...
 	// [count] - Item Count
 
+	int i;
 	for (i=0; i<count; i++) {
 		duk_put_prop_index(ctx, arrayIdx, i);
 	}
@@ -391,8 +403,7 @@ void esp32_duktape_set_reset(int value) {
  * Log a message to the duktape console.
  */
 void esp32_duktape_console(const char *message) {
-	//telnet_esp32_sendData((uint8_t *)message, strlen(message));
-	LOGD("Console: %s", message);
+	LOGD_TAG("log", "Console: %s", message);
 } // esp32_duktape_console
 
 
@@ -416,8 +427,8 @@ void esp32_duktape_addGlobalFunction(
  */
 void esp32_duktape_dump_value_stack(duk_context *ctx) {
 	duk_idx_t topIdx = duk_get_top(ctx);
-	duk_idx_t i;
 	LOGD(">> Stack dump of %d items", topIdx);
+	duk_idx_t i;
 	for(i=0; i<topIdx; i++) {
 		duk_int_t type = duk_get_type(ctx, i);
 		switch(type) {
@@ -472,7 +483,7 @@ void esp32_duktape_dump_value_stack(duk_context *ctx) {
 
 /**
  * This function must return the number of milliseconds since the 1970
- * epoch.  We use getttimeofday() provided by the environment.  The name
+ * epoch.  We use gettimeofday() provided by the environment.  The name
  * of the function must be specified in duk_config.h ... for example:
  *
  * #define DUK_USE_DATE_GET_NOW(ctx) esp32_duktape_get_now()

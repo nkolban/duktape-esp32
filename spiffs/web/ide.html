@@ -25,6 +25,14 @@ Neil Kolban, 2016
 	resize: none;
 }
 
+.eval {
+	font-family: monospace;
+	resize: none;
+	flex-grow: 1;
+	margin-right: 5px;
+	padding: 4px;
+}
+
 .bottomBar {
 	margin-bottom: 4px;
 	margin-top: 4px;
@@ -69,8 +77,14 @@ html {
 		</div>
 		<div class="ui-layout-south">
 			<div style="height: 100%; display: flex; flex-direction: column">
+				Console:
 				<textarea readonly disabled id="console" class="console" style="flex-grow:1;"></textarea>
-				<input id="repl" type="text" style="margin: 10px;">
+				<div style="margin-top: 10px; display: flex; align-items: center;">
+					<span>Eval:&nbsp;</span>
+					<input id="repl" type="text" class="eval">
+					<button id="evalRun" title="Run the eval">Run</button>
+				</div>
+
 			</div>
 
 		</div>
@@ -89,7 +103,7 @@ html {
 Define the file load dialog.
 -->
 <div id="loadDialog" title="Load">
-	<p>Select a file for loading:</p>
+	<p>Select a file for loading or execution:</p>
 	<select size=10 id="loadSelect" style="width: 100%">
 	</select>
 </div>

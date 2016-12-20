@@ -1,22 +1,24 @@
 /**
  * Mapping from JavaScript (Duktape) to the underling OS (ESP-IDF)
  */
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
+#include <errno.h>
 #include <esp_log.h>
 #include <lwip/sockets.h>
 #include <mbedtls/sha1.h>
-#include "sdkconfig.h"
-#else
+#include <string.h>
+#include <unistd.h>
+
+#else /* ESP_PLATFORM */
 #include <openssl/sha.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#endif
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
-#include "logging.h"
-#include "esp32_duktape/module_os.h"
+#endif /* ESP_PLATFORM */
+
 #include "duktape.h"
+#include "esp32_duktape/module_os.h"
+#include "logging.h"
+#include "sdkconfig.h"
 
 LOG_TAG("module_os");
 
@@ -49,13 +51,13 @@ static duk_ret_t js_os_sha1(duk_context *ctx) {
 		// This is where we will write the message digest into.
 		unsigned char *result = duk_push_fixed_buffer(ctx, 20);
 
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 		mbedtls_sha1(data, length, result);
-#else
+#else /* ESP_PLATFORM */
 		// The SHA1 function is part of openssl installed through libssl-dev.  One must link
 		// with -lcrypto.
 		SHA1(data, length, result);
-#endif
+#endif /* ESP_PLATFORM */
 
 		// Convert the fixed buffer into a NodeJS Buffer object
 		duk_push_buffer_object(ctx, -1, 0, 20, DUK_BUFOBJ_NODEJS_BUFFER);
@@ -200,13 +202,14 @@ static duk_ret_t js_os_recv(duk_context *ctx) {
 	return 1;
 } // js_os_recv
 
-#ifdef ESP_PLATFORM
+
 /**
  * Close the socket.
  * [0] - Params object
  * - sockfd: The socket to close.
  */
 static duk_ret_t js_os_closesocket(duk_context *ctx) {
+#if defined(ESP_PLATFORM)
 	if (!duk_is_object(ctx, -1)) {
 		LOGE("js_os_closesocket: No parameters object found.");
 		return 0;
@@ -219,9 +222,12 @@ static duk_ret_t js_os_closesocket(duk_context *ctx) {
 	duk_pop(ctx);
 	closesocket(sockfd);
 	return 0;
+#else /* ESP_PLATFORM */
+	LOGE("js_os_closesocket not implemented.");
+#endif /* ESP_PLATFORM */
 } // js_os_closesocket
 
-#endif
+
 /**
  * Close the socket.
  * [0] - Params object
@@ -683,7 +689,6 @@ void ModuleOS(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object - OS object
 
-#ifdef ESP_PLATFORM
 	duk_push_c_function(ctx, js_os_closesocket, 1);
 	// [0] - Global object
 	// [1] - New object - OS object
@@ -692,7 +697,6 @@ void ModuleOS(duk_context *ctx) {
 	duk_put_prop_string(ctx, idx, "closesocket"); // Add closesocket to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
-#endif
 
 	duk_push_c_function(ctx, js_os_close, 1);
 	// [0] - Global object

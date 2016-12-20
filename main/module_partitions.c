@@ -1,10 +1,12 @@
-#include "esp32_duktape/module_partitions.h"
-#include <esp_partition.h>
 #include <esp_log.h>
+#include <esp_partition.h>
+
 #include "duktape.h"
+#include "esp32_duktape/module_partitions.h"
+#include "logging.h"
 #include "sdkconfig.h"
 
-static const char tag[] = "module_partition";
+LOG_TAG("module_partition");
 
 static const char *partitionSubtypeToString(esp_partition_subtype_t subtype) {
 	switch(subtype) {
@@ -174,7 +176,7 @@ static duk_ret_t js_partitions_list(duk_context *ctx) {
 		// [0] - Type of partition either "app" or "data"
 		// [1] - New result array
 
-		ESP_LOGD(tag, "Partition: %s %s %s 0x%x[0x%x]",
+		LOGD("Partition: %s %s %s 0x%x[0x%x]",
 				partitionTypeToString(partition->type),
 				partitionSubtypeToString(partition->subtype),
 				partition->label,
@@ -185,6 +187,8 @@ static duk_ret_t js_partitions_list(duk_context *ctx) {
 	}
 	return 1;
 }
+
+
 /**
  * Create the PARTITIONS module in Global.
  */

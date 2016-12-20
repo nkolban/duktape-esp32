@@ -1,28 +1,30 @@
 #include <freertos/FreeRTOS.h>
-#include <esp_wifi.h>
-#include <esp_system.h>
 #include <esp_event.h>
 #include <esp_event_loop.h>
 #include <esp_log.h>
-#include <nvs_flash.h>
+#include <esp_system.h>
+#include <esp_wifi.h>
 #include <lwip/sockets.h>
-#include <string.h>
 #include <math.h>
+#include <nvs_flash.h>
+#include <string.h>
+
 #include "bootwifi.h"
-#include "esp32_specific.h"
-#include "telnet.h"
-#include "esp32_duktape/duktape_event.h"
 #include "connection_info.h"
 #include "duktape_task.h"
+#include "esp32_duktape/duktape_event.h"
+#include "esp32_specific.h"
+#include "logging.h"
 #include "sdkconfig.h"
+#include "telnet.h"
 
-char tag[] = "duktape_main";
+LOG_TAG("duktape_main");
 
 /**
  * Receive data from the telnet or uart and process it.
  */
 static void recvData(uint8_t *buffer, size_t size) {
-	ESP_LOGD(tag, "We received: %.*s", size, buffer);
+	LOGD("We received: %.*s", size, buffer);
 	// We have received a line of data from the telnet client, now we want
 	// to present it to Duktape for processing.  We do this by creating an event
 	// and placing it on the event processing queue.  The type of the event will be
@@ -40,9 +42,9 @@ static void newTelnetPartner() {
  * Process telnet commands on a separate task.
  */
 static void telnetTask(void *data) {
-	ESP_LOGD(tag, ">> telnetTask");
+	LOGD(">> telnetTask");
 	telnet_esp32_listenForClients(recvData, newTelnetPartner);
-	ESP_LOGD(tag, "<< telnetTask");
+	LOGD("<< telnetTask");
 	vTaskDelete(NULL);
 } // newTelnetPartner
 
@@ -87,7 +89,7 @@ static void init() {
  */
 void app_main(void)
 {
-	ESP_LOGD(tag, "Free heap at start: %d", esp_get_free_heap_size());
+	LOGD("Free heap at start: %d", esp_get_free_heap_size());
 	bootWiFi(init);
 } // app_main
 

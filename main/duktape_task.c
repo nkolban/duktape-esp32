@@ -2,38 +2,35 @@
  * Duktape environmental and task control functions.
 
  */
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
+
+#include <esp_err.h>
+#include <esp_log.h>
+#include <esp_system.h>
+#include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp_log.h>
-#include <esp_err.h>
-#include <esp_wifi.h>
 #include <spiffs.h>
-#include <esp_system.h>
-#include <esp_spiffs.h>
+
+
 #include "duktape_spiffs.h"
 #include "sdkconfig.h"
-#include "esp32_memory.h"
 #endif
 
 #include <assert.h>
 #include <duktape.h>
 #include <stdlib.h>
 
-#include "logging.h"
+#include "duk_module_duktape.h"
 #include "dukf_utils.h"
-#include "esp32_specific.h"
+#include "duktape_task.h"
+#include "duktape_utils.h"
 #include "esp32_duktape/duktape_event.h"
 #include "esp32_duktape/module_timers.h"
-
+#include "esp32_specific.h"
+#include "logging.h"
 #include "modules.h"
 //#include "telnet.h"
-#include "duktape_utils.h"
-#include "duktape_task.h"
-
-
-
-#include "duk_module_duktape.h"
 
 LOG_TAG("duktape_task");
 
@@ -50,10 +47,8 @@ void duktape_init_environment() {
 		duk_destroy_heap(esp32_duk_context);
 	}
 
-
 	esp32_duk_context = duk_create_heap_default();	// Create the Duktape context.
 	dukf_log_heap("Heap after duk create heap");
-
 
 	duk_module_duktape_init(esp32_duk_context); // Initialize the duktape module functions.
 	dukf_log_heap("Heap before after duk_module_duktape_init");
@@ -62,7 +57,6 @@ void duktape_init_environment() {
 
 	registerModules(esp32_duk_context); // Register the built-in modules
 	dukf_log_heap("Heap after duk register modules");
-
 
 	// Print a console logo.
 	esp32_duktape_console(
@@ -84,6 +78,7 @@ void duktape_init_environment() {
 	);
 	esp32_duktape_set_reset(0); // Flag the environment as having been reset.
 
+	// Load and run the script called "init.js"
 	LOGD("Running \"init.js\"");
 	size_t fileSize;
 	const char *data = dukf_loadFile("init.js", &fileSize);
@@ -127,6 +122,7 @@ void duktape_init_environment() {
  * * ESP32_DUKTAPE_EVENT_TIMER_FIRED - A timer has been fired.
  * * ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED - A WiFi scan has completed.
  */
+
 void processEvent(esp32_duktape_event_t *pEvent) {
 	duk_int_t callRc;
 	LOGV(">> processEvent");
@@ -324,11 +320,9 @@ void processEvent(esp32_duktape_event_t *pEvent) {
  * the line.
  */
 void duktape_task(void *ignore) {
-	esp32_duktape_event_t esp32_duktape_event;
-	duk_idx_t lastStackTop;
+	//esp32_duktape_event_t esp32_duktape_event;
 	int rc;
 
-	//ESP_LOGD(tag, "Hello");
 	LOGD(">> duktape_task");
 	dukf_log_heap("duktape_task");
 
@@ -336,14 +330,14 @@ void duktape_task(void *ignore) {
 	dukf_addRunAtStart("webserver.js");
 
 	// Mount the SPIFFS file system.
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 	esp32_duktape_spiffs_mount();
-#endif
+#endif /* ESP_PLATFORM */
 
 	duktape_init_environment();
 	// From here on, we have a Duktape context ...
 
-	lastStackTop = duk_get_top(esp32_duk_context); // Get the last top value of the stack from which we will use to check for leaks.
+	duk_idx_t lastStackTop = duk_get_top(esp32_duk_context); // Get the last top value of the stack from which we will use to check for leaks.
 
 	// Run the one time startup scripts
 	dukf_runAtStart(esp32_duk_context);
@@ -351,9 +345,10 @@ void duktape_task(void *ignore) {
 	//
 	// Master JavaScript loop.
 	//
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 	LOGD("Free heap at start of JavaScript main loop: %d", esp_get_free_heap_size());
-#endif
+#endif /* ESP_PLATFORM */
+
 	LOGD("Starting main loop!");
 	while(1) {
 		// call the loop routine.
@@ -363,9 +358,9 @@ void duktape_task(void *ignore) {
 
 		rc = duk_pcall(esp32_duk_context, 0);
 		if (rc != 0) {
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 			LOGD("Error running loop!  free heap=%d", esp_get_free_heap_size());
-#endif
+#endif /* ESP_PLATFORM */
 			esp32_duktape_log_error(esp32_duk_context);
 		}
 		duk_pop_2(esp32_duk_context);
@@ -386,29 +381,29 @@ void duktape_task(void *ignore) {
 			duktape_init_environment();
 		}
 
-		// Check for value stack leakage
+		// Check for value stack leakage.
 		if (duk_get_top(esp32_duk_context) != lastStackTop) {
 			LOGE("We have detected that the stack has leaked!");
 			esp32_duktape_dump_value_stack(esp32_duk_context);
 			lastStackTop = duk_get_top(esp32_duk_context);
 		} // End of check for value stack leakage.
 
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 		taskYIELD();
 
 		uint32_t heapSize = esp_get_free_heap_size();
 		if (heapSize < 10000) {
 			LOGV("heap: %d",heapSize);
 		}
-#endif
+#endif /* ESP_PLATFORM */
 
 	} // End while loop.
 
 	// We should never reach here ...
 	LOGD("<< duktape_task");
 
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 	// We are not allowed to end a task routine without first deleting the task.
 	vTaskDelete(NULL);
-#endif
+#endif /* ESP_PLATFORM */
 } // End of duktape_task

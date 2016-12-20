@@ -2,7 +2,7 @@
  * Create the FS Module which provides I/O operations.  These map
  * to Posix I/O operations.
  */
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 #include <esp_log.h>
 #include <esp_system.h>
 #include "duktape_spiffs.h"
@@ -371,7 +371,13 @@ static duk_ret_t js_fs_spiffsDir(duk_context *ctx) {
 	if (d != NULL) {
 		int i=0;
 		while((dir = readdir(d)) != NULL) {
-			// The dir object now points to a dirent
+			// The dir object now points to a dirent.
+
+			// Skip if "." or ".."
+			if (strcmp(dir->d_name, ".") == 0 ||
+					strcmp(dir->d_name, "..") ==0) {
+				continue;
+			}
 			duk_push_object(ctx);
 			duk_push_string(ctx, dir->d_name);
 			duk_put_prop_string(ctx, -2, "name");

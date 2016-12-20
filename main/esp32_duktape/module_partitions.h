@@ -5,7 +5,7 @@
  *      Author: kolban
  */
 
-#ifndef MAIN_ESP32_DUKTAPE_MODULE_PARTITIONS_H_
+#if !defined(MAIN_ESP32_DUKTAPE_MODULE_PARTITIONS_H_)
 #define MAIN_ESP32_DUKTAPE_MODULE_PARTITIONS_H_
 #include "duktape.h"
 void ModulePARTITIONS(duk_context *ctx);

@@ -10,24 +10,26 @@
  * * WIFI.getDNS() - Return an array of two items which are the two IP addresses (as strings)
  * of the DNS servers that we may know about.
  */
-#include "esp32_duktape/module_wifi.h"
-#include <esp_wifi.h>
+
 #include <duktape.h>
-#include <lwip/sockets.h>
-#include <lwip/dns.h>
 #include <esp_err.h>
-#include <esp_log.h>
 #include <esp_event_loop.h>
+#include <esp_log.h>
+#include <esp_wifi.h>
+#include <lwip/dns.h>
+#include <lwip/sockets.h>
+
 #include "duktape_utils.h"
 #include "esp32_duktape/duktape_event.h"
+#include "esp32_duktape/module_wifi.h"
+#include "logging.h"
 #include "sdkconfig.h"
 
-static char tag[] = "module_wifi";
+LOG_TAG("module_wifi");
 
 static uint32_t g_scanCallbackStashKey = -1;
 static uint32_t g_gotipCallbackStashKey = -1;
 static uint32_t g_apstartCallbackStashKey = -1;
-
 
 /**
  * Convert an authentication mode to a string.
@@ -62,10 +64,10 @@ static char *authModeToString(wifi_auth_mode_t mode) {
 // }
 //
 static int scanParamsDataProvider(duk_context *ctx, void *context) {
-	ESP_LOGD(tag, "Here we build the scan results ...");
+	LOGD("Here we build the scan results ...");
 
 
-	ESP_LOGD(tag, "Process a scan result event.");
+	LOGD("Process a scan result event.");
 
 	// Get the number of access points in our last scan.
 	uint16_t numAp;
@@ -74,7 +76,7 @@ static int scanParamsDataProvider(duk_context *ctx, void *context) {
 	// Allocate storage for our scan results and retrieve them.
 	wifi_ap_record_t *apRecords = calloc(sizeof(wifi_ap_record_t), numAp);
 	ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&numAp, apRecords));
-	ESP_LOGD(tag, "Number of Access Points: %d", numAp);
+	LOGD("Number of Access Points: %d", numAp);
 
 	// Build an array for the results ...
 	duk_idx_t resultIdx = duk_push_array(ctx);
@@ -83,7 +85,7 @@ static int scanParamsDataProvider(duk_context *ctx, void *context) {
 	// Add each of the scan results into the array.
 	int i;
 	for (i=0; i<numAp; i++) {
-		ESP_LOGD(tag, "%d: ssid=%s", i, apRecords[i].ssid);
+		LOGD("%d: ssid=%s", i, apRecords[i].ssid);
 		duk_idx_t scanResultIdx = duk_push_object(ctx); // Create a new scan result object
 		// [0] - Array - results
 		// [1] - New object
@@ -153,7 +155,7 @@ static int scanParamsDataProvider(duk_context *ctx, void *context) {
 
 
 static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event) {
-	ESP_LOGD(tag, ">> esp32_wifi_eventHandler");
+	LOGD(">> esp32_wifi_eventHandler");
 	// Your event handling code here...
 	switch(event->event_id) {
 		case SYSTEM_EVENT_STA_GOT_IP: {
@@ -206,7 +208,7 @@ static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event)
 			break;
 		}
 	}
-	ESP_LOGD(tag, "<< esp32_wifi_eventHandler");
+	LOGD("<< esp32_wifi_eventHandler");
 	return ESP_OK;
 } // esp32_wifi_eventHandler
 
@@ -217,9 +219,9 @@ static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event)
  * [0] - Function object
  */
 static duk_ret_t js_wifi_scan(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_wifi_scan");
+	LOGD(">> js_wifi_scan");
 	if (!duk_is_function(ctx, 0)) {
-		ESP_LOGD(tag, "Scan: not a function!");
+		LOGD("Scan: not a function!");
 		return 0;
 	}
 
@@ -280,7 +282,7 @@ static duk_ret_t js_wifi_scan(duk_context *ctx) {
 	conf.show_hidden = 1;
 	ESP_ERROR_CHECK(esp_wifi_scan_start(&conf, 0 /* don't block */));
 
-	ESP_LOGD(tag, "<< js_wifi_scan");
+	LOGD("<< js_wifi_scan");
 	return 0;
 } // js_wifi_scan
 
@@ -297,7 +299,7 @@ static duk_ret_t js_wifi_getDNS(duk_context *ctx) {
 	ip_addr_t ip;
 	int i;
 
-	ESP_LOGD(tag, ">> js_wifi_getDNS");
+	LOGD(">> js_wifi_getDNS");
 
 	duk_idx_t idx = duk_push_array(ctx); // Create new WIFI object
 	// [0] - New array - DNS servers
@@ -316,7 +318,7 @@ static duk_ret_t js_wifi_getDNS(duk_context *ctx) {
 		// [0] - New array - DNS servers
 	}
 
-	ESP_LOGD(tag, "<< js_wifi_getDNS");
+	LOGD("<< js_wifi_getDNS");
 	return 1; // New array - DNS servers
 } // js_wifi_getDNS
 
@@ -333,7 +335,7 @@ static duk_ret_t js_wifi_getDNS(duk_context *ctx) {
  * callback: a callback function
  */
 static duk_ret_t js_wifi_connect(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_wifi_connect");
+	LOGD(">> js_wifi_connect");
 	char *password = ""; // Default password is none.
   tcpip_adapter_ip_info_t ipInfo;
   duk_idx_t optionsIdx = 0;
@@ -394,7 +396,7 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 	  inet_pton(AF_INET, gwString, &ipInfo.gw);
 	  inet_pton(AF_INET, netmaskString, &ipInfo.netmask);
 
-	  ESP_LOGD(tag, " - Using specific network info: ip: %s, gw: %s, netmask: %s",
+	  LOGD(" - Using specific network info: ip: %s, gw: %s, netmask: %s",
 	  	ipString, gwString, netmaskString);
 	  tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA); // Don't run a DHCP client
 	  tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &ipInfo);
@@ -406,7 +408,7 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 
 	// Perform the actual connection to the access point.
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-	ESP_LOGD(tag, " - Connecting to access point: %s with %s", ssid, password);
+	LOGD(" - Connecting to access point: %s with %s", ssid, password);
   wifi_config_t sta_config;
   strcpy(sta_config.sta.ssid, ssid);
   strcpy(sta_config.sta.password, password);
@@ -427,7 +429,7 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
  * callback function: [optional]
  */
 static duk_ret_t js_wifi_listen(duk_context *ctx) {
-	ESP_LOGD(tag, ">> js_wifi_listen");
+	LOGD(">> js_wifi_listen");
 
   if (!duk_is_object(ctx, -2)) {
   	duk_error(ctx, 1, "Missing options object");
@@ -487,7 +489,7 @@ static duk_ret_t js_wifi_listen(duk_context *ctx) {
 	}
 
 	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-	ESP_LOGD(tag, " - Being an access point: %s with auth mode %s", ssid, auth);
+	LOGD(" - Being an access point: %s with auth mode %s", ssid, auth);
 	wifi_config_t ap_config;
 	strcpy(ap_config.ap.ssid, ssid);
 	ap_config.ap.ssid_len = 0;
@@ -507,8 +509,6 @@ static duk_ret_t js_wifi_listen(duk_context *ctx) {
  * Create the WIFI module in Global.
  */
 void ModuleWIFI(duk_context *ctx) {
-
-
 	duk_push_global_object(ctx);
 	// [0] - Global object
 

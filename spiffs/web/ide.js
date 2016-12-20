@@ -3,7 +3,7 @@
  */
 $(document).ready(function() {
 	
-	var consoleConnected = true; // Is the console web socket connected?
+	var consoleConnected = false; // Is the console web socket connected?
 	var settings;
 	
 	if (localStorage.settings) {
@@ -41,10 +41,10 @@ $(document).ready(function() {
 	 * @returns N/A
 	 */
 	function createConsoleWebSocket(onOpen) {
-		return;
-		var ws = new WebSocket("ws://" + settings.esp32_host + "/console");
+		var ws = new WebSocket("ws://" + location.hostname + ":8002/console");
 		// When a console message arrives, append it to the console log and scroll so that it is visible.
 		ws.onmessage = function(event) {
+			console.log("WS message received!");
 			$("#console").val($("#console").val() + event.data);
 			$('#console').scrollTop($('#console')[0].scrollHeight);
 		}
@@ -129,6 +129,7 @@ $(document).ready(function() {
 			runScript(editor.getValue());
 		} else {
 			createConsoleWebSocket(function() {
+				console.log("Web socket open!");
 				runScript(editor.getValue());
 			});
 		}
@@ -185,6 +186,9 @@ $(document).ready(function() {
 		}
 	});
 	
+	$("#evalRun").button().click(function() {
+		runScript($("#repl").val());
+	});
 	
 	// Create and handle the save file dialog
 	$("#saveDialog").dialog({
@@ -238,6 +242,12 @@ $(document).ready(function() {
 				click: function() {
 					// Determine which file was selected in the list
 					var selectedFile = $("#loadSelect option:selected").val();
+
+					// Ensure the selected file starts with "/
+					if (!selectedFile.startsWith("/")) {
+						selectedFile = "/" + selectedFile;
+					}
+					
 					// Run the named file.
 					$.ajax({
 						url: "http://" + settings.esp32_host + "/run" + selectedFile,
@@ -252,6 +262,12 @@ $(document).ready(function() {
 				click: function() {
 					// Determine which file was selected in the list
 					var selectedFile = $("#loadSelect option:selected").val();
+					
+					// Ensure the selected file starts with "/
+					if (!selectedFile.startsWith("/")) {
+						selectedFile = "/" + selectedFile;
+					}
+					
 					// Retrieve the content of a file from ESP32 file store.
 					// the REST request format is:
 					// GET /files/<fileName>

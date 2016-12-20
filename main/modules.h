@@ -5,7 +5,7 @@
  *      Author: kolban
  */
 
-#ifndef MAIN_MODULES_H_
+#if !defined(MAIN_MODULES_H_)
 #define MAIN_MODULES_H_
 #include <duktape.h>
 void registerModules(duk_context *ctx);

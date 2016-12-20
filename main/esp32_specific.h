@@ -5,7 +5,7 @@
  *      Author: kolban
  */
 
-#ifndef MAIN_ESP32_SPECIFIC_H_
+#if !defined(MAIN_ESP32_SPECIFIC_H_)
 #define MAIN_ESP32_SPECIFIC_H_
 
 void setupVFS();

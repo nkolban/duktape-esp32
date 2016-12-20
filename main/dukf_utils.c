@@ -35,7 +35,7 @@ static char *g_runAtStartFileNames[MAX_RUN_AT_START];
  */
 void dukf_log_heap(char *tag) {
 #ifdef ESP_PLATFORM
-	LOGD("%s: heap=%d", esp_get_free_heap_size());
+	LOGD("heap=%d", esp_get_free_heap_size());
 #endif
 }
 

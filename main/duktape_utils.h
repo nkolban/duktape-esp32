@@ -5,7 +5,7 @@
  *      Author: kolban
  */
 
-#ifndef MAIN_DUKTAPE_UTILS_H_
+#if !defined(MAIN_DUKTAPE_UTILS_H_)
 #define MAIN_DUKTAPE_UTILS_H_
 #include <duktape.h>
 void esp32_duktape_console(const char *message);
