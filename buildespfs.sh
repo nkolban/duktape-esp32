@@ -1,5 +1,6 @@
 #!/bin/bash
-cd spiffs; ls *.js | ~/bin/mkespfsimage > ../espfs.img
+set -e
+cd spiffs; ls *.js | mkespfsimage -c 0 > ../espfs.img
 cd ..
 python $ESP_IDF_PATH/components/esptool_py/esptool/esptool.py \
  --chip esp32 --port "/dev/ttyUSB0" --baud 921600 write_flash --flash_mode "dio" \
