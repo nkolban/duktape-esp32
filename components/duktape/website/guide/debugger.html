@@ -1,0 +1,95 @@
+<h1 id="debugger">Debugger</h1>
+
+<p>Duktape has built-in debugger support as an option you can enable during
+compilation.  Debugger support adds about 15-20kB of code footprint (depending
+on what debugger features are enabled) and has very minimal memory footprint.
+Debugger features include:</p>
+<ul>
+<li>Execution status information such running/paused at file/line, callstack,
+    local variables for different callstack levels</li>
+<li>Execution control including pause/resume, step over/into/out, breakpoints
+    targeted at file/line, debugger statement</li>
+<li>Generic Eval at any callstack level, get/put variable at any callstack
+    level</li>
+<li>A mechanism for application-defined requests (AppRequest) and notifications
+    (AppNotify)</li>
+<li>Heap object in-depth inspection, Duktape heap walking, and getting a
+    full heap dump</li>
+</ul>
+
+<p>The debugger is based on the following main concepts:</p>
+<ul>
+<li>Duktape provides a built-in <b>debug protocol</b> which is the same for all
+    applications.  The application doesn't need to parse or understand the
+    debug protocol.  The debug protocol is a compact binary protocol so that
+    it works well on low memory targets with low speed connectivity.  There
+    is a <b>JSON mapping</b> for the debug protocol and a
+<a href="https://github.com/svaarala/duktape/blob/master/debugger/duk_debug_proxy.js">JSON debug proxy</a>
+    to make it easier to integrate a debug client.</li>
+<li>The debug protocol runs over a reliable, stream-based <b>debug transport</b>.
+    To maximize portability, the concrete transport is provided by application
+    code as a set of callbacks implementing a stream interface.  A streamed
+    transport allows unbuffered streaming of debug messages, which keeps memory
+    usage very low.</li>
+<li>A <b>debug client</b> terminates the transport connection and uses the Duktape
+    debug protocol to interact with Duktape internals: pause/resume, stepping,
+    breakpoints, eval, etc.  You can also use the JSON debug proxy for easier
+    integration.</li>
+<li>A very narrow <b>debug API</b> is used by the application code to attach and
+    detach a debugger, and to provide the callbacks needed to implement the
+    debug transport.  All other debug activity happens through the debug
+    protocol which is implemented by Duktape directly with no application
+    involvement.</li>
+</ul>
+
+<p>The most appropriate debug transport varies a lot between debug targets;
+it can be Wi-Fi, Bluetooth, a serial line, a stream embedded into a custom
+management protocol, etc.  Although there is no "standard" transport, a TCP
+connection is a useful default.  The Duktape distributable includes all the
+pieces you need to get started with debugging using a TCP transport:</p>
+
+<ul>
+<li>An example implementation of the callbacks needed for a TCP transport:
+    <a href="https://github.com/svaarala/duktape/blob/master/examples/debug-trans-socket/">duk_trans_socket_unix.c</a>
+    (there's also a Windows example)</li>
+<li>Debugger support for the Duktape command line tool (<code>duk</code>) using
+    the TCP transport: <code>--debugger</code> option</li>
+<li>A debugger web UI based on
+    <a href="http://nodejs.org/">Node.js</a>,
+    <a href="http://expressjs.com/">Express</a>, and
+    <a href="http://socket.io/">socket.io</a>:
+    <a href="https://github.com/svaarala/duktape/blob/master/debugger/">duk_debug.js</a></li>
+</ul>
+
+<p>The Node.js based debugger web UI (<code>duk_debug.js</code>) can connect
+to the Duktape command line, but can also talk directly with any other target
+implementing a TCP transport.  You can also customize it to use a different
+transport or use a proxy which converts between TCP and your custom transport.
+It's also possible to write your own debug client from scratch and e.g.
+integrate it to a custom IDE.  You can integrate directly with a debug target
+using the binary debug protocol, or use the JSON proxy provided by
+<a href="https://github.com/svaarala/duktape/blob/master/debugger/duk_debug.js">duk_debug.js</a>
+(Node.js) or
+<a href="https://github.com/svaarala/duktape/blob/master/debugger/duk_debug_proxy.js">duk_debug_proxy.js</a>
+(DukLuv).</p>
+
+<p>Debug targets and debug clients are intended to be mixed and matched:
+apart from the transport (which is usually either TCP or easy to adapt) the
+debug protocol is the same.  Core functionality will be the same regardless
+of the debug client or the debug target, but some optional features may be
+missing.  Debug clients and debug targets may also implement application
+specific commands (AppRequest) and notifications (AppNotify) for richer
+integration which can be used when both the client and the target support
+them (they're easy and safe to ignore if not supported).  Custom commands
+and notifications allow e.g. downloading of source files directly from the
+target, deep inspection of the state of a custom memory allocator, rebooting
+the target on command, etc.</p>
+
+<p>For more details on the implementation and how to get started, see:</p>
+<ul>
+<li><a href="https://github.com/svaarala/duktape/blob/master/debugger/README.rst">debugger/README.rst</a></li>
+<li><a href="https://github.com/svaarala/duktape/blob/master/doc/debugger.rst">debugger.rst</a></li>
+<li><a href="https://github.com/svaarala/duktape/blob/master/examples/debug-trans-dvalue/">duk_trans_dvalue.c</a>:
+    example debug transport with local debug protocol decoding/encoding</li>
+<li><a href="https://github.com/svaarala/duktape/blob/master/debugger/duk_debug_proxy.js">duk_debug_proxy.js</a></li>
+</ul>

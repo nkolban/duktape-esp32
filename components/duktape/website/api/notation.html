@@ -1,0 +1,52 @@
+<h1 id="notation">Notation</h1>
+
+<h2>Value stacks</h2>
+
+<p>This document uses the following stack notation.  Stacks are represented
+visually with the stack growing to the right.  For instance, after:</p>
+
+<pre class="c-code">
+duk_push_number(ctx, 123);
+duk_push_string(ctx, "foo");
+duk_push_true(ctx);
+</pre>
+
+<p>the stack would look like:</p>
+
+<pre class="stack">
+[ 123 "foo" true ]
+</pre>
+
+<p>The elements on the stack which don't affect the operation are denoted
+with a single element with ellipsis ("..."):</p>
+
+<pre class="stack">
+[ ... ]
+</pre>
+
+<p>The elements actively operated on, either being read, written, inserted,
+or removed, have a white background:</p>
+
+<pre class="stack">
+[ ... obj! key! ]
+</pre>
+
+<p>Elements which are identified by an explicit index in an API call are
+indicated with surrounding ellipsis elements, to emphasize that they may
+be anywhere in the stack:</p>
+
+<pre class="stack">
+[ ... obj! ... key! value! ]
+</pre>
+
+<p>In some cases the index of an element may be emphasized with a number
+or symbolic value in parenthesis:</p>
+<pre class="stack">
+[ ... val(index)! val(index+1)! ... ]
+</pre>
+
+<p>Stack transformation is represented with an arrow and two stacks:</p>
+
+<pre class="stack">
+[ ... obj! ... key! value! ] -> [ ... obj! ... ]
+</pre>

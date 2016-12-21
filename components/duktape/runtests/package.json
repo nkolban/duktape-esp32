@@ -1,0 +1,18 @@
+{
+    "name": "duk-runtests",
+    "version": "0.1.0",
+    "description": "Duktape test runner",
+    "author": {
+        "name": "Sami Vaarala",
+        "email": "sami.vaarala@iki.fi"
+    },
+    "dependencies": {
+        "MD5": "~1.0.0",
+        "async": "~0.2.4",
+        "optimist": "~0.3.5",
+        "tmp": "0.0.27",
+        "xml2js": "~0.2.4",
+        "yamljs": "~0.2.1"
+    },
+    "main": "runtests.js"
+}

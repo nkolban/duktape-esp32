@@ -1,0 +1,206 @@
+<div id="front-blurp">
+
+<h1>Duktape</h1>
+
+<p>Duktape is an <b>embeddable Javascript</b> engine,
+with a focus on <b>portability</b> and compact <b>footprint</b>.</p>
+
+<p>Duktape is easy to integrate into a C/C++ project: add <code>duktape.c</code>,
+<code>duktape.h</code>, and <code>duk_config.h</code> to your build, and use the
+Duktape API to call Ecmascript functions from C code and vice versa.</p>
+
+<script>
+// <![CDATA[
++function duktapeTest() {
+    var _isDuktape = false;
+    try {
+        noSuchVariable.foo = 123;
+    } catch (e) {
+        if (typeof e.stack === 'string' && (e.stack.indexOf('duk_js_var') >= 0 || e.stack.indexOf('dukky') >= 0)) {
+            _isDuktape = true;
+        }
+    }
+    try {
+        var _isNetSurf = (typeof navigator === 'object' &&
+                          typeof navigator.userAgent === 'string' &&
+                          navigator.userAgent.indexOf('NetSurf') >= 0);
+        if (_isNetSurf && _isDuktape) {
+            document.write('<p><b>Congratulations, you\'re using Duktape on NetSurf!</b></p>');
+        }
+    } catch (e) {
+        //alert(e);
+    }
+}();
+// ]]>
+</script>
+
+<h1>Main features</h1>
+<ul>
+<li>Embeddable, portable, compact:
+    can run on platforms with 192kB flash and 64kB system RAM</li>
+<li><a href="http://www.ecma-international.org/ecma-262/5.1/">Ecmascript E5/E5.1</a>,
+    with some semantics updated from ES6+</li>
+<li>Partial support for
+    <a href="http://www.ecma-international.org/ecma-262/6.0/index.html">Ecmascript 2015 (E6)</a> and
+    <a href="http://www.ecma-international.org/ecma-262/7.0/index.html">Ecmascript 2016 (E7)</a></li>
+<li>Khronos/ES6 <a href="https://www.khronos.org/registry/typedarray/specs/latest/">TypedArray</a>
+    and <a href="https://nodejs.org/docs/v6.9.1/api/buffer.html">Node.js Buffer</a> bindings</li>
+<li><a href="https://encoding.spec.whatwg.org/#api">Encoding API</a> bindings based on the WHATWG Encoding Living Standard</li>
+<li>Built-in debugger</li>
+<li>Built-in regular expression engine</li>
+<li>Built-in Unicode support</li>
+<li>Minimal, retargetable platform dependencies</li>
+<li>Combined reference counting and mark-and-sweep garbage collection
+    with finalization</li>
+<li>Coroutines</li>
+<li>Property virtualization using a subset of Ecmascript E6 Proxy object</li>
+<li>Bytecode dump/load for caching compiled functions</li>
+<li>Distributable includes an optional logging framework, CommonJS-based module
+    loading implementations, etc</li>
+<li>Liberal license (MIT)</li>
+</ul>
+
+<h1>Code and RAM footprint</h1>
+<table>
+<tr><td>&nbsp;</td><td>x86 default</td><td>x86 lowmem</td><td>x86 full lowmem</td></tr>
+<tr><td>Code</td><td>170kB</td><td>150kB</td><td>200kB</td></tr>
+<tr><td>Startup RAM</td><td>68kB</td><td>35kB</td><td>2.3kB</td></tr>
+</table>
+
+<p>See <a href="https://github.com/svaarala/duktape/blob/master/doc/low-memory.rst#optimizing-code-footprint">GCC options</a>
+for minimizing code footprint.  Full <a href="https://github.com/svaarala/duktape/blob/master/doc/low-memory.rst">lowmem</a>
+uses "pointer compression" and ROM-based strings/objects.  ROM-based strings/objects can
+also be used without other low memory options.</p>
+
+<h1>Current status</h1>
+<ul>
+<li>Stable</li>
+</ul>
+
+<h1>Support</h1>
+<ul>
+<li>Duktape Wiki: <a href="http://wiki.duktape.org">wiki.duktape.org</a></li>
+<li>User community Q&amp;A: Stack Overflow <a href="http://stackoverflow.com/questions/tagged/duktape">duktape</a> tag</li>
+<li>Bugs and feature requests: <a href="https://github.com/svaarala/duktape/issues">GitHub issues</a></li>
+<li>General discussion: IRC <code>#duktape</code> on <code>chat.freenode.net</code> (<a href="https://webchat.freenode.net/">webchat</a>)</li>
+</ul>
+
+<h1>Some projects using Duktape</h1>
+
+<p>See: <a href="http://wiki.duktape.org/ProjectsUsingDuktape.html">Projects using Duktape</a>.</p>
+
+<p>If you're using Duktape in your project, send an e-mail or open a GitHub
+issue to be added to the list.</p>
+
+<h1>Similar engines</h1>
+
+<p>There are multiple Javascript engines targeting similar use cases as Duktape, at least:</p>
+<ul>
+<li><a href="https://github.com/espruino/Espruino">Espruino</a> (MPL v2.0)</li>
+<li><a href="http://samsung.github.io/jerryscript/">JerryScript</a> (Apache License v2.0)</li>
+<li><a href="http://mujs.com/">MuJS</a> (Affero GPL)</li>
+<li><a href="https://code.google.com/p/quad-wheel/">quad-wheel</a> (MIT License)</li>
+<li><a href="https://github.com/gfwilliams/tiny-js">tiny-js</a> (MIT license)</li>
+<li><a href="https://github.com/cesanta/v7">v7</a> (GPL v2.0)</li>
+</ul>
+
+<p>Also see <a href="https://en.wikipedia.org/wiki/List_of_ECMAScript_engines">List of ECMAScript engines</a>.</p>
+
+</div>  <!-- front-blurp -->
+
+<div id="front-steps">
+
+<h1><span class="step">1</span> Add to build</h1>
+
+<p>(See <a href="guide.html#gettingstarted">Getting started</a> for a more
+detailed introduction.)</p>
+
+<p>Add Duktape C source and header to your build.  Any build system can
+be used.  The distributable contains an example Makefile for reference.
+In the simplest case:</p>
+
+<pre>
+$ gcc -std=c99 -otest test.c duktape.c -lm
+$ ./test
+<span class="index-shell-output">1+2=3</span>
+</pre>
+
+<p>To <a href="http://wiki.duktape.org/Configuring.html">customize Duktape configuration</a>,
+here to disable Ecmascript 6 <code>Proxy</code> object support:</p>
+
+<pre>
+$ python2 duktape-2.0.0/tools/configure.py --output-directory src-duktape \
+      -UDUK_USE_ES6_PROXY
+$ ls src-duktape/
+<span class="index-shell-output">duk_config.h  duk_source_meta.json  duktape.c  duktape.h</span>
+$ gcc -std=c99 -otest -Isrc-duktape \
+      test.c src-duktape/duktape.c -lm
+$ ./test
+<span class="index-shell-output">1+2=3</span>
+</pre>
+
+<h1><span class="step">2</span> Initialize a context</h1>
+
+<p>Initialize and use Duktape somewhere in your program:</p>
+
+<pre class="c-code">
+/* test.c */
+#include &lt;stdio.h&gt;
+#include &quot;duktape.h&quot;
+
+int main(int argc, char *argv[]) {
+  duk_context *ctx = duk_create_heap_default();
+  duk_eval_string(ctx, "1+2");
+  printf("1+2=%d\n", (int) duk_get_int(ctx, -1));
+  duk_destroy_heap(ctx);
+  return 0;
+}
+</pre>
+
+<h1><span class="step">3</span> Add C function bindings</h1>
+
+<p>To call a C function from Ecmascript code, first declare your
+C functions:</p>
+
+<pre class="c-code">
+/* Being an embeddable engine, Duktape doesn't provide I/O
+ * bindings by default.  Here's a simple one argument print()
+ * function.
+ */
+static duk_ret_t native_print(duk_context *ctx) {
+  printf("%s\n", duk_to_string(ctx, 0));
+  return 0;  /* no return value (= undefined) */
+}
+
+/* Adder: add argument values. */
+static duk_ret_t native_adder(duk_context *ctx) {
+  int i;
+  int n = duk_get_top(ctx);  /* #args */
+  double res = 0.0;
+
+  for (i = 0; i &lt; n; i++) {
+    res += duk_to_number(ctx, i);
+  }
+
+  duk_push_number(ctx, res);
+  return 1;  /* one return value */
+}
+</pre>
+
+<p>Register your functions e.g. into the global object:</p>
+
+<pre class="c-code">
+duk_push_c_function(ctx, native_print, 1 /*nargs*/);
+duk_put_global_string(ctx, "print");
+duk_push_c_function(ctx, native_adder, DUK_VARARGS);
+duk_put_global_string(ctx, "adder");
+</pre>
+
+<p>You can then call your function from Ecmascript code:</p>
+
+<pre class="c-code">
+duk_eval_string_noresult(ctx, "print('2+3=' + adder(2, 3));");
+</pre>
+
+</div>  <!-- front-steps -->
+

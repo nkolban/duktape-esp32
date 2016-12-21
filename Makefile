@@ -29,4 +29,15 @@ images:
 	echo "+---------------------+"
 	mkspiffs -c spiffs -b 65536 -p 256 -s 524288 spiffs.img
 	
-
+duktape_install:
+	echo "Installing duktape"
+	rm -rf components/duktape
+	cd ./components; git clone https://github.com/svaarala/duktape.git
+	cp ./data/duktape/component.mk ./components/duktape/
+	rm ./components/duktape/examples/debug-trans-socket/duk_trans_socket_windows.c
+	python ./components/duktape/tools/configure.py \
+		--config-metadata components/duktape/config/ \
+		--source-directory components/duktape/src-input \
+		--option-file components/duktape/config/examples/low_memory.yaml \
+		--option-file data/duktape/ESP32-Duktape.yaml \
+		--output-directory components/duktape/src

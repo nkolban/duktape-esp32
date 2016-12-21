@@ -1,0 +1,112 @@
+<h1 id="functionobjects">Function objects</h1>
+
+<h2 id="ecmascript-function-properties">Ecmascript functions</h2>
+
+<p>Duktape Function objects add a few properties to standard Ecmascript
+properties.  The table below summarizes properties assigned to newly
+created function instances (properties can of course be added or removed
+afterwards):</p>
+
+<table>
+<thead>
+<tr><th>Property name</th><th>Compatibility</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td class="propname">length</td><td>standard</td><td>Function (nominal) argument count (if relevant).  Present for all Function objects, including bound functions.</td></tr>
+<tr><td class="propname">prototype</td><td>standard</td><td>Prototype used for new objects when called as a constructor.  Present for most constructable Function objects, not copied to bound functions.</td></tr>
+<tr><td class="propname">caller</td><td>standard</td><td>Accessor which throws an error.  Present for strict functions and bound functions.  Not copied to bound functions.  (If <code>DUK_USE_NONSTD_FUNC_CALLER_PROPERTY</code> is given, non-strict functions will get a non-standard <code>caller</code> property.)</td></tr>
+<tr><td class="propname">arguments</td><td>standard</td><td>Accessor which throws an error.  Present for strict functions and bound functions.  Not copied to bound functions.</td></tr>
+<tr><td class="propname">name</td><td>Duktape</td><td>Function name, see below.  Bound function name is based on this property, with a <code>"bound "</code> prefix (standard ES6 behavior).</td></tr>
+<tr><td class="propname">fileName</td><td>Duktape</td><td>Filename or context where function was declared (same name as in error tracebacks).  Copied to bound function from target function. </td></tr>
+<tr><td class="propname">callee</td><td>n/a</td><td>Never assigned by default (listed here to clarify relationship to "caller" property).</td></tr>
+</tbody>
+</table>
+
+<p>The <code>name</code> property is assigned to all functions and is also
+the name used in tracebacks.  It is assigned as follows:</p>
+<pre class="ecmascript-code">
+function funcDecl() {
+    /* Function declaration: 'name' is declaration name, here 'funcDecl'. */
+}
+
+var foo = function namedFunc() {
+    /* Named function expression: 'name' is the name used in expression,
+     * here 'namedFunc' (not 'foo').
+     */
+}
+
+var bar = function () {
+    /* Anonymous function expression: 'name' is the empty string. */
+}
+</pre>
+
+<div class="note">
+Several Ecmascript built-in functions have properties different from user
+created Functions.
+</div>
+
+<h2 id="duktapec-function-properties">Duktape/C functions</h2>
+
+<p>User-created Duktape/C functions (<code>duk_push_c_function()</code>) have
+a different set of properties to reduce Function object memory footprint:</p>
+
+<table>
+<thead>
+<tr><th>Property name</th><th>Compatibility</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td class="propname">length</td><td>standard</td><td>
+Function argument count, matches argument to <code>duk_push_c_function()</code>, 0 for varargs.
+Non-writable and non-configurable.</td></tr>
+</tbody>
+</table>
+
+<p>Note in particular that the standard <code>prototype</code>, <code>caller</code>,
+and <code>arguments</code> properties are missing by default.  This is not strictly
+compliant but is important to reduce function footprint.  User code can of course
+assign these properties but is not required to do so.</p>
+
+<p>There's also no (non-standard) <code>name</code> property.  Setting it manually
+is useful because it affects how a function appears in tracebacks.</p>
+
+<h2 id="duktapec-lightfunc-properties">Lightweight Duktape/C functions</h2>
+
+<p>Lightweight Duktape/C functions (lightfuncs) are a very memory efficient way
+of representing a native function in the Ecmascript environment.  Lightfuncs
+don't have a property table so they can't hold properties.  However, they inherit
+from <code>Function.prototype</code> and have the following virtual properties
+(which are non-configurable and non-writable):</p>
+
+<table>
+<thead>
+<tr><th>Property name</th><th>Compatibility</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td class="propname">length</td><td>standard</td><td>Function (nominal) argument count.</td></tr>
+<tr><td class="propname">name</td><td>Duktape</td><td>Function name: <code>"light_&lt;PTR&gt;_&lt;FLAGS&gt;"</code>.</td></tr>
+</tbody>
+</table>
+
+<p>The <code>name</code> property is an automatically generated virtual
+function name. &lt;PTR&gt; is a platform dependent dump of the Duktape/C
+function pointer, and &lt;FLAGS&gt; is a raw hex dump of the 16-bit internal
+control fields (the format is Duktape internal).  You shouldn't rely on a
+specific format.  For example:</p>
+<pre>
+duk&gt; print(myLightFunc.name);
+light_0805b94c_0511
+</pre>
+
+<p>As for ordinary functions, a lightfunc coerces to an implementation
+dependent string.  You shouldn't rely on a specific format.  For example:</p>
+<pre>
+duk&gt; print(myLightFunc);
+function light_0805b94c_0511() {"light"}
+</pre>
+
+<p>For more details, see:</p>
+<ul>
+<li><a href="http://wiki.duktape.org/HowtoLightfuncs.html">How to work with lightfuncs</a></li>
+<li><a href="#typealgorithms">Type algorithms</a></li>
+<li><a href="https://github.com/svaarala/duktape/blob/master/doc/lightweight-functions.rst">lightweight-functions.rst</a></li>
+</ul>

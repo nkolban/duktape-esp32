@@ -1,0 +1,50 @@
+<h1 id="coroutines">Coroutines</h1>
+
+<p>Duktape has a support for simple coroutines.  Execution is strictly nesting:
+coroutine A resumes or initiates coroutine B, coroutine B runs until it yields
+or finishes (either successfully or through an uncaught error), after which
+coroutine A continues execution with the yield result.</p>
+
+<p>Coroutines are created with <code>new Duktape.Thread()</code>, which gets as its
+sole argument the initial function where the new coroutine begins execution on
+its first resume.  The resume argument becomes the initial function's first (and
+only) argument value.</p>
+
+<p>A coroutine is resumed using <code>Duktape.Thread.resume()</code> which takes the
+following arguments: the coroutine to resume, the resume value, and (optionally)
+a flag indicating whether the resume value is an ordinary value or an error to
+be injected into the target coroutine.  Injecting an error means that the resume
+value will be "thrown" at the site of the target coroutine's last yield operation.
+In other words, instead of returning with an ordinary value, the yield will
+seemingly throw an error.</p>
+
+<p>A coroutine yields its current execution using <code>Duktape.Thread.yield()</code>
+which takes as its arguments: the value to yield, and (optionally) a flag indicating
+whether the yield value is an ordinary value or an error to be thrown in the
+context of the resuming coroutine.  In other words, an error value causes the
+resume operation to seemingly throw an error instead of returning an ordinary
+value.</p>
+
+<p>If a coroutine exists successfully, i.e. the initial function finishes by
+returning a value, it is handled similarly to a yield with the return value.
+If a coroutine exists because of an uncaught error, it is handled similarly
+to a yield with the error: the resume operation will rethrow that error in
+the resuming coroutine's context.  In either case the coroutine which has
+finished can no longer be resumed; attempt to do so will cause a TypeError.</p>
+
+<p>There are currently strict limitations on when a yield is possible.
+In short, a coroutine can only yield if its entire active call stack consists
+of plain Ecmascript-to-Ecmascript calls.  The following prevent a yield if
+they are present anywhere in the yielding coroutine's call stack:</p>
+<ul>
+<li>a Duktape/C function call</li>
+<li>a constructor call</li>
+<li>a getter/setter call</li>
+<li>a proxy trap call</li>
+<li>an <code>eval()</code> call</li>
+<li><code>Function.prototype.call()</code> or <code>Function.prototype.apply()</code></li>
+<li>a finalizer call</li>
+</ul>
+
+<p>See <a href="http://wiki.duktape.org/HowtoCoroutines.html">How to use coroutines</a>
+for examples.</p>

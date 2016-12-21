@@ -88,3 +88,4 @@ module_os.o: ../main/module_os.c
 	
 clean:
 	rm -f $(OBJS)
+	rm -f dtest

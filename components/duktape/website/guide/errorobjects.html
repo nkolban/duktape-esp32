@@ -1,0 +1,225 @@
+<h1 id="errorobjects">Error objects</h1>
+
+<h2>Property summary</h2>
+
+<p>Ecmascript Error objects have very few standard properties, so many
+Ecmascript implementations have added quite a few custom properties.
+Duktape uses standard Error properties but also borrows the most useful
+properties used by other implementations.  The number of "own" properties
+of error objects is minimized to keep error objects as small as possible.</p>
+
+<p>Error objects have the following properties (mostly inherited):</p>
+
+<table>
+<thead>
+<tr><th>Property name</th><th>Compatibility</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td class="propname">name</td><td>standard</td><td>Name of error, e.g. <code>TypeError</code>, inherited</td></tr>
+<tr><td class="propname">message</td><td>standard</td><td>Optional message of error, own property, empty message inherited if absent</td></tr>
+<tr><td class="propname">fileName</td><td>Rhino</td><td>Filename related to error source, inherited accessor</td></tr>
+<tr><td class="propname">lineNumber</td><td>Rhino</td><td>Linenumber related to error source, inherited accessor</td></tr>
+<tr><td class="propname">stack</td><td>V8</td><td>Traceback as a multi-line human redable string, inherited accessor</td></tr>
+</tbody>
+</table>
+
+<div class="note">
+Assigning the most useful <code>fileName</code> and <code>lineNumber</code> is
+somewhat complicated.  The related issues and current behavior are described in:
+<a href="https://github.com/svaarala/duktape/blob/master/doc/error-objects.rst">error-objects.rst</a>.
+</div>
+
+<p>If Duktape is compiled with traceback support:</p>
+
+<ul>
+<li><code>stack</code>, <code>fileName</code>, and <code>lineNumber</code> are
+    accessor properties inherited from <code>Error.prototype</code>.  You can
+    override the properties by simply assigning over them: an inherited setter
+    will capture the write but will create an own property as if a normal
+    assignment was done.  This behavior was changed in Duktape 1.4.0 to better
+    match other engines.</li>
+<li>The raw traceback data needed by the accessor properties is stored in an internal
+    property (<code>\xFFTracedata</code>) which is not normally accessible from
+    Ecmascript code.</li>
+</ul>
+
+<p>If Duktape is compiled without traceback support:</p>
+<ul>
+<li>The <code>stack</code> accessor will be equivalent to
+    <code>Error.prototype.toString()</code>, so that printing the stacktrace
+    always produces a useful, human readable result.</li>
+<li><code>fileName</code> and <code>lineNumber</code> will be own properties
+    of the Error object.  You can override the properties using assignment.</li>
+</ul>
+
+<p>When error objects are created using the Duktape API from C code and the
+caller does not give a format string for a <code>message</code>, the <code>message</code>
+property is set to a numeric error code given in the API call.  The type of
+<code>message</code> will be number in this case; normally error messages are
+strings.   In minimized Duktape builds all errors generated internally by
+Duktape use numeric error codes only.</p>
+
+<p>An object is considered an "error object" if its internal prototype
+chain contains the (original) <code>Error.prototype</code> object.  Only
+objects matching this criteria get augmented with e.g. traceback data.</p>
+
+<h2>Traceback</h2>
+
+<p>The <code>stack</code> property is an accessor (setter/getter) property
+which provides a printable traceback related to an error.  The traceback
+reflects the call stack when the error object was created (not thrown).
+Traceback data is automatically collected and added to an object:</p>
+<ul>
+<li>when an Error instance is constructed;</li>
+<li>when an error is thrown from C code using the Duktape API;</li>
+<li>when an error is thrown from inside Duktape.</li>
+</ul>
+
+<p>The data used to create the traceback is stored in an internal property
+(<code>\xFFTracedata</code>), in an internal and version-dependent format
+described
+<a href="https://github.com/svaarala/duktape/blob/master/doc/error-objects.rst">error-objects.rst</a>.
+You shouldn't access the traceback data directly.</p>
+
+<p>The printable traceback format is intended to be human readable only.
+You shouldn't rely on an exact traceback format as it may change between
+versions (for example,
+<a href="https://github.com/svaarala/duktape/pull/592">tracebacks were improved for the 1.5.0 release</a>).
+As an example of the current traceback format, the program:</p>
+<pre class="ecmascript-code">
+// shortened from tests/ecmascript/test-dev-traceback-example.js
+try {
+    decodeURIComponent('%e1%a9%01');  // invalid utf-8
+} catch (e) {
+    print(e.stack);
+}
+</pre>
+
+<p>would print something like:</p>
+<pre>
+URIError: invalid input
+    at [anon] (duk_bi_global.c:343) internal
+    at decodeURIComponent () native strict preventsyield
+    at global (test.js:3) preventsyield
+</pre>
+
+<p>In builds where tracebacks are disabled, the <code>stack</code> accessor
+will return the same value as calling <code>toString()</code> on the error
+would.  This means you can always print <code>e.stack</code> and get a useful
+output.</p>
+
+<p>The most portable traceback printing approach is something like:</p>
+<pre class="ecmascript-code">
+try {
+    decodeURIComponent('%e1%a9%01');  // invalid utf-8
+} catch (e) {
+    // Print stacktrace on at least Duktape and V8, or a standard error
+    // string otherwise.
+    print(e.stack || e);
+}
+</pre>
+
+<p>Attempt to write to <code>stack</code> is silently ignored.  You can still
+override the accessor by defining an own property of the same name explicitly
+with <code>Object.defineProperty()</code>.  This behavior differs from V8 where
+<code>stack</code> is an own property of the Error instance, and if you assign a
+value to <code>stack</code>, the value reads back as assigned.</p>
+
+<h2 id="error-handlers">Error handlers (errCreate and errThrow)</h2>
+
+<p>If <code>Duktape.errCreate</code> has been set, it is called right after
+Duktape has added traceback information to an object, and can process the
+error further or even replace the error value entirely.  The error handler
+only gets called with <code>Error</code> instances, and its return value is
+used as the final error value.  If the error handler throws an error, that
+error replaces the original error.  The error handler is usually called only once
+per error.  However, in corner cases related to constructors, the error handler
+can be called multiple times for a single error value.</p>
+
+<p>An error handler should avoid overwriting any properties already
+present in an object, as that would be quite confusing for other code.
+In general, an error handler should always avoid throwing an error, as that
+error replaces the original error and would also be confusing.  As a specific
+example, an error handler must not try to add a new property to a non-extensible
+object, as that would cause a <code>TypeError</code>.</p>
+
+<p>Below is an example error handler for adding a creation timestamp to
+errors at their creation:</p>
+<pre class="ecmascript-code">
+Duktape.errCreate = function (e) {
+    if (!(e instanceof Error)) {
+        // this check is not really needed because errCreate only gets
+        // called with Error instances
+        return e;
+    }
+    if ('created' in e) {
+        // already augmented or conflicting property present
+        return e;
+    }
+    if (!Object.isExtensible(e)) {
+        // object not extensible, don't try to add a new property
+        return e;
+    }
+    e.created = new Date();
+    return e;
+}
+</pre>
+
+<p>To remove the handler, delete the property (setting it to e.g. <code>null</code>
+does not work and causes a <code>TypeError</code> when Duktape attempts to
+call the <code>null</code> value):</p>
+<pre class="ecmascript-code">
+// Remove error handler for error creation
+delete Duktape.errCreate;
+</pre>
+
+<p>Similarly, if <code>Duktape.errThrow</code> has been set, it is called
+right before an error is thrown, and can process or replace the error value.
+Because Ecmascript allows any value type to be thrown, the error handler
+may get called with arbitrary input values (not just <code>Error</code>
+instances).  It may also be called more than once for the same value because
+an error can be re-thrown multiple times.</p>
+
+<p>For example, to add a throw timestamp (recording the first time the object
+has been thrown) to errors:</p>
+<pre class="ecmascript-code">
+Duktape.errThrow = function (e) {
+    if (!(e instanceof Error)) {
+        // refuse to touch anything but Error instances
+        return e;
+    }
+    if ('thrown' in e) {
+        // already augmented or conflicting property present
+        return e;
+    }
+    if (!Object.isExtensible(e)) {
+        // object not extensible, don't try to add a new property
+        return e;
+    }
+    e.thrown = new Date();
+    return e;
+}
+</pre>
+
+<p>Again, to remove the handler, delete the property:</p>
+<pre class="ecmascript-code">
+// Remove error handler for error throwing
+delete Duktape.errThrow;
+</pre>
+
+<h2>Current limitations</h2>
+
+<ul>
+<li>There is no cause chain support.  Cause chains would be useful but there
+    are no cause chains in Ecmascript, nor does there seem to be a de facto
+    standard for them.</li>
+<li>These is currently no way to access traceback elements programmatically.</li>
+<li>If an error is created with a non-constructor function call to a custom
+    error class (<code>MyError('msg')</code> instead of <code>new MyError('msg')</code>)
+    it won't get augmented with custom fields such as traceback data.  When
+    called as a constructor custom errors inheriting from <code>Error</code> get
+    augmented normally.  Built-in standard errors (like <code>TypeError</code>)
+    always get augmented, even when created with a non-constructor function call
+    (the tracebacks look slightly different depending on how the error is
+    created, though).</li>
+</ul>

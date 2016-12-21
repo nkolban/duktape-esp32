@@ -1,0 +1,137 @@
+<h1 id="compatibility">Compatibility</h1>
+
+<p>This section discussed Duktape compatibility with Ecmascript dialects,
+extensions, frameworks, and test suites.</p>
+
+<h2 id="compatibility-e5">Ecmascript E5 / E5.1</h2>
+
+<p>The main compatibility goal of Duktape is to be Ecmascript E5/E5.1
+compatible.  However, ES5 feature semantics are updated to ES6 (or
+later) where incompatible changes have been made in newer specification
+versions.  Current level of compatibility should be quite high.</p>
+
+<h2 id="compatibility-e6">Ecmascript 2015 (E6)</h2>
+
+<p>Duktape implements some features from Ecmascript 2015 (E6), but generally there
+is no compatibility with E6 yet.</p>
+
+<h2 id="compatibility-e7">Ecmascript 2016 (E7)</h2>
+
+<p>Duktape implements some features from Ecmascript 2016 (E7), but generally there
+is no compatibility with E7 yet.</p>
+
+<h2 id="compatibility-e3">Ecmascript E3</h2>
+
+<p>There is no effort to maintain
+<a href="http://www.mozilla.org/js/language/E262-3.pdf">Ecmascript E3</a>
+compatibility, other than required by the E5/E5.1 specification.</p>
+
+<h2 id="compatibility-coffeescript">CoffeeScript</h2>
+
+<p><a href="http://coffeescript.org/">CoffeeScript</a> compiles to
+JavaScript which should be compatible with Duktape.  There are no known
+compatibility issues.</p>
+
+<p>Some CoffeeScript examples are included in the distributable.  Simply
+run <code>make</code> in <code>examples/coffee/</code>.  For instance,
+<code>hello.coffee</code>:</p>
+<pre class="coffeescript-code">
+print 'Hello world!'
+print 'version: ' + Duktape.version
+</pre>
+
+<p>compiles to:</p>
+<pre class="ecmascript-code">
+(function() {
+
+  print('Hello world!');
+
+  print('version: ' + Duktape.version);
+
+}).call(this);
+</pre>
+
+<h2 id="compatibility-coco">Coco</h2>
+
+<p>Like CoffeeScript, <a href="https://github.com/satyr/coco">Coco</a> compiles to
+Javascript.  There are no known issues.</p>
+
+<h2 id="compatibility-livescript">LiveScript</h2>
+
+<p>Like CoffeeScript, <a href="http://livescript.net/">LiveScript</a> compiles to
+Javascript.  There are no known issues.</p>
+
+<h2 id="compatibility-typescript">TypeScript</h2>
+
+<p><a href="https://github.com/Microsoft/TypeScript/">TypeScript</a>
+compiles to Javascript.  There are no known issues with compiling TypeScript
+using the Microsoft TypeScript compiler (in the ES5/CommonJS mode) and
+running the resulting Javascript using Duktape.  It's also possible to
+<a href="http://wiki.duktape.org/CompatibilityTypeScript.html">run the TypeScript compiler with Duktape</a>.</p>
+
+<h2 id="compatibility-underscorejs">Underscore.js</h2>
+
+<p><a href="http://underscorejs.org/">Underscore.js</a> provides a lot of
+useful utilities to plain Ecmascript.  Duktape passes almost all of Underscore's
+test cases, see
+<a href="https://github.com/svaarala/duktape/blob/master/doc/underscore-status.rst">underscore-status.rst</a>
+for current compatibility status.</p>
+
+<h2 id="compatibility-test262">Test262</h2>
+
+<p><a href="http://test262.ecmascript.org/">test262</a> is a test suite for
+testing E5.1 compatibility, although it includes also tests outside of standard E5.1.
+Duktape passes almost all of test262 cases, see
+<a href="https://github.com/svaarala/duktape/blob/master/doc/test262-status.rst">test262-status.rst</a>
+for current compatibility status.</p>
+
+<h2 id="compatibility-asmjs">Asm.js</h2>
+
+<p><a href="http://asmjs.org/spec/latest/">asm.js</a> is a
+"strict subset of JavaScript that can be used as a low-level, efficient
+target language for compilers".  As a subset of JavaScript, functions using
+asm.js type annotations should be fully compatible with Duktape.  However,
+Duktape has no specific support for asm.js and won't optimize asm.js code.
+In fact, asm.js code will generate unnecessary bytecode and execute slower
+than normal Ecmascript code.  The <code>"use asm"</code> directive specified
+by asm.js is ignored by Duktape.  Also, because there is not typed array
+support yet, no "heap object" can be provided.</p>
+
+<h2 id="compatibility-emscripten">Emscripten</h2>
+
+<p><a href="https://github.com/kripken/emscripten">Emscripten</a> compiles
+C/C++ into Javascript.  Duktape is currently (as of Duktape 1.5.0) Emscripten
+compatible and supports Khronos/ES6 TypedArray which allows Emscripten fastcomp
+to be used.</p>
+
+<p>Large programs may fail due to Duktape compiler running out of virtual
+registers, and performance is somewhat limited as Duktape is an interpreted
+engine.  See
+<a href="https://github.com/svaarala/duktape/blob/master/doc/emscripten-status.rst">emscripten-status.rst</a>
+for current compatibility status.</p>
+
+<p>Because Duktape itself compiles with Emscripten, it is possible to run
+Duktape inside a web page for instance, see
+<a href="dukweb.html">Dukweb REPL</a>.
+</p>
+
+<h2 id="compatibility-luajs">Lua.js</h2>
+
+<p><a href="https://github.com/mherkender/lua.js">lua.js</a> translates Lua
+code to Javascript.  There are no known issues in running the generated
+Javascript, except that Duktape doesn't provide <code>console.log</code>
+which lua.js expects.  This is easy to remedy, e.g. by prepending the
+following:</p>
+<pre class="ecmascript-code">
+console = { log: function() { print(Array.prototype.join.call(arguments, ' ')); } };
+</pre>
+
+<h2 id="compatibility-jsinterpreter">JS-Interpreter</h2>
+
+<p><a href="https://github.com/NeilFraser/JS-Interpreter">JS-Interpreter</a>
+interprets Javascript in Javascript.  JS-Interpreter works with Duktape,
+except that Duktape doesn't provide <code>window</code> which JS-Interpreter
+expects.  This can be fixed by prepending:</p>
+<pre class="ecmascript-code">
+window = {};
+</pre>

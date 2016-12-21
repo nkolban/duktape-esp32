@@ -16,7 +16,7 @@ enum {
 	ESP32_DUKTAPE_EVENT_TIMER_ADDED,
 	ESP32_DUKTAPE_EVENT_TIMER_FIRED,
 	ESP32_DUKTAPE_EVENT_TIMER_CLEARED,
-	ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED,
+	ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED
 };
 
 enum {
@@ -69,6 +69,7 @@ void event_newCommandLineEvent(char *commandData, size_t commandLength, int from
 void event_newHTTPServerRequestEvent(char *uri, char *method);
 void event_newTimerFiredEvent(unsigned long id);
 void event_newCallbackRequestedEvent(uint32_t callbackType, uint32_t stashKey, esp32_duktape_callback_dataprovider dataProvider, void *contextData);
+char *event_eventTypeToString(int eventType);
 
 void esp32_duktape_initEvents();
 int esp32_duktape_waitForEvent();

@@ -19,18 +19,43 @@ LOG_TAG("duktape_event");
 // queue for processing.
 #define MAX_EVENT_QUEUE_SIZE (20)
 
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 static QueueHandle_t esp32_duktape_event_queue; // The event queue (provided by FreeRTOS).
-#endif
+#endif /* ESP_PLATFORM */
 
 /**
  * Post the event onto the queue for handling when idle.
  */
 static void postEvent(esp32_duktape_event_t *pEvent) {
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 	xQueueSendToBack(esp32_duktape_event_queue, pEvent, portMAX_DELAY);
-#endif
+#else /* ESP_PLATFORM */
+	assert(0);
+#endif  /* ESP_PLATFORM */
 } // postEvent
+
+
+/**
+ * Convert an event type to a string representation.
+ */
+char *event_eventTypeToString(int eventType) {
+	switch(eventType) {
+		case ESP32_DUKTAPE_EVENT_COMMAND_LINE:
+			return "ESP32_DUKTAPE_EVENT_COMMAND_LINE";
+		case ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST:
+			return "ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST";
+		case ESP32_DUKTAPE_EVENT_TIMER_ADDED:
+			return "ESP32_DUKTAPE_EVENT_TIMER_ADDED";
+		case ESP32_DUKTAPE_EVENT_TIMER_FIRED:
+			return "ESP32_DUKTAPE_EVENT_TIMER_FIRED";
+		case ESP32_DUKTAPE_EVENT_TIMER_CLEARED:
+			return "ESP32_DUKTAPE_EVENT_TIMER_CLEARED";
+		case ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED:
+			return "ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED";
+		default:
+			return "Unknown event type";
+	}
+} // event_eventTypeToString
 
 
 /**
@@ -51,11 +76,11 @@ void esp32_duktape_initEvents() {
  */
 int esp32_duktape_waitForEvent(esp32_duktape_event_t *pEvent) {
 	// Ask FreeRTOS to see if we have a new event.
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 	BaseType_t rc = xQueueReceive(esp32_duktape_event_queue, pEvent, 0);
-#else
+#else /* ESP_PLATFORM */
 	int rc = 0;
-#endif
+#endif /* ESP_PLATFORM */
 	return (int)rc;
 } // esp32_duktape_waitForEvent
 
@@ -68,6 +93,7 @@ void esp32_duktape_freeEvent(duk_context *ctx, esp32_duktape_event_t *pEvent) {
 		free(pEvent->commandLine.commandLine);
 		return;
 	}
+
 	if (pEvent->type == ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST) {
 		free(pEvent->httpServerRequest.method);
 		free(pEvent->httpServerRequest.uri);
@@ -89,7 +115,7 @@ void esp32_duktape_freeEvent(duk_context *ctx, esp32_duktape_event_t *pEvent) {
 	}
 
 	if (pEvent->type == ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED) {
-		if (pEvent->callbackRequested.callbackType == 	ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION) {
+		if (pEvent->callbackRequested.callbackType == ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION) {
 			esp32_duktape_stash_delete(ctx, pEvent->callbackRequested.stashKey);
 		}
 		return;
@@ -135,6 +161,7 @@ void event_newCommandLineEvent(
  * Create an event that indicates a new HTTP Server request has been
  * received from outside of Duktape.
  */
+/*
 void event_newHTTPServerRequestEvent(
 		char *uri,
 		char *method
@@ -147,41 +174,56 @@ void event_newHTTPServerRequestEvent(
 
 	postEvent(&event);
 } // newHTTPServerRequestEvent
-
+*/
 
 /**
  * Create an event that indicates we have received a request to insert a new
  * timer into our timer chain.
  */
+/*
 void event_newTimerAddedEvent(unsigned long id) {
 	esp32_duktape_event_t event;
 	event.type = ESP32_DUKTAPE_EVENT_TIMER_ADDED;
 	postEvent(&event);
 } // event_newTimerAddedEvent
-
+*/
 
 /**
  * Indicate that a timer was cleared.
  */
+/*
 void event_newTimerClearedEvent(unsigned long id) {
 	esp32_duktape_event_t event;
 	event.type = ESP32_DUKTAPE_EVENT_TIMER_CLEARED;
 	postEvent(&event);
 } // event_newTimerClearedEvent
-
+*/
 
 /**
  * indicate that a timer has fired.
  */
+/*
 void event_newTimerFiredEvent(unsigned long id) {
 	esp32_duktape_event_t event;
 	event.type = ESP32_DUKTAPE_EVENT_TIMER_FIRED;
 	event.timerFired.id = id;
 	postEvent(&event);
 } // event_newTimerFiredEvent
+*/
 
+/**
+ * Build and post a new CallbackRequestedEvent.  This kind of event is used to indicate
+ * to the runtime that a C function outside the context of any JavaScript framework
+ * wishes a function to be invoked.  The function will be found identified by the
+ * stashKey parameter.
+ */
+void event_newCallbackRequestedEvent(
+	uint32_t callbackType,
+	uint32_t stashKey,
+	esp32_duktape_callback_dataprovider dataProvider,
+	void *contextData) {
 
-void event_newCallbackRequestedEvent(uint32_t callbackType, uint32_t stashKey, esp32_duktape_callback_dataprovider dataProvider, void *contextData) {
+	LOGD(">> event_newCallbackRequestedEvent stashKey=%d", stashKey);
 	esp32_duktape_event_t event;
 	event.type = ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED;
 	if (callbackType != ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION) {
@@ -189,8 +231,9 @@ void event_newCallbackRequestedEvent(uint32_t callbackType, uint32_t stashKey, e
 		return;
 	}
 	event.callbackRequested.callbackType = callbackType;
-	event.callbackRequested.stashKey = stashKey;
+	event.callbackRequested.stashKey     = stashKey;
 	event.callbackRequested.dataProvider = dataProvider;
-	event.callbackRequested.context = contextData;
+	event.callbackRequested.context      = contextData;
 	postEvent(&event);
+	LOGD("<< event_newCallbackRequestedEvent");
 } // event_newCallbackRequestedEvent

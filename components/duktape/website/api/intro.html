@@ -1,0 +1,59 @@
+<h1 id="introduction">Introduction</h1>
+
+<p>Version: <span class="duktape-version">XX.XX.XX</span> (<span class="current-date">XXXX-XX-XX</span>)</p>
+
+<h2>Document scope</h2>
+
+<p>The Duktape API (defined in <code>duktape.h</code>) is a set of constants
+and API calls which allows C/C++ programs to interface with Ecmascript
+code and shields them from internal details like value representation.
+</p>
+
+<p>This document provides a concise reference for the Duktape API and
+its core concepts.  If you're new to Duktape, please read the
+<a href="guide.html">Duktape Programmer's Guide</a> first.</p>
+
+<h2>Searching for functions using browser search</h2>
+
+<p>You can use browser search (typically CTRL-F) to search for
+function definitions by prepending a dot to the search term.  For instance,
+use ".duk_example_func" to look for <code>duk_example_func()</code>.  In most
+browsers only the actual section defining the function should be found.</p>
+
+<h2>API safety</h2>
+
+<p>As a general rule, API calls check all their parameters and tolerate
+<code>NULL</code> arguments and invalid value stack indices without unsafe
+behavior (crashes).</p>
+
+<p>One major exception is the Duktape context argument, <code>ctx</code>.
+Unless stated otherwise, it is not checked and is required to be
+non-<code>NULL</code> or unsafe behavior may occur.  This is the case
+because explicit checks for the argument would increase code footprint
+for little practical gain.</p>
+
+<p>Also see <a href="guide.html#error-handling">Error handling</a> best
+practices, especially to avoid uncaught errors which lead to difficult
+to diagnose fatal errors.</p>
+
+<h2>API calls may be macros</h2>
+
+<p>All Duktape API calls are potentially macros.  The implementation of a
+certain API call may change between a macro and an actual function even
+between compatible releases.  See <a href="guide.html#duktape-api">Duktape API</a>
+for more discussion.</p>
+
+<h2>Minimal Duktape program</h2>
+
+<pre class="c-code">
+#include "duktape.h"
+
+int main(int argc, char *argv[]) {
+    duk_context *ctx = duk_create_heap_default();
+    if (ctx) {
+        duk_eval_string(ctx, "print('Hello world from Javascript!');");
+        duk_destroy_heap(ctx);
+    }
+    return 0;
+}
+</pre>

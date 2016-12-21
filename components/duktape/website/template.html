@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html class="wf-nojavascript">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="152x152" href="touch_icon_152x152.png">
+<link rel="apple-touch-icon" sizes="144x144" href="touch_icon_144x144.png">
+<link rel="apple-touch-icon" sizes="120x120" href="touch_icon_120x120.png">
+<link rel="apple-touch-icon" sizes="114x114" href="touch_icon_114x114.png">
+<link rel="apple-touch-icon" sizes="72x72" href="touch_icon_72x72.png">
+<link rel="apple-touch-icon" sizes="60x60" href="touch_icon_60x60.png">
+<link rel="apple-touch-icon" sizes="57x57" href="touch_icon_57x57.png">
+<link rel="apple-touch-icon" href="touch_icon_57x57.png">
+<link rel="apple-touch-startup-image" href="startup_image_320x480.png">
+<script type="text/javascript">
+// allows non-javascript browsers to render with fallback fonts
+document.getElementsByTagName("html")[0].className = "";
+
+/*
+  WebFont.load({
+    google: {
+      families: ['Open Sans', 'Droid Sans Mono']
+    }
+  });
+*/
+// link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'
+// link href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono' rel='stylesheet' type='text/css'
+
+WebFontConfig = {
+    google: {
+      families: ['Open Sans', 'Droid Sans Mono']
+    }
+};
+
+// http://kevindew.me/post/47052453532/a-fallback-for-when-google-web-font-loader-fails
+(function() {
+    var wf = document.createElement('script');
+    wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
+        '://ajax.googleapis.com/ajax/libs/webfont/1.4.2/webfont.js';
+    wf.type = 'text/javascript';
+    wf.async = 'true';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(wf, s);
+    setTimeout(function() {
+        if (!("WebFont" in window)) {
+            document.getElementsByTagName("html")[0].className += " wf-fail";
+        }
+    }, 1000);
+})();
+</script>
+<!-- combined stylesheet -->
+<link href="style.css" rel="stylesheet" type="text/css">
+<title id="template-title"></title>
+</head>
+<body>
+<div id="site-top">
+<div id="site-top-logo">
+<strong id="logo">((o) Duktape</strong>
+</div>  <!-- site-top-logo -->
+<div id="site-top-nav">
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="download.html">Download</a></li>
+<li><a href="api.html">API</a></li>
+<li><a href="guide.html">Guide</a></li>
+<li><a href="http://wiki.duktape.org/">Wiki</a></li>
+<li><a href="dukweb.html">REPL</a></li>
+</ul>
+</div>  <!-- site-top-nav -->
+</div>  <!-- site-top -->
+<div id="site-dummy-github" style="position:relative">
+<a href="https://github.com/svaarala/duktape"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub"></a>
+</div>
+<div id="site-middle">
+<div id="site-middle-nav">
+</div>  <!-- site-middle-nav -->
+<div id="site-middle-content">
+</div>  <!-- site-middle-content -->
+</div>  <!-- site-middle -->
+<div id="site-bottom">
+<hr/>
+<p>Duktape is (C) by its <a href="https://github.com/svaarala/duktape/blob/master/AUTHORS.rst">authors</a>
+and licensed under the <a href="https://github.com/svaarala/duktape/blob/master/LICENSE.txt">MIT license</a>.</p>
+</div>  <!-- site-bottom -->
+</body>
+</html>

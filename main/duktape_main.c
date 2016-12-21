@@ -4,25 +4,26 @@
 #include <esp_log.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
-#include <lwip/sockets.h>
-#include <math.h>
-#include <nvs_flash.h>
-#include <string.h>
+//#include <lwip/sockets.h>
+//#include <math.h>
+//#include <nvs_flash.h>
+//#include <string.h>
 
 #include "bootwifi.h"
-#include "connection_info.h"
+//#include "connection_info.h"
 #include "duktape_task.h"
 #include "esp32_duktape/duktape_event.h"
-#include "esp32_specific.h"
+//#include "esp32_specific.h"
 #include "logging.h"
 #include "sdkconfig.h"
-#include "telnet.h"
+//#include "telnet.h"
 
 LOG_TAG("duktape_main");
 
 /**
  * Receive data from the telnet or uart and process it.
  */
+/*
 static void recvData(uint8_t *buffer, size_t size) {
 	LOGD("We received: %.*s", size, buffer);
 	// We have received a line of data from the telnet client, now we want
@@ -31,22 +32,30 @@ static void recvData(uint8_t *buffer, size_t size) {
 	// ESP32_DUKTAPE_EVENT_COMMAND_LINE which will contain the data and length.
 	// The data will eventually have to be released.
 
-	event_newCommandLineEvent((char *)buffer, size, 1 /* from keyboard */);
+	event_newCommandLineEvent((char *)buffer, size,
+	1); // 1 = frome keyboard
 } // recvData
 
+*/
+
+/*
 static void newTelnetPartner() {
 	duktape_init_environment();
 } // newTelnetPartner
+*/
 
 /**
  * Process telnet commands on a separate task.
  */
+/*
 static void telnetTask(void *data) {
 	LOGD(">> telnetTask");
 	telnet_esp32_listenForClients(recvData, newTelnetPartner);
 	LOGD("<< telnetTask");
 	vTaskDelete(NULL);
 } // newTelnetPartner
+
+*/
 
 /**
  * An ESP32 WiFi event handler.
@@ -67,16 +76,16 @@ static void telnetTask(void *data) {
  * SYSTEM_EVENT_WIFI_READY
  */
 static esp_err_t esp32_wifi_eventHandler(void *ctx, system_event_t *event) {
-	// Your event handling code here...
 	return ESP_OK;
-}
+} // esp32_wifi_eventHandler
 
 void socket_server(void *ignore);
+
 static void init() {
 	// At this point we should have a WiFi network
 	esp_event_loop_set_cb(esp32_wifi_eventHandler, NULL);
-	//esp32_duktape_initEvents();
-	setupVFS(); // Setup the Virtual File System.
+	esp32_duktape_initEvents();
+	//setupVFS(); // Setup the Virtual File System.
 	//setupWebVFS("/web", "http://192.168.1.105");
 	//xTaskCreatePinnedToCore(&telnetTask, "telnetTask", 8048, NULL, 5, NULL, 0);
 	//startMongooseServer();
@@ -84,18 +93,13 @@ static void init() {
 	xTaskCreatePinnedToCore(&duktape_task, "duktape_task", 10*1024, NULL, 5, NULL, 0);
 } // init
 
-/**
- * Main entry point into the application.
+
+/*
+ *  Main entry point into the application.
  */
 void app_main(void)
 {
 	LOGD("Free heap at start: %d", esp_get_free_heap_size());
+	// Boot the WiFi environment and once WiFi is ready, call init().
 	bootWiFi(init);
 } // app_main
-
-/**
- * Hack fix for ESP-IDF issue https://github.com/espressif/esp-idf/issues/83
- */
-double __ieee754_remainder(double x, double y) {
-	return x - y * floor(x/y);
-} // __ieee754_remainder

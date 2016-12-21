@@ -1,0 +1,91 @@
+body, html {
+	padding: 0;
+	margin: 0;
+	border: 0;
+}
+
+h1 {
+	font: 24pt monospace;
+	background: #444444;
+	color: #ffffff;
+	margin: 0;
+	padding: 20px 0px 20px 10px;
+	border-bottom: 2px solid #cccccc;
+}
+
+#content-middle {
+	margin: 20px;
+}
+
+#dukweb-intro {
+	width: 100%;
+	color: #aaaaaa;
+	font-style: italic;
+	margin: 3ex 0 0 0;
+	padding: 0;
+}
+
+#dukweb-intro a {
+	color: #aaaaff;
+	font-style: italic;
+}
+#dukweb-intro a:visited {
+	color: #aaaaff;
+	font-style: italic;
+}
+#dukweb-intro a:hover {
+	color: #8888ff;
+	font-style: italic;
+}
+
+#dukweb-input-wrapper {
+	height: 20em;
+	border: 2px solid #cccccc;
+	border-radius: 5px;
+	margin: 3ex 0 0 0;
+	padding: 6px;
+}
+#dukweb-input {
+	border: none;
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	overflow: auto;
+}
+
+#dukweb-output {
+	height: 20em;
+	border: 2px solid #cccccc;
+	border-radius: 5px;
+	margin: 0;
+	padding: 6px;
+	overflow: auto;
+}
+#dukweb-output.error {
+	color: #ff0000;
+	font-weight: bold;
+}
+
+#dukweb-evaluate-wrapper {
+	margin: 3ex 0 3ex 0;
+	padding: 0;
+	width: 100%;
+	text-align: center;
+}
+#dukweb-evaluate {
+	color: #333333;
+	background: #eeeeff;
+	font-family: sans-serif;
+	font-size: 200%;
+	border: 2px solid #ccccff;
+	border-radius: 5px;
+	padding: 8px;
+	margin: 0;
+}
+#dukweb-evaluate:hover {
+	background: #f8f8ff;
+	cursor: pointer;
+}
+#dukweb-evaluate span {
+}

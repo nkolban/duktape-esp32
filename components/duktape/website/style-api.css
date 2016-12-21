@@ -1,0 +1,97 @@
+/*
+ *  API specific CSS rules
+ */
+
+@media screen and (min-width:801px) {
+	/* On wide screens, slide API entry section headings to the side
+	 * to make the entries more compact.
+	 *
+	 * Specificity must override normal section heading rules.
+	 *
+	 * The challenge here is to keep the section heading vertically
+	 * aligned with the content on the right.  To do this, we need
+	 * to avoid top margins in the elements on the right (paragraphs,
+	 * stacks, <pre>-blocks) which is a bit hackish.  The api-part
+	 * div margins are then used to provide spacing between the API
+	 * documentation parts.
+	 */
+
+	.api-call h2.api-proto,
+	.api-call h2.api-stack,
+	.api-call h2.api-summary,
+	.api-call h2.api-example,
+	.api-call h2.api-seealso {
+		position: absolute;
+		left: 10px;
+		margin: 0;
+		padding: 0 0 0 0;
+		width: 200px;
+		text-align: right;
+		height: 0;
+		overflow: visible;
+		color: #ccccdd;
+		font-size: 100%;
+	}
+
+	.api-part {
+		margin: 3ex 0 3ex 0;
+	}
+
+	.content .api-call .stack-wrapper {
+		margin-top: 0;
+		margin-bottom: 2ex;
+	}
+	.content .api-call .stack {
+		margin-top: 0;
+	}
+
+	.content .api-call p {
+		margin-top: 0;
+	}
+	.content .api-call pre {
+		margin-top: 0;
+	}
+}
+
+/* Selector specificity issues here, workaround is to add more selectors. */
+h1.apih1 a.apitag {
+	float: right;
+	margin: 3px;
+	border: 2px solid #cccccc;
+	border-radius: 4px;
+	padding: 3px;
+	font-size: 8pt;
+	background: #eeeeee;
+	color: #888888;
+}
+h1.apih1 a.apitag:hover {
+	background: #ffffff;
+	color: #888888;
+}
+h1.apih1 a.apitag visited {
+	color: #888888;
+}
+h1.apih1 a.apitagwarn {
+	background: #dd0000;
+	border-color: #880000;
+	color: #ffffff;
+}
+h1.apih1 a.apitagwarn:hover {
+	background: #ff8800;
+	color: #ffffff;
+}
+h1.apih1 a.apitagwarn:visited {
+	color: #ffffff;
+}
+h1.apih1 a.apitagprotected {
+	background: #00aa00;
+	border-color: #004400;
+	color: #ffffff;
+}
+h1.apih1 a.apitagprotected:hover {
+	background: #55cc55;
+	color: #ffffff;
+}
+h1.apih1 a.apitagprotected:visited {
+	color: #ffffff;
+}

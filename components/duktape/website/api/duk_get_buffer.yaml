@@ -1,0 +1,42 @@
+name: duk_get_buffer
+
+proto: |
+  void *duk_get_buffer(duk_context *ctx, duk_idx_t idx, duk_size_t *out_size);
+
+stack: |
+  [ ... val! ... ]
+
+summary: |
+  <p>Get the data pointer for a (plain) buffer value at <code>idx</code> without
+  modifying or coercing the value.  Returns a non-<code>NULL</code> pointer if the value
+  is a valid buffer with a non-zero size.  For a zero-size buffer, may return a
+  <code>NULL</code> or a non-<code>NULL</code> pointer.  Returns <code>NULL</code>
+  if the value is not a buffer or the index is invalid.  If <code>out_size</code> is
+  non-<code>NULL</code>, the size of the buffer is written to <code>*out_size</code>; 0
+  is written if the return value is <code>NULL</code>.</p>
+
+  <p>If the target value is a fixed buffer, the returned pointer is stable and
+  won't change during the lifetime of the buffer.  For dynamic and external
+  buffers the pointer may change as the buffer is resized or reconfigured;
+  the caller is responsible for ensuring pointer values returned from this API
+  call are not used after the buffer is resized/reconfigured.</p>
+
+  <div include="buffer-null-pointer-ambiguity.html" />
+
+example: |
+  void *ptr;
+  duk_size_t sz;
+
+  ptr = duk_get_buffer(ctx, -3, &sz);
+  printf("buf=%p, size=%lu\n", ptr, (unsigned long) sz);
+
+tags:
+  - stack
+  - buffer
+
+seealso:
+  - duk_require_buffer
+  - duk_get_buffer_data
+  - duk_require_buffer_data
+
+introduced: 1.0.0

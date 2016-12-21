@@ -1,0 +1,218 @@
+<h1 id="limitations">Limitations</h1>
+
+<p>The following is a list of known limitations of the current implementation.
+Limitations include shortcomings from a semantics perspective, performance
+limitations, and implementation limits (which are inevitable).</p>
+
+<p>Trivial bugs are not listed unless they are "long term bugs".</p>
+
+<h2>No re-entrancy</h2>
+
+<p>A single Duktape heap, i.e. contexts sharing the same garbage collector,
+is <b>not re-entrant</b>.  Only one C/C++ thread can call Duktape APIs
+at a time for a particular Duktape heap (although the calling thread
+can change over time).  See <a href="#threading">Threading</a>.</p>
+
+<h2>String and buffer limits</h2>
+
+<p>The internal representation allows a maximum length of 2**31-1 (0x7fffffff)
+<i>bytes</i> (not characters) for strings.  16-bit codepoints encode into 3
+bytes of UTF-8 in the worst case, so the maximum string length which is
+guaranteed to work is about 0.7G characters.</p>
+
+<p>Buffer values are also limited to 2**31-1 (0x7fffffff) bytes.</p>
+
+<h2>Property limits</h2>
+
+<p>An object can have at most <code>DUK_HOBJECT_MAX_PROPERTIES</code> (an
+internal define).  Currently this limit is 0x7ffffffff.</p>
+
+<h2>Array limits</h2>
+
+<p>When array item indices go over the 2**31-1 limit (0x7fffffff), Duktape
+has some known bugs with array semantics.</p>
+
+<h2>Regexp quantifier over empty match</h2>
+
+<p>The regexp engine gets stuck when a quantifier is used over an
+empty match but eventually bails out with an internal recursion
+(or execution step) limit.  For instance, the following should produce
+a "no match" result but hits an internal recursion limit instead:</p>
+
+<pre>
+$ duk
+duk&gt; t = /(x*)*/.exec('y');
+RangeError: regexp executor recursion limit
+    at [anon] (duk_regexp_executor.c:145) internal
+    at exec () native strict preventsyield
+    at global (input:1) preventsyield
+</pre>
+
+<h2>Duktape does not fully support locales</h2>
+
+<p>Although Duktape supports the concept of a local time, it doesn't support
+other locale related features such as: locale specific Date formatting,
+locale specific string comparison, locale/language specific Unicode rules
+(such as case conversion rules for Turkish, Azeri, and Lithuanian).</p>
+
+<h2>Unicode case conversion is not locale or context sensitive</h2>
+
+<p>E5 Sections 15.5.4.16 to 15.5.4.19 require context and locale processing
+of Unicode <code>SpecialCasing.txt</code>.  However, Duktape doesn't currently
+have a notion of "current locale".</p>
+
+<h2>Array performance when using non-default property attributes</h2>
+
+<p>All array elements are expected to be writable, enumerable, and configurable
+(default property attributes for new properties).  If this assumption is violated,
+even temporarily, the entire "array part" of an object is abandoned permanently
+and array entries are moved to the "entry part".  This involves interning all used
+array indices as explicit string keys (e.g. "0", "1", etc).  This is not a
+compliance concern, but degrades performance.</p>
+
+<h2>Array performance when writing elements using Object.defineProperty()</h2>
+
+<p>When number indexed array elements are written with <code>Object.defineProperty()</code>
+the current implementation abandons the internal "array part" which makes later
+array access much slower.  Write array elements with direct assignments such as
+<code>a[123] = 321</code> to avoid this.</p>
+
+<h2>Global/eval code is slower than function code</h2>
+
+<p>Bytecode generated for global and eval code cannot assign variables
+statically to registers, and will use explicit name-based variable
+read/write accesses.  Bytecode generated for function code doesn't
+have this limitation; most variables are assigned statically to registers
+and direct register references are used used to access them.</p>
+
+<p>This is a minor issue unless you spend a lot of time running top-level
+global/eval code.  The workaround is simple: put code in a function which
+you call from the top level; for instance:</p>
+<pre class="ecmascript-code">
+function main() {
+    // ...
+}
+main();
+</pre>
+
+<p>There is also a common idiom of using an anonymous function for this
+purpose:</p>
+<pre class="ecmascript-code">
+(function () {
+    // ...
+})();
+</pre>
+
+<h2>Function temporaries may be live for garbage collection longer than expected</h2>
+
+<p>Ecmascript functions are compiled into bytecode with a fixed set of
+registers.  Some registers are reserved for arguments and variable
+bindings while others are used as temporaries.  All registers are
+considered live from a garbage collection perspective, even temporary
+registers containing old values which the function actually cannot
+reference any more.  Such temporaries are considered reachable until they
+are overwritten by the evaluation of another expression or until the
+function exits.  Function exit is the only easily predicted condition to
+ensure garbage collection.</p>
+
+<p>If you have a function which remains running for a very long time, it
+should contain the bare minimum of variables and temporaries that could
+remain live.  For instance, you can structure code like:</p>
+<pre class="ecmascript-code">
+function runOnce() {
+    // run one iteration, lots of temporaries
+}
+
+function foreverLoop() {
+    for (;;) {
+        runOnce();
+    }
+}
+</pre>
+
+<p>This is typically not an issue if there are no long-running functions.</p>
+
+<h2>Function instances are garbage collected only by mark-and-sweep</h2>
+
+<p>Every Ecmascript function instance is, by default, in a reference loop with
+an automatic prototype object created for the function.  The function instance's
+<code>prototype</code> property points to the prototype object, and the prototype's
+<code>constructor</code> property points back to the function instance.  Only
+mark-and-sweep is able to collect these reference loops at the moment.  If you
+build with reference counting only (not recommended), function instances may
+appear to leak memory; the memory will be released when the relevant heap is
+destroyed.</p>
+
+<p>You can break the reference loops manually (although this is a bit cumbersome):</p>
+<pre class="ecmascript-code">
+var f = function() { };
+var g = function() { };
+var h = function() { };
+Duktape.fin(f, function() { print('finalizer for f'); });
+Duktape.fin(g, function() { print('finalizer for g'); });
+Duktape.fin(h, function() { print('finalizer for h'); });
+
+// not collected until heap destruction in a reference counting only build
+f = null;            // not collected immediately
+
+// break cycle by deleting 'prototype' reference (alternative 1)
+g.prototype = null;
+g = null;            // collected immediately, finalizer runs
+
+// break cycle by deleting 'constructor' reference (alternative 2)
+h.prototype.constructor = null;
+h = null;            // collected immediately, finalizer runs
+
+// no-op with refcount only, with mark-and-sweep finalizer for 'f' runs
+Duktape.gc();
+</pre>
+
+<p>For internal technical reasons, named function expressions are also in a
+reference loop with an internal environment record object.  This loop cannot
+be broken from user code and only mark-and-sweep can collect such functions.
+Ordinary function declarations and anonymous functions don't have this
+limitation.  Example:</p>
+<pre class="ecmascript-code">
+var fn = function myfunc() {
+    // myfunc is in reference loop with an internal environment record,
+    // and can only be collected with mark-and-sweep.
+}
+</pre>
+
+<p>Since Duktape 2.x mark-and-sweep is always enabled so that objects
+participating in reference loops are eventually freed.  You can disable
+periodic "voluntary" (non-emergency) mark-and-sweep via config options
+to reduce collection pauses in time sensitive environments.</p>
+
+<h2>Non-standard function 'caller' property limitations</h2>
+
+<p>When <code>DUK_USE_NONSTD_FUNC_CALLER_PROPERTY</code> is given, Duktape
+updates the <code>caller</code> property of non-strict function instances
+similarly to e.g. V8 and
+<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/caller">Spidermonkey</a>.
+There are a few limitations, though:</p>
+<ul>
+<li>When a (non-strict) function is called from eval code, Duktape sets
+    <code>caller</code> to <code>null</code> if the eval code is non-strict,
+    and <code>eval</code> (reference to the eval built-in function) if the
+    eval code is strict.  This deviates from e.g. V8 behavior.</li>
+<li>Coroutines and <code>caller</code> don't mix well: <code>caller</code>
+    may be left in a non-<code>null</code> state even after coroutine call
+    stacks have been fully unwound.  Also, if a coroutine is garbage collected
+    before its call stack is unwound, the <code>caller</code> property of
+    functions in its call stack will not get updated now.</li>
+</ul>
+
+<p>See the internal <code>test-bi-function-nonstd-caller-prop.js</code> test
+case for further details.</p>
+
+<h2>Garbage collection during debugger paused state</h2>
+
+<p>When debugger support is activated, a debugger session is active, and
+Duktape is paused, there are a few current limitations:</p>
+
+<ul>
+<li>Because garbage collection is disabled during the paused state, calls to
+    <code>Duktape.gc()</code> and <code>duk_gc()</code> will be silently
+    ignored.</li>
+</ul>

@@ -22,6 +22,7 @@
 #include "duktape_utils.h"
 #include "esp32_duktape/duktape_event.h"
 #include "esp32_duktape/module_wifi.h"
+#include "esp32_specific.h"
 #include "logging.h"
 #include "sdkconfig.h"
 
@@ -158,6 +159,7 @@ static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event)
 	LOGD(">> esp32_wifi_eventHandler");
 	// Your event handling code here...
 	switch(event->event_id) {
+
 		case SYSTEM_EVENT_STA_GOT_IP: {
 			if (g_gotipCallbackStashKey == -1) {
 				break;
@@ -166,21 +168,23 @@ static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event)
 				ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION,
 				g_gotipCallbackStashKey,
 				NULL, // No data provider function
-				NULL // No context data
+				NULL  // No context data
 			);
 			g_gotipCallbackStashKey = -1;
 			break;
 		}
 
 		case SYSTEM_EVENT_AP_START: {
-			if (g_gotipCallbackStashKey == -1) {
+			if (g_apstartCallbackStashKey == -1) {
+				LOGD("No AP Start callback stash key, no callback to invoke.");
 				break;
 			}
+			// We have a stashed callback to invoke, so invoke it...
 			event_newCallbackRequestedEvent(
 				ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION,
 				g_apstartCallbackStashKey,
 				NULL, // No data provider function
-				NULL // No context data
+				NULL  // No context data
 			);
 			g_apstartCallbackStashKey = -1;
 			break;
@@ -371,7 +375,10 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 		duk_pop(ctx);
 	}
 
-	ESP_ERROR_CHECK(esp_wifi_disconnect());
+	esp_err_t errRc = esp_wifi_disconnect();
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "esp_wifi_disconnect rc=%s", esp32_errToString(errRc));
+	}
 
 	// Handle any network options that may have been supplied.  If network options
 	// were supplied then we will NOT be using DHCP and instead we should have
@@ -403,19 +410,34 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 
 	} else {
 		// Since we were NOT supplied network information, use DHCP.
-	  ESP_ERROR_CHECK(tcpip_adapter_dhcpc_start(TCPIP_ADAPTER_IF_STA));
+		errRc = tcpip_adapter_dhcpc_start(TCPIP_ADAPTER_IF_STA);
+		if (errRc != ESP_OK) {
+			duk_error(ctx, 1, "tcpip_adapter_dhcpc_start rc=%s", esp32_errToString(errRc));
+		}
 	}
 
 	// Perform the actual connection to the access point.
-	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+	errRc = esp_wifi_set_mode(WIFI_MODE_STA);
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "esp_wifi_set_mode rc=%s", esp32_errToString(errRc));
+	}
 	LOGD(" - Connecting to access point: %s with %s", ssid, password);
   wifi_config_t sta_config;
   strcpy(sta_config.sta.ssid, ssid);
   strcpy(sta_config.sta.password, password);
   sta_config.sta.bssid_set = 0;
-  ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
-  ESP_ERROR_CHECK(esp_wifi_start());
-  ESP_ERROR_CHECK(esp_wifi_connect());
+  errRc = esp_wifi_set_config(WIFI_IF_STA, &sta_config);
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "esp_wifi_set_config rc=%s", esp32_errToString(errRc));
+	}
+	errRc = esp_wifi_start();
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "esp_wifi_start rc=%s", esp32_errToString(errRc));
+	}
+	errRc = esp_wifi_connect();
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "esp_wifi_connect rc=%s", esp32_errToString(errRc));
+	}
   return 0;
 } // js_wifi_connect
 
@@ -437,12 +459,16 @@ static duk_ret_t js_wifi_listen(duk_context *ctx) {
 
   // [0] - Options
   // [1] - Callback | Undefined [optional]
+
+  // Check to see if we have a callback function, if we do, stash it.
   if (duk_is_function(ctx, -1)) {
   	// we have a callback
-  	g_gotipCallbackStashKey = esp32_duktape_stash_array(ctx, 1);
+  	g_apstartCallbackStashKey = esp32_duktape_stash_array(ctx, 1);
   } else {
   	duk_pop(ctx); // Remove the thing that might have been a callback function
   }
+
+  // [0] - Options
 
 	char *password = "";
 
@@ -488,7 +514,16 @@ static duk_ret_t js_wifi_listen(duk_context *ctx) {
 		duk_pop(ctx);
 	}
 
-	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+	esp_err_t errRc = esp_wifi_stop();
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "esp_wifi_stop rc=%s", esp32_errToString(errRc));
+	}
+
+	errRc = esp_wifi_set_mode(WIFI_MODE_AP);
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "esp_wifi_set_mode rc=%s", esp32_errToString(errRc));
+	}
+
 	LOGD(" - Being an access point: %s with auth mode %s", ssid, auth);
 	wifi_config_t ap_config;
 	strcpy(ap_config.ap.ssid, ssid);
@@ -499,8 +534,23 @@ static duk_ret_t js_wifi_listen(duk_context *ctx) {
 	ap_config.ap.ssid_hidden = 0;
 	ap_config.ap.max_connection = 4;
 	ap_config.ap.beacon_interval = 100;
-	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
-	ESP_ERROR_CHECK(esp_wifi_connect());
+
+	errRc = esp_wifi_set_config(WIFI_IF_AP, &ap_config);
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "esp_wifi_set_config rc=%s", esp32_errToString(errRc));
+	}
+
+	errRc = esp_wifi_start();
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "esp_wifi_start rc=%s", esp32_errToString(errRc));
+	}
+
+	/*
+	errRc = esp_wifi_connect();
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "esp_wifi_connect rc=%s", esp32_errToString(errRc));
+	}
+	*/
 	return 0;
 } // js_wifi_listen
 

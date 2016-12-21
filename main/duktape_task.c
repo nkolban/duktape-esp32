@@ -129,7 +129,7 @@ void duktape_init_environment() {
 
 void processEvent(esp32_duktape_event_t *pEvent) {
 	duk_int_t callRc;
-	LOGV(">> processEvent");
+	LOGV(">> processEvent: eventType=%s", event_eventTypeToString(pEvent->type));
 	switch(pEvent->type) {
 		// Handle a new command line submitted to us.
 		case ESP32_DUKTAPE_EVENT_COMMAND_LINE: {
@@ -154,6 +154,7 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 			break;
 		}
 
+		/*
 		// Handle a new externally initiated browser request arriving at us.
 		case ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST: {
 			LOGD("Process a webserver (inbound) request event ... uri: %s, method: %s",
@@ -207,18 +208,23 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 			break;
 		}
 
+		*/
+
 		case ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: {
-			int topStart = duk_get_top(esp32_duk_context);
+
 			// The event contains 4 properties:
-			// callbackType - int
-			// stashKey - int
-			// context - void * - a Duktape heapptr
-			// data - char * - JSON encoded data
+			// * callbackType - int
+			// * stashKey     - int
+			// * context      - void * - a Duktape heapptr
+			// * data         - char * - JSON encoded data
 			LOGD("Process a callback requested event: callbackType=%d, stashKey=%d",
 				pEvent->callbackRequested.callbackType,
 				pEvent->callbackRequested.stashKey
 			);
 			if (pEvent->callbackRequested.callbackType == ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION) {
+
+				int topStart = duk_get_top(esp32_duk_context);
+
 				// In this case, the stashKey points to a stashed array which starts with a callback function and parameters.
 				esp32_duktape_unstash_array(esp32_duk_context, pEvent->callbackRequested.stashKey);
 				// [0] - function
@@ -227,19 +233,25 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 				// [n] - param last
 
 				int numberParams = duk_get_top(esp32_duk_context) - topStart -1;
-				//ESP_LOGD(tag, "ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: #params: %d", numberParams);
+
+				LOGD("ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: #params: %d", numberParams);
+
 				if (!duk_is_function(esp32_duk_context, topStart)) {
 					LOGE("ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: Not a function!");
 					duk_pop_n(esp32_duk_context, duk_get_top(esp32_duk_context) - topStart);
 					return;
 				}
+
 				if (pEvent->callbackRequested.dataProvider != NULL) {
 					int numberAdditionalStackItems = pEvent->callbackRequested.dataProvider(esp32_duk_context, pEvent->callbackRequested.context);
 					numberParams += numberAdditionalStackItems;
 				}
+
 				duk_pcall(esp32_duk_context, numberParams);
 				// [0] - Ret val
+
 				duk_pop(esp32_duk_context);
+				// <empty stack>
 			}
 			// Now that we have a callback request, we pass control back into JS by calling a JS
 			// function.  The JS function we call is a global called "eventCallback".  This function
@@ -324,7 +336,7 @@ void processEvent(esp32_duktape_event_t *pEvent) {
  * the line.
  */
 void duktape_task(void *ignore) {
-	//esp32_duktape_event_t esp32_duktape_event;
+	esp32_duktape_event_t esp32_duktape_event;
 	int rc;
 
 	LOGD(">> duktape_task");
@@ -371,13 +383,13 @@ void duktape_task(void *ignore) {
 		duk_pop_2(esp32_duk_context);
 		// We have ended the loop routine.
 
-/*
+
 		rc = esp32_duktape_waitForEvent(&esp32_duktape_event);
 		if (rc != 0) {
 			processEvent(&esp32_duktape_event);
 			esp32_duktape_freeEvent(esp32_duk_context, &esp32_duktape_event);
 		}
-*/
+
 
 
 		// If we have been requested to reset the environment

@@ -22,9 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
-#if !defined(ESP_PLATFORM)
-#include <netinet/in.h>
-#endif /* ESP_PLATFORM */
+
 #include <unistd.h>
 #if !defined(USE_SELECT)
 #include <poll.h>

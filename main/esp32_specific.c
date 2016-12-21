@@ -6,6 +6,7 @@
 #include <esp_vfs.h>
 #include <espfs.h>
 #include <fcntl.h>
+#include <math.h>
 #include <nvs.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +17,7 @@
 
 LOG_TAG("esp32_specific");
 
+/*
 static char *g_baseURL;
 
 #define MAX_WEB_FILE_RECORDS (10)
@@ -30,12 +32,24 @@ typedef struct {
 static file_record_t file_records[MAX_WEB_FILE_RECORDS];
 static file_record_t *getNextFreeFilerecord();
 static file_record_t *getFilerecord(int fd);
+*/
 
 
+/*
+ * Load a file using the ESPFS file system.  The file to be loaded is specified
+ * by the "path" parameter.  If the file can be loaded, then the full data
+ * of the file is returned and the "fileSize" size pointer is updated.
+ * If the file can't be loaded, NULL is returned.
+ *
+ * If data is returned, it does NOT need to be cleaned up because the nature of
+ * the ESPFS file system is that the data is found in flash and addressable.  As
+ * such there is no RAM cost for getting the data of such a file.
+ */
 char *esp32_loadFileESPFS(char *path, size_t *fileSize) {
 	EspFsFile *fh = espFsOpen((char *)path);
 	if (fh == NULL) {
-		LOGD(" Failed to open file %s", path);
+		*fileSize = 0;
+		LOGD("ESPFS: Failed to open file %s", path);
 		return NULL;
 	}
   char *data;
@@ -51,7 +65,8 @@ char *esp32_loadFileESPFS(char *path, size_t *fileSize) {
 /**
  * Log the flags that are specified in an open() call.
  */
-static void logFlags(int flags) {
+/*
+static void logOpenFlags(int flags) {
 	LOGD("flags:");
 	if (flags & O_APPEND) {
 		LOGD("- O_APPEND");
@@ -90,7 +105,7 @@ static ssize_t vfs_read(int fd, void *dst, size_t size) {
 	LOGD(">> read fd=%d, dst=0x%lx, size=%d", fd, (unsigned long)dst, size);
 	return 0;
 }
-
+*/
 
 /**
  * Open the file specified by path.  The flags contain the instructions
@@ -104,9 +119,10 @@ static ssize_t vfs_read(int fd, void *dst, size_t size) {
  *
  * The mode are access mode flags.
  */
+/*
 static int vfs_open(const char *path, int flags, int accessMode) {
 	LOGD(">> open path=%s, flags=0x%x, accessMode=0x%x", path, flags, accessMode);
-	logFlags(flags);
+	logOpenFlags(flags);
 	return -1;
 }
 
@@ -139,7 +155,7 @@ static int vfs_rename(const char *oldPath, const char *newPath) {
 	LOGD(">> rename oldPath=%s, newPath=%s", oldPath, newPath);
 	return 0;
 }
-
+*/
 
 /**
  * Register the VFS at the specified mount point.
@@ -147,11 +163,12 @@ static int vfs_rename(const char *oldPath, const char *newPath) {
  * different functions that may be requested against the
  * VFS.
  */
+/*
 void registerTestVFS(char *mountPoint) {
 
 } // End of registerTestVFS
-
-
+*/
+/*
 void setupVFS() {
 	LOGD(">> setupVFS");
 	char *mountPoint = "/modules";
@@ -177,7 +194,7 @@ void setupVFS() {
 	LOGD("<< setupVFS");
 } // setupVFS
 
-
+*/
 
 
 
@@ -186,6 +203,7 @@ void setupVFS() {
  * of a web page against an HTTP server where the server is supplied by
  * the path.
  */
+/*
 static int web_vfs_open(const char *path, int flags, int accessMode) {
 	return 0;
 } // web_vfs_open
@@ -209,7 +227,7 @@ static int web_vfs_close(int fd) {
 	pFileRecord->inUse = 0;
 	return 0;
 } // web_vfs_close
-
+*/
 
 /**
  * Read the web context into the buffer passed in.  The web content structure
@@ -218,6 +236,7 @@ static int web_vfs_close(int fd) {
  * * size - The size of the data retrieved.
  * * fptr - The file pointer of where we currently are within the retrieved data.
  */
+/*
 static ssize_t web_vfs_read(
 		int fd, // The file descriptor to read the data from.
 		void *dst, // The buffer where we will write the read data.
@@ -287,7 +306,7 @@ void setupWebVFS(const char *mountPoint, char *baseURL) {
 		file_records[i].fd = i;
 	}
 } // createWebVFS
-
+*/
 
 /*
  *  Return a string representation of an esp_err_t value.
@@ -342,3 +361,10 @@ char *esp32_errToString(esp_err_t value) {
 	}
 	return "Unknown ESP_ERR error";
 } // espToString
+
+/**
+ * Hack fix for ESP-IDF issue https://github.com/espressif/esp-idf/issues/83
+ */
+double __ieee754_remainder(double x, double y) {
+	return x - y * floor(x/y);
+} // __ieee754_remainder

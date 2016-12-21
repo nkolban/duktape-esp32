@@ -1,4 +1,0 @@
-/* illumos / Solaris */
-#if defined(__sun) && defined(__SVR4)
-#define DUK_F_SUN
-#endif
