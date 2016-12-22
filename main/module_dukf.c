@@ -110,7 +110,7 @@ void ModuleDUKF(duk_context *ctx) {
 #if defined(ESP_PLATFORM)
 	duk_push_string(ctx, "/spiffs");
 #else // ESP_PLATFORM
-	duk_push_string(ctx, "/home/kolban/esp32/esptest/apps/workspace/duktape/spiffs");
+	duk_push_string(ctx, "/home/kolban/esp32/esptest/apps/workspace/duktape/filesystem");
 #endif // ESP_PLATFORM
 	duk_put_prop_string(ctx, -2, "FILE_SYSTEM_ROOT"); // Add FILE_SYSTEM_ROOT to DUKF
 

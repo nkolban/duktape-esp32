@@ -22,7 +22,7 @@ var ws = require("ws.js");
  * @param response The target where we are writing the file.
  * @returns 0 on ok, non 0 on an error.
  */
-function sendFile(fileName, response) {
+function streamFile(fileName, response) {
 	var fd = FS.openSync(fileName, "r");
    var buffer = new Buffer(128);
    while(1) {
@@ -35,7 +35,7 @@ function sendFile(fileName, response) {
    }
    FS.closeSync(fd);
    return 0;
-} // sendFile
+} // streamFile
 
 
 /**
@@ -59,6 +59,17 @@ function requestHandler(request, response) {
       postData += data;
    }); // on("data")
    request.on("end", function() {
+   	function sendFile(fileToSend) {
+	      try {
+	      	fileName = DUKF.FILE_SYSTEM_ROOT + fileToSend;
+	         response.writeHead(200);
+	         streamFile(fileName, response);
+	      } catch(e) {
+	      	log("We got an exception: " + e);
+	         response.writeHead(404);
+	      }
+   	} // sendFile
+      
    	var fileName;
       log("HTTP Request on(end):");
       log(" - method: " + request.method);
@@ -67,6 +78,7 @@ function requestHandler(request, response) {
 
       log("URL: " + JSON.stringify(URL.parse(request.path)));
       var pathParts = request.path.split("/");
+
       if (pathParts.length < 2) {
          response.end();
          return;
@@ -104,7 +116,7 @@ function requestHandler(request, response) {
       		fileName = "/" + pathParts.splice(1).join("/");
       		if (request.method == "GET") {
             	log("Load the file called " + fileName);
-            	sendFile(DUKF.FILE_SYSTEM_ROOT + fileName, response);
+            	streamFile(DUKF.FILE_SYSTEM_ROOT + fileName, response);
       		}
       		else if (request.method == "POST") {
       			log("Writing to file " + fileName);
@@ -112,16 +124,8 @@ function requestHandler(request, response) {
       			saveFile(DUKF.FILE_SYSTEM_ROOT + fileName, postData);
       		}
       	}
-      }  else {
-	      try {
-	      	fileName = DUKF.FILE_SYSTEM_ROOT + request.path;
-	      	FS.statSync(fileName);
-	         response.writeHead(200);
-	      	sendFile(fileName, response);
-	      } catch(e) {
-	      	log("We got an exception: " + e);
-	         response.writeHead(404);
-	      }
+      } else {
+      	sendFile(request.path);
       }
       postData = null;
       response.end();

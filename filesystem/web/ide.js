@@ -155,13 +155,26 @@ $(document).ready(function() {
 		}); // .ajax
 	});
 	
+	$("#saveSelect").change(function(event) {
+		$("#saveFileNameText").val($("#saveSelect option:selected").val());
+	});
 	
 	/**
 	 * Handle the save button being pressed on the main window.
 	 * This will open the save dialog.
 	 */
 	$("#save").button().click(function() {
-		$("#saveDialog").dialog("open");
+		$.ajax({
+			url: "http://" + settings.esp32_host + "/files",
+			method: "GET",
+			dataType: "json",
+			success: function(data) {
+				populateSelectWithFiles($("#saveSelect"), function() {
+					$("#saveFileNameText").val("");
+					$("#saveDialog").dialog("open");
+				});
+			} // Success
+		}); // .ajax
 	});
 	
 	// Handle the settings button.
@@ -216,7 +229,7 @@ $(document).ready(function() {
 						method: "POST",
 						data: editor.getValue(),
 						success: function(data) {
-							$(this).dialog("close");
+							$("#saveDialog").dialog("close");
 						}
 					}); // .ajax
 				}

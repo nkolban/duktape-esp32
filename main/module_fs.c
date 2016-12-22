@@ -179,7 +179,7 @@ static duk_ret_t js_fs_openSync(duk_context *ctx) {
 	LOGD(" - Path to open is \"%s\" and flags are \"%s\"", path, flags);
 	int posixOpenFlags = stringToPosixFlags(flags);
 
-	int fd = open(path, posixOpenFlags);
+	int fd = open(path, posixOpenFlags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
 	if (fd < 0) {
 		LOGD("<< js_fs_openSync: Error: open(%s, 0x%x): %d errno=%d [%s]", path, posixOpenFlags, fd, errno, strerror(errno));
 		return DUK_RET_ERROR;

@@ -33,6 +33,11 @@ Neil Kolban, 2016
 	padding: 4px;
 }
 
+.saveText {
+	resize: none;
+	flex-grow: 1;
+}
+
 .bottomBar {
 	margin-bottom: 4px;
 	margin-top: 4px;
@@ -112,7 +117,12 @@ Define the file load dialog.
 Define the file save dialog.
 -->
 <div id="saveDialog" title="Save">
-	<input type="text" id="saveFileNameText" value="">
+	<select size=10 id="saveSelect" style="width: 100%">
+	</select>
+	<div style="margin-top: 10px; display: flex; align-items: center;">
+		<span>Filename:&nbsp;</span>
+		<input type="text" id="saveFileNameText" value="" class="saveText">
+	</div>
 </div>
 
 <!--
