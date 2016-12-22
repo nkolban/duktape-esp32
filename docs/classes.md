@@ -11,6 +11,7 @@ Built into the solution are a variety of Modules.
 * [HTTPResponse](#HTTPResponse)
 * [HTTPParser](#httpparser)
 * [net](#net)
+* [NVS](#NVS)
 * [OS](#os)
 * [PARTITIONS](#partitions)
 * [RMT](#rmt)
@@ -110,11 +111,20 @@ then the result is `null`.
 Syntax:
 `loadFile(path)`
 
+On the ESP32, this uses ESPFS to load the file so no storage need be released.
+
 For example:
 ```
 var text = DUKF.loadFile("/index.html");
 log("About to send: " + text);
 ```
+
+###OS
+A string property that defines the platform we are running upon.  Values are:
+
+* `ESP32`
+* `Linux`
+
 
 ###runFile
 Run a script loaded from the named file.
@@ -379,6 +389,7 @@ function requestHandler(request, response) {
    });
    request.on("end", function() {
       log("HTTP request received:");
+      log(" - path: " + request.path);
       log(" - method: " + request.method);
       log(" - headers: " + JSON.stringify(request.headers));
    });
@@ -650,9 +661,9 @@ Syntax:
 `get(key, type)`
 
 The type must be one of:
-* int
-* blob
-* string
+* `int`
+* `blob`
+* `string`
 
 For example:
 ```
@@ -666,10 +677,16 @@ Syntax:
 `set(key, value, type)`
 
 The type must be one of:
-* int
-* blob
-* string
+* `int`
+* `blob`
+* `string`
 
+For example:
+```
+var bootWiFi_ns = NVS.open("bootwifi", "readwrite");
+bootWiFi_ns.set("ssid", formObj.ssid, "string");
+bootWiFi_ns.close();
+```
 
 ##OS
 
@@ -990,6 +1007,16 @@ The return is an object:
 }
 ```	 
 
+###queryParse
+Parse a URL query part of the form:
+`name=value&name=value&...&name=value`
+
+and return an object that contains the name/value pairs as properties.
+
+Syntax:
+`queryParse(queryString)`
+
+
 ##WS
 This module provides WebSocket support.
 
@@ -1143,6 +1170,8 @@ This returns an object which contains:
    apMac - The MAC address of our access point interface.
    staMac - The MAC address our station interface.
    country - The country code in effect.
+   apIP - The IP Address of the access point interface.
+   staIP - The IP Address of the station point interface.   
 }
 ```
 
@@ -1197,3 +1226,15 @@ wifi.scan(function(list) {
    log(JSON.stringify(list));
 });
 ```
+
+###start
+Perform a start of the WiFi subsystem.
+
+Syntax:
+`start()`
+
+##stop
+Perform a stop of the WiFi subsystem.
+
+Syntax:
+`stop()`

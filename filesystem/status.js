@@ -5,7 +5,7 @@ var counter = 0;
 for (var i in _sockets) {
 	if (_sockets.hasOwnProperty(i)) {
 		if (_sockets[i].listening) {
-			log(" - socket: " + _sockets[i]._sockfd + ", listening, creationTime: " + _sockets[i]._createTime);
+			log(" - socket: " + _sockets[i]._sockfd + ", listening, port: " + _sockets[i].localPort + ", creationTime: " + _sockets[i]._createTime);
 		} else {
 			log(" - socket: " + _sockets[i]._sockfd + ", creationTime: " + _sockets[i]._createTime);
 		}

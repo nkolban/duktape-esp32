@@ -23,6 +23,10 @@ enum {
 	ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION=1
 };
 
+/*
+ * The signature of a data provide function.  When called it will place 0 or more
+ * values on the callstack and return how many were added.
+ */
 typedef int (*esp32_duktape_callback_dataprovider)(duk_context *ctx, void *context);
 
 // !!! IMPORTANT !!!
@@ -58,8 +62,8 @@ typedef union {
 		int type;
 		uint32_t callbackType;
 		uint32_t stashKey;
-		esp32_duktape_callback_dataprovider dataProvider;
-		void *context;
+		esp32_duktape_callback_dataprovider dataProvider; // A C function to be called that will push values onto the call stack
+		void *context; // Context data to add to be passed to the dataProvider
 	} callbackRequested;
 } esp32_duktape_event_t;
 

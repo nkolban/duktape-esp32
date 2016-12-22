@@ -7,9 +7,9 @@
 #include <esp_system.h>
 #include "duktape_spiffs.h"
 #include "sdkconfig.h"
-#else
+#else // ESP_PLATFORM
 #include <dirent.h>
-#endif
+#endif // ESP_PLATFORM
 
 #include <duktape.h>
 #include <errno.h>
@@ -238,9 +238,9 @@ static duk_ret_t js_fs_statSync(duk_context *ctx) {
  * * size - Number of bytes in the file.
  */
 static duk_ret_t js_fs_dump(duk_context *ctx) {
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 	esp32_duktape_dump_spiffs();
-#endif
+#endif // ESP_PLATFORM
 	return 0;
 }
 
@@ -350,11 +350,11 @@ static duk_ret_t js_fs_unlink(duk_context *ctx) {
  * Get a listing of SPIFFs files.
  */
 static duk_ret_t js_fs_spiffsDir(duk_context *ctx) {
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 	esp32_duktape_dump_spiffs_array(ctx);
 	return 1;
 
-#else
+#else // ESP_PLATFORM
 	duk_push_array(ctx); // Push a new empty array onto the stack.
 	DIR *d;
 	struct dirent *dir;
@@ -389,7 +389,7 @@ static duk_ret_t js_fs_spiffsDir(duk_context *ctx) {
 		closedir(d);
 	}
 	return 1;
-#endif
+#endif  // ESP_PLATFORM
 } // js_fs_spiffsDir
 
 

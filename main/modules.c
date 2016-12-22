@@ -456,7 +456,7 @@ static void ModuleESP32(duk_context *ctx) {
 void registerModules(duk_context *ctx) {
 #if defined(ESP_PLATFORM)
 	espFsInit((void *)0x360000, 4 * 64 * 1024);
-#endif /* ESP_PLATFORM */
+#endif // ESP_PLATFORM
 
 	duk_idx_t top = duk_get_top(ctx);
 	ModuleConsole(ctx);

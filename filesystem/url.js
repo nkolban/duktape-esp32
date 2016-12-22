@@ -47,5 +47,21 @@ module.exports = {
 			function($0, $1, $2, $3) { retObj.query[$1] = $3; }
 		);
 		return retObj;
-	}
+	},
+	
+	/*
+	 * Parse a query string and return an object containing its name/value pairs.
+	 * In this implementation we use a simple brute force but ideally we will 
+	 * use a RegExp.
+	 */
+	queryParse: function(queryString) {
+		var parts = decodeURIComponent(queryString).split("&");
+		var result = {};
+		var i;
+		for (i=0; i<parts.length; i++) {
+			var nameValue = parts[i].split("=");
+			result[nameValue[0]] = nameValue[1];
+		}
+		return result;
+	} // queryParse
 };

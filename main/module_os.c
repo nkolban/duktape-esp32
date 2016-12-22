@@ -2,12 +2,13 @@
  * Mapping from JavaScript (Duktape) to the underling OS (ESP-IDF)
  */
 #if defined(ESP_PLATFORM)
-#include <errno.h>
+
 #include <esp_log.h>
 #include <lwip/sockets.h>
 #include <mbedtls/sha1.h>
 #include <string.h>
-#include <unistd.h>
+
+#include "sdkconfig.h"
 
 #else /* ESP_PLATFORM */
 #include <openssl/sha.h>
@@ -15,10 +16,13 @@
 #include <arpa/inet.h>
 #endif /* ESP_PLATFORM */
 
+#include <errno.h>
+#include <unistd.h>
+
 #include "duktape.h"
 #include "esp32_duktape/module_os.h"
 #include "logging.h"
-#include "sdkconfig.h"
+
 
 LOG_TAG("module_os");
 

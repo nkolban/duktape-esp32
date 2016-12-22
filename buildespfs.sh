@@ -5,7 +5,8 @@
 #
 set -e
 cd filesystem
-ls *.js | mkespfsimage -c 0 > ../build/espfs.img
+find . -print | mkespfsimage -c 0 > ../build/espfs.img
+# ls *.js | mkespfsimage -c 0 > ../build/espfs.img
 cd ..
 python $ESP_IDF_PATH/components/esptool_py/esptool/esptool.py \
  --chip esp32 --port "/dev/ttyUSB0" --baud 921600 write_flash --flash_mode "dio" \

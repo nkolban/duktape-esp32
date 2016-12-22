@@ -1,13 +1,13 @@
 /**
  * Common utilities for the ESP32-Duktape framework.
  */
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 #include <esp_log.h>
 #include <espfs.h>
 #include <esp_system.h>
-#else
+#else // ESP_PLATFORM
 #include <sys/mman.h>
-#endif
+#endif // ESP_PLATFORM
 #include "dukf_utils.h"
 #include <stdio.h>
 #include "logging.h"
@@ -96,15 +96,16 @@ void dukf_addRunAtStart(const char *fileName) {
 } // dukf_addRunAtStart
 
 
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 /**
  * Load the named file and return the data and the size of it.
  * We load the file from the DUKF file system.
  */
 const char *dukf_loadFile(const char *path, size_t *fileSize) {
+	LOGD(">> dukf_loadFile: %s", path);
 	EspFsFile *fh = espFsOpen((char *)path);
 	if (fh == NULL) {
-		ESP_LOGD(tag, " Failed to open file %s", path);
+		LOGD(" Failed to open file %s", path);
 		return NULL;
 	}
   char *data;
@@ -112,16 +113,16 @@ const char *dukf_loadFile(const char *path, size_t *fileSize) {
   espFsClose(fh);
   // Note ... because data is mapped in memory from flash ... it will be good
   // past the file close.
-  ESP_LOGD(tag, "duk_loadFile: Read file %s for size %d", path, *fileSize);
+  LOGD("<< duk_loadFile: Read file %s for size %d", path, *fileSize);
   return data;
 } // dukf_loadFile
 
-#else
+#else // ESP_PLATFORM
 /**
  * Load the named file and return the data and the size of it.
  * We load the file from the DUKF file system.
  */
-#define DUKF_BASE_DIR "/home/kolban/esp32/esptest/apps/workspace/duktape/spiffs"
+#define DUKF_BASE_DIR "/home/kolban/esp32/esptest/apps/workspace/duktape/filesystem"
 const char *dukf_loadFile(const char *path, size_t *fileSize) {
 
 	char fileName[256];
@@ -151,4 +152,4 @@ const char *dukf_loadFile(const char *path, size_t *fileSize) {
 	return data;
 } // dukf_loadFile
 
-#endif
+#endif // ESP_PLATFORM

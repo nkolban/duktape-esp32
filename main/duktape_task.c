@@ -12,8 +12,8 @@
 #include <freertos/task.h>
 #include <spiffs.h>
 
-
 #include "duktape_spiffs.h"
+#include "esp32_specific.h"
 #include "sdkconfig.h"
 #endif
 
@@ -27,7 +27,7 @@
 #include "duktape_utils.h"
 #include "esp32_duktape/duktape_event.h"
 #include "esp32_duktape/module_timers.h"
-#include "esp32_specific.h"
+
 #include "logging.h"
 #include "modules.h"
 //#include "telnet.h"
@@ -216,7 +216,7 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 			// * callbackType - int
 			// * stashKey     - int
 			// * context      - void * - a Duktape heapptr
-			// * data         - char * - JSON encoded data
+			// * dataProvuder - A function to be called that will add parameters to the stack.
 			LOGD("Process a callback requested event: callbackType=%d, stashKey=%d",
 				pEvent->callbackRequested.callbackType,
 				pEvent->callbackRequested.stashKey
@@ -343,8 +343,10 @@ void duktape_task(void *ignore) {
 	dukf_log_heap("duktape_task");
 
 	// Define the scripts which are to run at boot time
-	dukf_addRunAtStart("webserver.js");
-	dukf_addRunAtStart("test_ide_ws.js");
+	dukf_addRunAtStart("start.js");
+	//dukf_addRunAtStart("bootwifi.js");
+	//dukf_addRunAtStart("webserver.js");
+	//dukf_addRunAtStart("test_ide_ws.js");
 
 	// Mount the SPIFFS file system.
 #if defined(ESP_PLATFORM)

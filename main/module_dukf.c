@@ -62,6 +62,7 @@ static duk_ret_t js_dukf_debug(duk_context *ctx) {
 	return 0;
 } // js_esp32_debug
 
+
 void ModuleDUKF(duk_context *ctx) {
 	duk_push_global_object(ctx);
 	// [0] - Global object
@@ -106,12 +107,22 @@ void ModuleDUKF(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object - DUKF Object
 
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 	duk_push_string(ctx, "/spiffs");
-#else
+#else // ESP_PLATFORM
 	duk_push_string(ctx, "/home/kolban/esp32/esptest/apps/workspace/duktape/spiffs");
-#endif
+#endif // ESP_PLATFORM
 	duk_put_prop_string(ctx, -2, "FILE_SYSTEM_ROOT"); // Add FILE_SYSTEM_ROOT to DUKF
+
+
+// Define the global DUKF.OS to be either "ESP32" or "Linux"
+#if defined(ESP_PLATFORM)
+	duk_push_string(ctx, "ESP32");
+#else // ESP_PLATFORM
+	duk_push_string(ctx, "Linux");
+#endif // ESP_PLATFORM
+	duk_put_prop_string(ctx, -2, "OS");
+
 
 	duk_put_prop_string(ctx, -2, "DUKF"); // Add DUKF to global
 	// [0] - Global object

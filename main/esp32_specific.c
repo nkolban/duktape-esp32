@@ -44,6 +44,9 @@ static file_record_t *getFilerecord(int fd);
  * If data is returned, it does NOT need to be cleaned up because the nature of
  * the ESPFS file system is that the data is found in flash and addressable.  As
  * such there is no RAM cost for getting the data of such a file.
+ *
+ * Prior to calling this function, the espFsInit() function should have been
+ * previously called to initialize the ESPFS environment.
  */
 char *esp32_loadFileESPFS(char *path, size_t *fileSize) {
 	EspFsFile *fh = espFsOpen((char *)path);

@@ -5,8 +5,9 @@
 #include <esp_system.h>
 #include <esp_wifi.h>
 //#include <lwip/sockets.h>
+//#include <nvs.h>
 //#include <math.h>
-//#include <nvs_flash.h>
+#include <nvs_flash.h>
 //#include <string.h>
 
 #include "bootwifi.h"
@@ -89,7 +90,7 @@ static void init() {
 	//setupWebVFS("/web", "http://192.168.1.105");
 	//xTaskCreatePinnedToCore(&telnetTask, "telnetTask", 8048, NULL, 5, NULL, 0);
 	//startMongooseServer();
-	xTaskCreatePinnedToCore(&socket_server, "socket_server", 8048, NULL, 5, NULL, 0);
+	//xTaskCreatePinnedToCore(&socket_server, "socket_server", 8048, NULL, 5, NULL, 0);
 	xTaskCreatePinnedToCore(&duktape_task, "duktape_task", 10*1024, NULL, 5, NULL, 0);
 } // init
 
@@ -101,5 +102,12 @@ void app_main(void)
 {
 	LOGD("Free heap at start: %d", esp_get_free_heap_size());
 	// Boot the WiFi environment and once WiFi is ready, call init().
-	bootWiFi(init);
+	nvs_flash_init();
+	tcpip_adapter_init();
+	ESP_ERROR_CHECK(esp_event_loop_init(esp32_wifi_eventHandler, NULL));
+	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+	ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+	ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+	//bootWiFi(init);
+	init();
 } // app_main

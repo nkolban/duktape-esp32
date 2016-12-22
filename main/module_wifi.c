@@ -30,7 +30,7 @@ LOG_TAG("module_wifi");
 
 static uint32_t g_scanCallbackStashKey = -1;
 static uint32_t g_gotipCallbackStashKey = -1;
-static uint32_t g_apstartCallbackStashKey = -1;
+static uint32_t g_apStartCallbackStashKey = -1;
 
 /**
  * Convert an authentication mode to a string.
@@ -154,6 +154,14 @@ static int scanParamsDataProvider(duk_context *ctx, void *context) {
  * SYSTEM_EVENT_WIFI_READY
  */
 
+static int addError(duk_context *ctx, void *context) {
+	if (context == NULL) {
+		duk_push_null(ctx);
+	} else {
+		duk_push_string(ctx, (char *)context);
+	}
+	return 1;
+}
 
 static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event) {
 	LOGD(">> esp32_wifi_eventHandler");
@@ -167,28 +175,45 @@ static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event)
 			event_newCallbackRequestedEvent(
 				ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION,
 				g_gotipCallbackStashKey,
-				NULL, // No data provider function
+				addError, // No data provider function
 				NULL  // No context data
 			);
 			g_gotipCallbackStashKey = -1;
 			break;
-		}
+		} // SYSTEM_EVENT_STA_GOT_IP
+
+
+		case SYSTEM_EVENT_STA_DISCONNECTED: {
+			if (g_gotipCallbackStashKey == -1) {
+				break;
+			}
+			event_newCallbackRequestedEvent(
+				ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION,
+				g_gotipCallbackStashKey,
+				addError, // No data provider function
+				"STA_DISCONNECTED"
+			);
+			g_gotipCallbackStashKey = -1;
+			break;
+		} // SYSTEM_EVENT_STA_DISCONNECTED
+
 
 		case SYSTEM_EVENT_AP_START: {
-			if (g_apstartCallbackStashKey == -1) {
+			if (g_apStartCallbackStashKey == -1) {
 				LOGD("No AP Start callback stash key, no callback to invoke.");
 				break;
 			}
 			// We have a stashed callback to invoke, so invoke it...
 			event_newCallbackRequestedEvent(
 				ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION,
-				g_apstartCallbackStashKey,
+				g_apStartCallbackStashKey,
 				NULL, // No data provider function
 				NULL  // No context data
 			);
-			g_apstartCallbackStashKey = -1;
+			g_apStartCallbackStashKey = -1;
 			break;
-		}
+		} // SYSTEM_EVENT_AP_START
+
 
 		case SYSTEM_EVENT_SCAN_DONE: {
 			// If we have received a scan done but no callback waiting, do nothing.
@@ -206,7 +231,7 @@ static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event)
 			);
 			g_scanCallbackStashKey = -1;
 			break;
-		}
+		} // SYSTEM_EVENT_SCAN_DONE
 
 		default: {
 			break;
@@ -216,6 +241,25 @@ static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event)
 	return ESP_OK;
 } // esp32_wifi_eventHandler
 
+static duk_ret_t js_wifi_stop(duk_context *ctx) {
+	LOGD(">> js_wifi_stop");
+	esp_err_t errRc = esp_wifi_stop();
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "js_wifi_stop rc=%s", esp32_errToString(errRc));
+	}
+	LOGD("<< js_wifi_stop");
+	return 0;
+} // js_wifi_stop
+
+static duk_ret_t js_wifi_start(duk_context *ctx) {
+	LOGD(">> js_wifi_start");
+	esp_err_t errRc = esp_wifi_start();
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "js_wifi_start rc=%s", esp32_errToString(errRc));
+	}
+	LOGD("<< js_wifi_start");
+	return 0;
+} // js_wifi_start
 
 /**
  * Handle a request to do a scan.  We are expecting that the caller will pass
@@ -328,6 +372,108 @@ static duk_ret_t js_wifi_getDNS(duk_context *ctx) {
 
 
 /**
+ * WIFI.getState()
+ * Return an object that describes the state of the WiFi environment.
+ * {
+ *    isStation:
+ *    isAccessPoint:
+ *    apMac:
+ *    staMac:
+ *    country:
+ * }
+ */
+static duk_ret_t js_wifi_getState(duk_context *ctx) {
+	wifi_mode_t mode;
+
+	int isAccessPoint;
+	int isStation;
+	ESP_ERROR_CHECK(esp_wifi_get_mode(&mode));
+	switch(mode) {
+	case WIFI_MODE_NULL:
+		isAccessPoint = 0;
+		isStation = 0;
+		break;
+	case WIFI_MODE_STA:
+		isAccessPoint = 0;
+		isStation = 1;
+		break;
+	case WIFI_MODE_AP:
+		isAccessPoint = 1;
+		isStation = 0;
+		break;
+	case WIFI_MODE_APSTA:
+		isAccessPoint = 1;
+		isStation = 1;
+		break;
+	default:
+		isAccessPoint = 0;
+		isStation = 0;
+		break;
+	}
+
+
+	char apMacString[20];
+	char staMacString[20];
+	uint8_t mac[6];
+
+	ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_AP, mac));
+	sprintf(apMacString, MACSTR, MAC2STR(mac));
+
+	ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_STA, mac));
+	sprintf(staMacString, MACSTR, MAC2STR(mac));
+
+	wifi_country_t country;
+	ESP_ERROR_CHECK(esp_wifi_get_country(&country));
+	char *countryString;
+	switch(country) {
+	case WIFI_COUNTRY_CN:
+		countryString = "CN";
+		break;
+	case WIFI_COUNTRY_EU:
+		countryString = "EU";
+		break;
+	case WIFI_COUNTRY_JP:
+		countryString = "JP";
+		break;
+	case WIFI_COUNTRY_US:
+		countryString = "US";
+		break;
+	default:
+		countryString = "Unknown";
+		break;
+	}
+
+	tcpip_adapter_ip_info_t staIpInfo;
+	char staIpString[20];
+	tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &staIpInfo);
+	sprintf(staIpString, IPSTR, IP2STR(&staIpInfo.ip));
+
+	tcpip_adapter_ip_info_t apIpInfo;
+	char apIpString[20];
+	tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &apIpInfo);
+	sprintf(apIpString, IPSTR, IP2STR(&apIpInfo.ip));
+
+	duk_push_object(ctx);
+	duk_push_boolean(ctx, isStation);
+	duk_put_prop_string(ctx, -2, "isStation");
+	duk_push_boolean(ctx, isAccessPoint);
+	duk_put_prop_string(ctx, -2, "isAccessPoint");
+	duk_push_string(ctx, apMacString);
+	duk_put_prop_string(ctx, -2, "apMac");
+	duk_push_string(ctx, staMacString);
+	duk_put_prop_string(ctx, -2, "staMac");
+	duk_push_string(ctx, countryString);
+	duk_put_prop_string(ctx, -2, "country");
+	duk_push_string(ctx, staIpString);
+	duk_put_prop_string(ctx, -2, "staIp");
+	duk_push_string(ctx, apIpString);
+	duk_put_prop_string(ctx, -2, "apIp");
+
+	return 1;
+} // End of js_wifi_getState_func
+
+
+/**
  * Connect WiFi to an access point.
  * options:
  * - ssid
@@ -339,6 +485,8 @@ static duk_ret_t js_wifi_getDNS(duk_context *ctx) {
  * callback: a callback function
  */
 static duk_ret_t js_wifi_connect(duk_context *ctx) {
+	esp_err_t errRc;
+
 	LOGD(">> js_wifi_connect");
 	char *password = ""; // Default password is none.
   tcpip_adapter_ip_info_t ipInfo;
@@ -375,15 +523,17 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 		duk_pop(ctx);
 	}
 
-	esp_err_t errRc = esp_wifi_disconnect();
+	/*
+	errRc = esp_wifi_disconnect();
 	if (errRc != ESP_OK) {
-		duk_error(ctx, 1, "esp_wifi_disconnect rc=%s", esp32_errToString(errRc));
+		LOGD("esp_wifi_disconnect rc=%s", esp32_errToString(errRc));
 	}
-
+*/
 	// Handle any network options that may have been supplied.  If network options
 	// were supplied then we will NOT be using DHCP and instead we should have
 	// been supplied our own IP address, gateway address and netmask.  Extract
 	// and use those.
+	int useDHCP = 1;
 	if (duk_has_prop_string(ctx, optionsIdx, "network")) {
 
 		duk_get_prop_string(ctx, -1, "network");
@@ -399,45 +549,56 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 		const char *netmaskString = duk_get_string(ctx, -1);
 		duk_pop(ctx);
 
-	  inet_pton(AF_INET, ipString, &ipInfo.ip);
-	  inet_pton(AF_INET, gwString, &ipInfo.gw);
-	  inet_pton(AF_INET, netmaskString, &ipInfo.netmask);
+		// We now try and get network IP information but check that it is good first
+	  if (inet_pton(AF_INET, ipString, &ipInfo.ip) == 1 &&
+	  inet_pton(AF_INET, gwString, &ipInfo.gw) == 1 &&
+	  inet_pton(AF_INET, netmaskString, &ipInfo.netmask)) {
+			LOGD(" - Using specific network info: ip: %s, gw: %s, netmask: %s",
+				ipString, gwString, netmaskString);
+			tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA); // Don't run a DHCP client
+			tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &ipInfo);
+			useDHCP = 0;
+	  } // Setup network portion
+	} // We have a network object
 
-	  LOGD(" - Using specific network info: ip: %s, gw: %s, netmask: %s",
-	  	ipString, gwString, netmaskString);
-	  tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA); // Don't run a DHCP client
-	  tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &ipInfo);
-
-	} else {
-		// Since we were NOT supplied network information, use DHCP.
+	/*
+	if (useDHCP) {
+		// Since we were NOT supplied network information or couldn't use it, use DHCP.
 		errRc = tcpip_adapter_dhcpc_start(TCPIP_ADAPTER_IF_STA);
 		if (errRc != ESP_OK) {
 			duk_error(ctx, 1, "tcpip_adapter_dhcpc_start rc=%s", esp32_errToString(errRc));
 		}
-	}
+	} // useDHCP is true
+	*/
 
 	// Perform the actual connection to the access point.
 	errRc = esp_wifi_set_mode(WIFI_MODE_STA);
 	if (errRc != ESP_OK) {
 		duk_error(ctx, 1, "esp_wifi_set_mode rc=%s", esp32_errToString(errRc));
 	}
-	LOGD(" - Connecting to access point: %s with %s", ssid, password);
+
+	LOGD(" - Connecting to access point: \"%s\" with \"%s\"", ssid, password);
   wifi_config_t sta_config;
   strcpy(sta_config.sta.ssid, ssid);
   strcpy(sta_config.sta.password, password);
   sta_config.sta.bssid_set = 0;
+
   errRc = esp_wifi_set_config(WIFI_IF_STA, &sta_config);
 	if (errRc != ESP_OK) {
 		duk_error(ctx, 1, "esp_wifi_set_config rc=%s", esp32_errToString(errRc));
 	}
+
 	errRc = esp_wifi_start();
 	if (errRc != ESP_OK) {
 		duk_error(ctx, 1, "esp_wifi_start rc=%s", esp32_errToString(errRc));
 	}
+
 	errRc = esp_wifi_connect();
 	if (errRc != ESP_OK) {
 		duk_error(ctx, 1, "esp_wifi_connect rc=%s", esp32_errToString(errRc));
 	}
+
+	LOGD("<< js_wifi_connect");
   return 0;
 } // js_wifi_connect
 
@@ -463,7 +624,7 @@ static duk_ret_t js_wifi_listen(duk_context *ctx) {
   // Check to see if we have a callback function, if we do, stash it.
   if (duk_is_function(ctx, -1)) {
   	// we have a callback
-  	g_apstartCallbackStashKey = esp32_duktape_stash_array(ctx, 1);
+  	g_apStartCallbackStashKey = esp32_duktape_stash_array(ctx, 1);
   } else {
   	duk_pop(ctx); // Remove the thing that might have been a callback function
   }
@@ -562,39 +723,32 @@ void ModuleWIFI(duk_context *ctx) {
 	duk_push_global_object(ctx);
 	// [0] - Global object
 
-
 	duk_idx_t idx = duk_push_object(ctx); // Create new WIFI object
 	// [0] - Global object
 	// [1] - New object
-
 
 	duk_push_c_function(ctx, js_wifi_scan, 1);
 	// [0] - Global object
 	// [1] - New object
 	// [2] - c-func - js_wifi_scan
 
-
 	duk_put_prop_string(ctx, idx, "scan"); // Add scan to new WIFI
 	// [0] - Global object
 	// [1] - New object
-
 
 	duk_push_c_function(ctx, js_wifi_getDNS, 0);
 	// [0] - Global object
 	// [1] - New object
 	// [2] - c-func - js_wifi_getDNS
 
-
 	duk_put_prop_string(ctx, idx, "getDNS"); // Add getDNS to new WIFI
 	// [0] - Global object
 	// [1] - New object
-
 
 	duk_push_c_function(ctx, js_wifi_connect, 2);
 	// [0] - Global object
 	// [1] - New object
 	// [2] - c-func - js_wifi_connect
-
 
 	duk_put_prop_string(ctx, idx, "connect"); // Add connect to new WIFI
 	// [0] - Global object
@@ -605,11 +759,36 @@ void ModuleWIFI(duk_context *ctx) {
 	// [1] - New object
 	// [2] - c-func - js_wifi_listen
 
-
 	duk_put_prop_string(ctx, idx, "listen"); // Add listen to new WIFI
 	// [0] - Global object
 	// [1] - New object
 
+	duk_push_c_function(ctx, js_wifi_getState, 0);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-func - js_wifi_getState
+
+	duk_put_prop_string(ctx, idx, "getState"); // Add getState to new WIFI
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_wifi_stop, 0);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-func - js_wifi_stop
+
+	duk_put_prop_string(ctx, idx, "stop"); // Add stop to new WIFI
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_wifi_start, 0);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-func - js_wifi_start
+
+	duk_put_prop_string(ctx, idx, "start"); // Add start to new WIFI
+	// [0] - Global object
+	// [1] - New object
 
 	duk_put_prop_string(ctx, 0, "WIFI"); // Add WIFI to global
 	// [0] - Global object
