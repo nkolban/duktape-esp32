@@ -25,7 +25,7 @@ The load addresses are:
 
 For example, on Linux with the ESP32 in flash mode, we can run the following:
 ```
-$ python <ESP-IDF>/components/esptool_py/esptool/esptool.py \
+$ python $IDF_PATH/components/esptool_py/esptool/esptool.py \
  --chip esp32 --port "/dev/ttyUSB0" --baud 115200 write_flash --flash_mode "dio" \
  --flash_freq "40m" --flash_size "4MB" --compress \
  0x1000   bootloader.bin \

@@ -15,7 +15,7 @@
 #include "duktape_spiffs.h"
 #include "esp32_specific.h"
 #include "sdkconfig.h"
-#endif
+#endif // ESP_PLATFORM
 
 #include <assert.h>
 #include <duktape.h>
@@ -25,11 +25,10 @@
 #include "dukf_utils.h"
 #include "duktape_task.h"
 #include "duktape_utils.h"
-#include "esp32_duktape/duktape_event.h"
-#include "esp32_duktape/module_timers.h"
-
+#include "duktape_event.h"
 #include "logging.h"
 #include "modules.h"
+#include "module_timers.h"
 //#include "telnet.h"
 
 LOG_TAG("duktape_task");

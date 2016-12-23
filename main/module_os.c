@@ -2,25 +2,26 @@
  * Mapping from JavaScript (Duktape) to the underling OS (ESP-IDF)
  */
 #if defined(ESP_PLATFORM)
-
+#include <driver/gpio.h>
 #include <esp_log.h>
 #include <lwip/sockets.h>
 #include <mbedtls/sha1.h>
 #include <string.h>
 
+#include "esp32_specific.h"
 #include "sdkconfig.h"
 
-#else /* ESP_PLATFORM */
+#else // ESP_PLATFORM
 #include <openssl/sha.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#endif /* ESP_PLATFORM */
+#endif // ESP_PLATFORM
 
 #include <errno.h>
 #include <unistd.h>
 
 #include "duktape.h"
-#include "esp32_duktape/module_os.h"
+#include "module_os.h"
 #include "logging.h"
 
 
@@ -635,6 +636,79 @@ static duk_ret_t js_os_select(duk_context *ctx) {
 	return 1;
 } // js_os_select
 
+/*
+ * GPIO Functions
+ */
+
+/*
+ * Set the GPIO direction of the pin.
+ * [0] - Pin number
+ * [1] - Direction - 0=Input, 1=output
+ */
+static duk_ret_t js_os_gpioSetDirection(duk_context *ctx) {
+	gpio_mode_t mode;
+	gpio_num_t pinNum = duk_get_int(ctx, -2);
+
+	int modeVal = duk_get_int(ctx, -1);
+	if (modeVal == 1) {
+		mode = GPIO_MODE_OUTPUT;
+	} else {
+		mode = GPIO_MODE_INPUT;
+	}
+	esp_err_t rc = gpio_set_direction(pinNum, mode);
+	if (rc != 0) {
+		LOGE("gpio_set_direction: %s", esp32_errToString(rc));
+	}
+	return 0;
+} // js_os_gpioSetDirection
+
+/*
+ * Initialize the GPIO pin.
+ * [0] - Pin number
+ */
+static duk_ret_t js_os_gpioInit(duk_context *ctx) {
+	gpio_num_t pinNum = duk_get_int(ctx, -2);
+	gpio_pad_select_gpio(pinNum);
+	return 0;
+} // js_os_gpioInit
+
+
+/*
+ * Set the GPIO level of the pin.
+ * [0] - Pin number
+ * [1] - level - true or false
+ */
+static duk_ret_t js_os_gpioSetLevel(duk_context *ctx) {
+	uint32_t level;
+	gpio_num_t pinNum = duk_get_int(ctx, -2);
+	duk_bool_t levelBool = duk_get_boolean(ctx, -1);
+	if (levelBool == 0) {
+		level = 0;
+	} else {
+		level = 1;
+	}
+	esp_err_t rc = gpio_set_level(pinNum, level);
+	if (rc != 0) {
+		LOGE("gpio_set_level: %s", esp32_errToString(rc));
+	}
+	return 0;
+} // js_os_gpioSetLevel
+
+
+/*
+ * Get the GPIO level of the pin.
+ * [0] - Pin number
+ */
+static duk_ret_t js_os_gpioGetLevel(duk_context *ctx) {
+	gpio_num_t pinNum = duk_get_int(ctx, -1);
+	int level = gpio_get_level(pinNum);
+	if (level == 0) {
+		duk_push_false(ctx);
+	} else {
+		duk_push_true(ctx);
+	}
+	return 1;
+} // js_os_gpioGetLevel
 
 /**
  * Create the OS module in Global.
@@ -744,6 +818,42 @@ void ModuleOS(duk_context *ctx) {
 	// [2] - C Function - js_os_sha1
 
 	duk_put_prop_string(ctx, idx, "sha1"); // Add sha1 to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_gpioGetLevel, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_gpioGetLevel
+
+	duk_put_prop_string(ctx, idx, "gpioGetLevel"); // Add gpioGetLevel to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_gpioSetDirection, 2);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_setDirection
+
+	duk_put_prop_string(ctx, idx, "gpioSetDirection"); // Add gpioSetDirection to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_gpioSetLevel, 2);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_gpioSetLevel
+
+	duk_put_prop_string(ctx, idx, "gpioSetLevel"); // Add gpioSetLevel to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_gpioInit, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_gpioInit
+
+	duk_put_prop_string(ctx, idx, "gpioInit"); // Add js_os_gpioInit to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
 

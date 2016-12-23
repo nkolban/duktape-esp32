@@ -32,11 +32,9 @@
 
 #include "c_list.h"
 #include "c_timeutils.h"
-
 #include "duktape_utils.h"
-#include "esp32_duktape/module_timers.h"
-#include "esp32_duktape/duktape_event.h"
-
+#include "duktape_event.h"
+#include "module_timers.h"
 #include "sdkconfig.h"
 
 static timer_record_t *getById(unsigned long id);

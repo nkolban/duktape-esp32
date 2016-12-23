@@ -1,10 +1,16 @@
 # GPIO module
-This module provides access to the GPIO functions.  The module is pre-installed and
-available as GPIO.
+This module provides access to the GPIO functions.
 
-The GPIO object has the following exposed:
+##Example - Blinky
+In this example, we connect an LED to GPIO 18 and blink it once a second.
 
-* `getPinMode(pinNumber)`
-* `digitalRead(pinNumber)`
-* `digitalWrite(pinNumber, value)`
-* `pinMode(pinNumber, mode)`
+```
+var GPIO = require("gpio.js");
+var pin = new GPIO(18);
+var level = true;
+pin.setDirection(GPIO.OUTPUT);
+setInterval(function() {
+	pin.setLevel(level);
+	level = !level;
+}, 1000);
+```

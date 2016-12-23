@@ -360,6 +360,48 @@ write starting at the offset within the buffer.  If `length` is specified, then 
 of bytes into the file.
 
 
+##GPIO
+Own the interface to GPIO.  We construct a new instance of a GPIO to represent the operations
+and state of a GPIO pin.  For example:
+
+```
+var GPIO = require("gpio");
+var pin12 = new GPIO(12);
+pin12.setDirection(pin12.OUTPUT);
+pin12.setLevel(pin12.HIGH);
+```
+
+###getLevel
+Read the signal level present as input on the pin. 
+
+###HIGH
+A constant property that defines the signal level of `high`.
+
+###INPUT
+A constant property that defines the direction as INPUT of a GPIO as used by the
+`setDirection()` function.  
+
+###LOW
+A constant property that defines the signal level of `low`.
+
+###OUTPUT
+A constant property that defines the direction as OUTPUT of a GPIO as used by the
+`setDirection()` function. 
+
+###setDirection
+Set the direction of the pin.  Either DIRECTION_INPUT or DIRECTION_OUTPUT.
+
+Syntax:
+`setDirection(direction)`
+
+###setLevel
+Set the signal level present as output on the pin.  The choices should be either
+`HIGH` or `LOW`.
+
+Syntax:
+`setLevel(level)` 
+
+
 ##HTTP
 ###request
 Make an HTTP request.
@@ -765,6 +807,10 @@ The `options` is an object that contains:
 
 ```
 
+###gpioGetLevel
+###gpioInit
+###gpioSetDirection
+###gpioSetLevel
 
 
 ###listen
@@ -880,6 +926,18 @@ is an array of object where each object contains:
 
 
 ##RMT
+The RMT module is a built-in and is available through "RMT".
+
+The ESP32 has hardware support for a "Remote Control Peripheral".  At first this may seem like an odd choice.
+The purpose of this is to control an infrared transmitter or receiver and modulate the transmission of 
+the LED being on or off for given pulse durations.  This coding is what is then understood by the partner
+and decoded as an instruction.  For example, when pick up your TV remote and click to power on your TV,
+a series of infrared LED pulses are transmitted which are decoded by your TV to mean that it should turn on.
+Breaking this down, we then understand this to be a series of signal highs and lows for very specific durations
+and THAT is the core of RMT.  We can supply a sequence train of pulse durations that correspond to 1s and 0s
+that then manifest themselves as GPIO outputs.  Since this is all done at the hardware level as opposed to
+the software level, it can be achieved at rates far faster than software control.
+
 ###getState
 Retrieve the state of a give channel.
 
@@ -934,8 +992,16 @@ The arrayOfItems is an array of item objects where each item object contains
 
 
 ##Stream
+A stream is a pair of object where one acts as a stream writer and the other as a stream reader.  When
+data is writer into the stream writer it is available at the stream reader.  The stream can also
+buffer data such that if the writer wants to write data but the reader isn't ready, the data can
+be buffered in the steam until the reader is ready.  The model also allows for loose coupling between
+components as if one component has a reader and reads data from it, it doesn't usually matter who
+the writer of the data may actually be.
+
 A new instance of this class returns an object that contains a stream connected pair.  The object
 looks like:
+
 ```
 {
    reader: <A reader object>

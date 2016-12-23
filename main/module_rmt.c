@@ -49,7 +49,7 @@ static duk_ret_t js_rmt_getState(duk_context *ctx) {
 	rmt_source_clk_t srcClk;
 	rmt_channel_t channel;
 
-	channel = duk_get_int(ctx, 0); // Get the channel number from parameter 0.
+	channel = duk_get_int(ctx, -1); // Get the channel number from stack top.
 
 	rmt_get_tx_loop_mode(channel, &loop_en);
 	rmt_get_clk_div(channel, &div_cnt);
@@ -60,63 +60,77 @@ static duk_ret_t js_rmt_getState(duk_context *ctx) {
 	rmt_get_status(channel, &status);
 	rmt_get_source_clk(channel, &srcClk);
 
+
+	duk_idx_t idx = duk_push_object(ctx);
 	// [0] - Channel
 	// [1] - New object
-	duk_idx_t idx = duk_push_object(ctx);
 
+
+	duk_push_int(ctx, channel);
 	// [0] - Channel
 	// [1] - New object
 	// [2] - Channel
-	duk_push_int(ctx, channel);
 
+
+	duk_put_prop_string(ctx, idx, "channel");
 	// [0] - Channel
 	// [1] - New object
-	duk_put_prop_string(ctx, idx, "channel");
 
+
+	duk_push_boolean(ctx, loop_en);
 	// [0] - Channel
 	// [1] - New object
 	// [2] - loopEnabled
-	duk_push_boolean(ctx, loop_en);
 
+
+	duk_put_prop_string(ctx, idx, "loopEnabled");
 	// [0] - Channel
 	// [1] - New object
-	duk_put_prop_string(ctx, idx, "loopEnabled");
 
+
+	duk_push_int(ctx, div_cnt);
 	// [0] - Channel
 	// [1] - New object
 	// [2] - clockDiv
-	duk_push_int(ctx, div_cnt);
 
+
+	duk_put_prop_string(ctx, idx, "clockDiv");
 	// [0] - Channel
 	// [1] - New object
-	duk_put_prop_string(ctx, idx, "clockDiv");
 
+
+	duk_push_int(ctx, memNum);
 	// [0] - Channel
 	// [1] - New object
 	// [2] - memBlocks
-	duk_push_int(ctx, memNum);
 
+
+	duk_put_prop_string(ctx, idx, "memBlocks");
 	// [0] - Channel
 	// [1] - New object
-	duk_put_prop_string(ctx, idx, "memBlocks");
 
+
+	duk_push_int(ctx, 0); // FIX
 	// [0] - Channel
 	// [1] - New object
 	// [2] - idleLevel
-	duk_push_int(ctx, 0); // FIX
 
+
+	duk_put_prop_string(ctx, idx, "idleLevel");
 	// [0] - Channel
 	// [1] - New object
-	duk_put_prop_string(ctx, idx, "idleLevel");
 
+
+	duk_push_string(ctx, owner==RMT_MEM_OWNER_TX?"TX":"RX");
 	// [0] - Channel
 	// [1] - New object
 	// [2] - memoryOwner
-	duk_push_string(ctx, owner==RMT_MEM_OWNER_TX?"TX":"RX");
 
+
+	duk_put_prop_string(ctx, idx, "memoryOwner");
 	// [0] - Channel
 	// [1] - New object
-	duk_put_prop_string(ctx, idx, "memoryOwner");
+
 	return 1;
 } // js_rmt_getState
 
@@ -124,7 +138,11 @@ static duk_ret_t js_rmt_getState(duk_context *ctx) {
 /**
  * Set the item value.
  */
-static void setItem(uint8_t level, uint16_t duration, int item, rmt_item32_t *itemArray) {
+static void setRMTItem(
+		uint8_t level,
+		uint16_t duration,
+		int item,
+		rmt_item32_t *itemArray) {
 	rmt_item32_t *ptr = &itemArray[item/2];
 	if (item%2 == 0) {
 		ptr->duration0 = duration;
@@ -152,28 +170,28 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
 	duk_uarridx_t i;
 	bool waitForWrite = 1;
 
-	if (!duk_is_number(ctx, 0)) {
+	if (!duk_is_number(ctx, -2)) {
 		LOGD("jms_rmt_write - param 1 is not a number")
 		return 0;
 	}
-	channel = duk_get_int(ctx, 0); // Get the channel number from parameter 0.
+	channel = duk_get_int(ctx, -2); // Get the channel number from parameter 0.
 	if (channel <0 || channel >= RMT_CHANNEL_MAX) {
 		LOGD("jms_rmt_write - channel is out of range")
 		return 0;
 	}
 
-	if (!duk_is_array(ctx, 1)) {
+	if (!duk_is_array(ctx, -1)) {
 		LOGD("jms_rmt_write - param 2 is not an array")
 		return 0;
 	}
-	length = duk_get_length(ctx, 1);
+	length = duk_get_length(ctx, -1);
 	/*
 	duk_get_prop_string(ctx, 1, "length");
 	length = duk_get_int(ctx, -1);
 	duk_pop(ctx); // Pop the level
 	*/
 
-	LOGD("Length of array is %d", length);
+	LOGD("Length of RMT item array is %d", length);
 	if (length == 0) {
 		LOGD("jms_rmt_write - length of items is 0")
 		return 0;
@@ -188,14 +206,22 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
 	// * level0
 	// * duration1
 	// * level1
-	// The last entry must have a duration of 0 which means an extra entry.
+	//
+	// The last entry must have a duration of 0 which means we allocate an extra entry.
 	// The number of items we need is length + 1
+	// If 1 array -> 2 items [0, 1*]
+	// If 2 array -> 3 items [0, 1], [2*, ?]
+	// if 3 array -> 3 items [0, 1], [2, 3*]
+	// if 4 array -> 4 items [0, 1], [2, 3], [4*, ?]
+	// #of items array elements = (length div 2) + 2
 
-	rmt_item32_t *itemArray = malloc(sizeof(rmt_item32_t) * (length + 1));
+	int itemArraySize = length / 2 + 2;
+
+	rmt_item32_t *itemArray = calloc(sizeof(rmt_item32_t), itemArraySize);
 
 	for (i=0; i<length; i++) {
 		// Get each of the items and work with it.
-		duk_get_prop_index(ctx, 1, i);
+		duk_get_prop_index(ctx, -1, i);
 
 		duk_get_prop_string(ctx, -1, "level");
 		uint8_t level = duk_get_boolean(ctx, -1);
@@ -207,14 +233,21 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
 
 		duk_pop(ctx); // Pop the item object
 
-		setItem(level, duration, i, itemArray);
+		setRMTItem(level, duration, i, itemArray);
 
 		LOGD("item: %d - level=%d, duration=%d", i, level, duration);
 	}
-	setItem(0, 0, length, itemArray); // Set the trailer
-	ESP_ERROR_CHECK(rmt_driver_install(channel, 0, 19));
-	ESP_ERROR_CHECK(rmt_write_items(channel, itemArray, length+1, waitForWrite));
+
+	setRMTItem(0, 0, length, itemArray); // Set the trailer / terminator.
+
+	ESP_ERROR_CHECK(rmt_driver_install(
+		channel, // Channel
+		0, // RX ring buffer size
+		19 // Interrupt number
+	));
+	ESP_ERROR_CHECK(rmt_write_items(channel, itemArray, itemArraySize, waitForWrite));
 	ESP_ERROR_CHECK(rmt_driver_uninstall(channel));
+
 	free(itemArray);
 	return 0;
 } // js_rmt_write
@@ -227,13 +260,20 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
  * 2) Configuration:
  * {
  * 		gpio: <number> - GPIO pin to use.
- * 		memBlocks: <number> - Memory blocks to use.
- * 		idleLevel: <boolean> - Idle value to use.
- * 		clockDiv: <number> - Clock divider.
+ * 		memBlocks: <number> - Memory blocks to use. Optional, default is 1.
+ * 		idleLevel: <boolean> - Idle value to use.  Optional, default is LOW.
+ * 		clockDiv: <number> - Clock divider.  Optional, default is 1.
  * }
  *
  * [0] - number - Channel
  * [1] - object - Configuration
+ * {
+ *    gpio:
+ *    memBlocks: [Optional]
+ *    idleLevel: [Optional]
+ *    clockDiv: [Optional]
+ * }
+ *
  */
 static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 	LOGD(">> js_rmt_txConfig");
@@ -285,17 +325,18 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 
 	rmt_config_t config;
 	config.channel = channel;
-	config.rmt_mode = RMT_MODE_TX;
 	config.clk_div = clockDiv;
 	config.gpio_num = gpio;
 	config.mem_block_num = memBlocks;
-	config.tx_config.loop_en = 0;
+	config.rmt_mode = RMT_MODE_TX;
+	config.tx_config.carrier_duty_percent = 50;
 	config.tx_config.carrier_en = 0;
 	config.tx_config.carrier_freq_hz = 1000;
-	config.tx_config.carrier_duty_percent = 50;
 	config.tx_config.carrier_level = RMT_CARRIER_LEVEL_LOW;
 	config.tx_config.idle_output_en = 1;
 	config.tx_config.idle_level = idleLevel;
+	config.tx_config.loop_en = 0;
+
 	ESP_ERROR_CHECK(rmt_config(&config));
 
 
@@ -316,14 +357,6 @@ void ModuleRMT(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object - RMT object
 
-	duk_push_c_function(ctx, js_rmt_txConfig, 2);
-	// [0] - Global object
-	// [1] - New object - RMT object
-	// [2] - C Function - js_rmt_txConfig
-
-	duk_put_prop_string(ctx, idx, "txConfig"); // Add txConfig to new RMT
-	// [0] - Global object
-	// [1] - New object - RMT object
 
 	duk_push_c_function(ctx, js_rmt_getState, 1);
 	// [0] - Global object
@@ -334,6 +367,17 @@ void ModuleRMT(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object - RMT object
 
+
+	duk_push_c_function(ctx, js_rmt_txConfig, 2);
+	// [0] - Global object
+	// [1] - New object - RMT object
+	// [2] - C Function - js_rmt_txConfig
+
+	duk_put_prop_string(ctx, idx, "txConfig"); // Add txConfig to new RMT
+	// [0] - Global object
+	// [1] - New object - RMT object
+
+
 	duk_push_c_function(ctx, js_rmt_write, 2);
 	// [0] - Global object
 	// [1] - New object - RMT object
@@ -342,6 +386,7 @@ void ModuleRMT(duk_context *ctx) {
 	duk_put_prop_string(ctx, idx, "write"); // Add write to new RMT
 	// [0] - Global object
 	// [1] - New object - RMT object
+
 
 	duk_put_prop_string(ctx, 0, "RMT"); // Add RMT to global
 	// [0] - Global object

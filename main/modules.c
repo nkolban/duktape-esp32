@@ -17,19 +17,19 @@
 
 #include "duk_trans_socket.h" // The debug functions from Duktape.
 #include "duktape_utils.h"
-#include "esp32_duktape/module_fs.h"
-#include "esp32_duktape/module_gpio.h"
-#include "esp32_duktape/module_http.h"
-#include "esp32_duktape/module_os.h"
-#include "esp32_duktape/module_partitions.h"
-#include "esp32_duktape/module_rmt.h"
-#include "esp32_duktape/module_timers.h"
-#include "esp32_duktape/module_wifi.h"
 #include "logging.h"
 #include "modules.h"
 #include "module_dukf.h"
+#include "module_fs.h"
+#include "module_gpio.h"
+#include "module_http.h"
 #include "module_nvs.h"
+#include "module_os.h"
+#include "module_partitions.h"
+#include "module_rmt.h"
 #include "module_rtos.h"
+#include "module_timers.h"
+#include "module_wifi.h"
 
 LOG_TAG("modules");
 

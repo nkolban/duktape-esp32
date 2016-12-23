@@ -74,7 +74,8 @@ function stream() {
  * - data: A callback that takes a Buffer parameter.  When called, new data is available
  *         and can be found in the passed in buffer.
  * - end: A callback (with no parameters) that indicates that the reader should
- *        not expect any more data.  It has reached the end.
+ *        not expect any more data.  It has reached the end.  We ensure that this callback is
+ *        never called more than once even if a writer should signal an end more than once.
  */
 function stream() {
 	var dataBuffer = null;
@@ -115,11 +116,19 @@ function stream() {
 		//
 		// end
 		//
+		// If the writer has previously signled an end, don't signal a second
+		// one.
 		end: function(data) {
+			if (endFlag) {
+				return;
+			}
+			
 			if (data !== null && data !== undefined) {
 				this.write(data);
 			}
+
 			endFlag = true;
+			
 			if (endCallback) {
 				endCallback();
 			}

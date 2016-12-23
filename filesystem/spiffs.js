@@ -1,1 +1,0 @@
-log(JSON.stringify(FS.spiffsDir()));

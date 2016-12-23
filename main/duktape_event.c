@@ -1,17 +1,18 @@
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM)
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <esp_log.h>
 #include "sdkconfig.h"
-#endif
-#include "esp32_duktape/duktape_event.h"
-#include <string.h>
-#include "logging.h"
+#endif // ESP_PLATFORM
 
 #include <assert.h>
-#include "esp32_duktape/module_timers.h"
-#include "duktape_utils.h"
+#include <string.h>
+
 #include "c_timeutils.h"
+#include "duktape_event.h"
+#include "duktape_utils.h"
+#include "logging.h"
+#include "module_timers.h"
 
 LOG_TAG("duktape_event");
 

@@ -7,7 +7,7 @@ PROJECT_NAME := esp32-duktape
 
 include $(IDF_PATH)/make/project.mk
 
-ship: images
+ship: images all
 	echo "+---------------+"
 	echo "| Building ship |"
 	echo "+---------------+"	
@@ -17,17 +17,23 @@ ship: images
 	cp build/bootloader/bootloader.bin build/ship
 	cp spiffs.img build/ship
 	cp espfs.img build/ship
+	cp data/install_binaries.sh build/ship
+	cd build/ship; tar -cvzf ../../esp32-duktape-$(shell date "+%Y-%m-%d").tar.gz .
+	echo "+---------+"
+	echo "| Results |"
+	echo "+---------+"	
+	echo "Created output: esp32-duktape-$(shell date "+%Y-%m-%d").tar.gz"
 	
 
 images:
 	echo "+--------------------+"
 	echo "| Building espfs.img |"
 	echo "+--------------------+"
-	cd spiffs; ls *.js | ~/bin/mkespfsimage > ../espfs.img
+	cd filesystem; ls *.js | mkespfsimage > ../espfs.img
 	echo "+---------------------+"
 	echo "| Building spiffs.img |"
 	echo "+---------------------+"
-	mkspiffs -c spiffs -b 65536 -p 256 -s 524288 spiffs.img
+	mkspiffs -c filesystem -b 65536 -p 256 -s 524288 spiffs.img
 	
 duktape_install:
 	echo "Installing duktape"

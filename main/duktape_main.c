@@ -4,20 +4,13 @@
 #include <esp_log.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
-//#include <lwip/sockets.h>
-//#include <nvs.h>
-//#include <math.h>
 #include <nvs_flash.h>
-//#include <string.h>
 
-#include "bootwifi.h"
-//#include "connection_info.h"
 #include "duktape_task.h"
-#include "esp32_duktape/duktape_event.h"
-//#include "esp32_specific.h"
+#include "duktape_event.h"
 #include "logging.h"
 #include "sdkconfig.h"
-//#include "telnet.h"
+
 
 LOG_TAG("duktape_main");
 
@@ -91,7 +84,7 @@ static void init() {
 	//xTaskCreatePinnedToCore(&telnetTask, "telnetTask", 8048, NULL, 5, NULL, 0);
 	//startMongooseServer();
 	//xTaskCreatePinnedToCore(&socket_server, "socket_server", 8048, NULL, 5, NULL, 0);
-	xTaskCreatePinnedToCore(&duktape_task, "duktape_task", 10*1024, NULL, 5, NULL, 0);
+	xTaskCreatePinnedToCore(&duktape_task, "duktape_task", 16*1024, NULL, 5, NULL, 0);
 } // init
 
 

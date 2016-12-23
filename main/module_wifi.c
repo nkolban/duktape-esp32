@@ -20,10 +20,10 @@
 #include <lwip/sockets.h>
 
 #include "duktape_utils.h"
-#include "esp32_duktape/duktape_event.h"
-#include "esp32_duktape/module_wifi.h"
+#include "duktape_event.h"
 #include "esp32_specific.h"
 #include "logging.h"
+#include "module_wifi.h"
 #include "sdkconfig.h"
 
 LOG_TAG("module_wifi");
@@ -561,7 +561,6 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 	  } // Setup network portion
 	} // We have a network object
 
-	/*
 	if (useDHCP) {
 		// Since we were NOT supplied network information or couldn't use it, use DHCP.
 		errRc = tcpip_adapter_dhcpc_start(TCPIP_ADAPTER_IF_STA);
@@ -569,7 +568,6 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 			duk_error(ctx, 1, "tcpip_adapter_dhcpc_start rc=%s", esp32_errToString(errRc));
 		}
 	} // useDHCP is true
-	*/
 
 	// Perform the actual connection to the access point.
 	errRc = esp_wifi_set_mode(WIFI_MODE_STA);
@@ -577,7 +575,7 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 		duk_error(ctx, 1, "esp_wifi_set_mode rc=%s", esp32_errToString(errRc));
 	}
 
-	LOGD(" - Connecting to access point: \"%s\" with \"%s\"", ssid, password);
+	LOGD(" - Connecting to access point: \"%s\" with \"%s\"", ssid, "<Password hidden>");
   wifi_config_t sta_config;
   strcpy(sta_config.sta.ssid, ssid);
   strcpy(sta_config.sta.password, password);

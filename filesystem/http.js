@@ -58,7 +58,7 @@ var http = {
 	//
 	// The high level algorithm is that we create a new socket and then issue a connect
 	// request upon it.  When we have detected that the connect has succeeded, we then
-	// send an HTTP protocol request down the socket.  We register that we are
+	// send an HTTP protocol request through the socket connection.  We register that we are
 	// interested in receiving the response and parse the response assuming it is an
 	// HTTP message.
 	request: function(options, callback) {
@@ -71,7 +71,6 @@ var http = {
 			options.path = "/";
 		}
 
-
 		if (options.port === undefined) {
 			options.port = 80;
 		}
@@ -83,7 +82,7 @@ var http = {
 		callback(sock);
 		var message = "";
 		// Send a connect request and register the function to be invoked when the connect
-		// succeeds.  That function is responsible for sending the HTTP request to the partner.
+		// succeeds.  That registered function is responsible for sending the HTTP request to the partner.
 		sock.connect(options, function() {
 			// We are now connected ... send the HTTP message
 			// Build the message to send.

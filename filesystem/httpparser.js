@@ -117,10 +117,17 @@ var STATE = {
 /**
  * The implementation of the HTTP parse
  * @param type The type of parsing either "request" or "response"
- * @param handler A callback function that is invoked to handle the data.
- * @returns N/A
+ * @param httpParserConsumer A callback function that is invoked to handle the data.  It is passed an httpStream
+ * reader that can be used to read the parsed HTTP data.  The reader object also has additional properties added
+ * to it including:
+ * * headers    - For both a request and a response
+ * * httpStatus - For a response
+ * * method     - For a request
+ * * path       - For a request
+ * @returns networkWriter A stream object into which the network stream being
+ * received will be written.
  */
-function httpparser(type, handler) {
+function httpparser(type, httpParserConsumer) {
 	var networkStream = new Stream();
 	var httpStream = new Stream();
 	
@@ -128,11 +135,14 @@ function httpparser(type, handler) {
 	var unconsumedData = "";
 	var bodyLeftToRead;
 	var state;
+	var isRequest;
 	
 	if (type == "request") {
 		state = STATE.START_REQUEST;
+		isRequest = true;
 	} else if (type == "response") {
 		state = STATE.START_RESPONSE;
+		isRequest = false;
 	} else {
 		throw new Error("ERROR: Unknown type on httpparser: " + type);
 	}
@@ -211,15 +221,23 @@ function httpparser(type, handler) {
 		return line.remainder;
 	} // consume
 	
-	handler(httpStream.reader);
+	httpParserConsumer(httpStream.reader);
 	
 	networkStream.reader.on("data", function(data) {
-		//log("HTTP parser consuming data ... state=" + state);
+		// When we receive additional data over the network connection we combine that with
+		// data that we received previously that has not yet been consumed.  We then
+		// call consume to consume this data and the result will be the data that we
+		// weren't yet able to consume and presumably will when more data arrives in the future.
 		unconsumedData = consume(unconsumedData + data.toString());
 	});
 	
 	networkStream.reader.on("end", function() {
+// The interesting question is what should we do if we have been told that the network connection
+// has finished sending us any further data?  It would seem that we want to tell the httpStream writer
+// that there won't be any new data either ... but we need to be carfeful, we must NEVER call the the
+// stream writer twice!!
 		log("HTTP Parser: Received an end of network connection");
+		
 	}); // networkStream reader on("end")
 	return networkStream.writer;
 } // httpparser

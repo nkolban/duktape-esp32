@@ -2,8 +2,8 @@
 #include <esp_partition.h>
 
 #include "duktape.h"
-#include "esp32_duktape/module_partitions.h"
 #include "logging.h"
+#include "module_partitions.h"
 #include "sdkconfig.h"
 
 LOG_TAG("module_partition");
