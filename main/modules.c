@@ -1,9 +1,10 @@
 #if defined(ESP_PLATFORM)
 #include <esp_system.h>
 #include <espfs.h>
+
 #include "esp32_specific.h"
 #include "sdkconfig.h"
-#endif /* ESP_PLATFORM */
+#endif // ESP_PLATFORM
 
 #include <assert.h>
 #include <duktape.h>
@@ -275,7 +276,18 @@ static duk_ret_t js_esp32_dumpESPFS(duk_context *ctx) {
 	return 0;
 } // js_esp32_dumpESPFS
 
+/*
+ * Reboot the ESP32.
+ */
+static duk_ret_t js_esp32_reboot(duk_context *ctx) {
+	esp_restart();
+	return 0;
+} // js_esp32_reboot
+
+
 #endif /* ESP_PLATFORM */
+
+
 
 
 /**
@@ -364,7 +376,7 @@ static void ModuleConsole(duk_context *ctx) {
 	// <stack empty>
 } // ModuleConsole
 
-
+#if defined(ESP_PLATFORM)
 /**
  * Register the ESP32 module with its functions.
  */
@@ -376,12 +388,21 @@ static void ModuleESP32(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object
 
-	duk_push_c_function(ctx, js_esp32_reset, 0);
+	duk_push_c_function(ctx, js_esp32_dumpESPFS, 0);
 	// [0] - Global object
 	// [1] - New object
-	// [2] - c-function - js_esp32_reset
+	// [2] - c-function - js_esp32_dumpESPFS
 
-	duk_put_prop_string(ctx, -2, "reset"); // Add reset to new ESP32
+	duk_put_prop_string(ctx, -2, "dumpESPFS"); // Add dumpESPFS to new ESP32
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_esp32_getNativeFunction, 1);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_getNativeFunction
+
+	duk_put_prop_string(ctx, -2, "getNativeFunction"); // Add getNativeFunction to new ESP32
 	// [0] - Global object
 	// [1] - New object
 
@@ -394,16 +415,15 @@ static void ModuleESP32(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object
 
-	duk_push_c_function(ctx, js_esp32_setLogLevel, 2);
+	duk_push_c_function(ctx, js_esp32_loadFile, 1);
 	// [0] - Global object
 	// [1] - New object
-	// [2] - c-function - js_esp32_setLogLevel
+	// [2] - c-function - js_esp32_loadFile
 
-	duk_put_prop_string(ctx, -2, "setLogLevel"); // Add setLogLevel to new ESP32
+	duk_put_prop_string(ctx, -2, "loadFile"); // Add loadFile to new ESP32
 	// [0] - Global object
 	// [1] - New object
 
-#if defined(ESP_PLATFORM)
 	duk_push_c_function(ctx, js_esp32_loadFileESPFS, 1);
 	// [0] - Global object
 	// [1] - New object
@@ -413,31 +433,32 @@ static void ModuleESP32(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object
 
-	duk_push_c_function(ctx, js_esp32_dumpESPFS, 0);
+
+	duk_push_c_function(ctx, js_esp32_reboot, 0);
 	// [0] - Global object
 	// [1] - New object
-	// [2] - c-function - js_esp32_dumpESPFS
+	// [2] - c-function - js_esp32_reboot
 
-	duk_put_prop_string(ctx, -2, "dumpESPFS"); // Add dumpESPFS to new ESP32
-	// [0] - Global object
-	// [1] - New object
-#endif /* ESP_PLATFORM */
-
-	duk_push_c_function(ctx, js_esp32_getNativeFunction, 1);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-function - js_esp32_getNativeFunction
-
-	duk_put_prop_string(ctx, -2, "getNativeFunction"); // Add getNativeFunction to new ESP32
+	duk_put_prop_string(ctx, -2, "reboot"); // Add reboot to new ESP32
 	// [0] - Global object
 	// [1] - New object
 
-	duk_push_c_function(ctx, js_esp32_loadFile, 1);
+
+	duk_push_c_function(ctx, js_esp32_reset, 0);
 	// [0] - Global object
 	// [1] - New object
-	// [2] - c-function - js_esp32_loadFile
+	// [2] - c-function - js_esp32_reset
 
-	duk_put_prop_string(ctx, -2, "loadFile"); // Add loadFile to new ESP32
+	duk_put_prop_string(ctx, -2, "reset"); // Add reset to new ESP32
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_esp32_setLogLevel, 2);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-function - js_esp32_setLogLevel
+
+	duk_put_prop_string(ctx, -2, "setLogLevel"); // Add setLogLevel to new ESP32
 	// [0] - Global object
 	// [1] - New object
 
@@ -448,6 +469,7 @@ static void ModuleESP32(duk_context *ctx) {
 	// <Empty stack>
 } // ModuleESP32
 
+#endif // ESP_PLATFORM
 
 /**
  * Register the static modules.  These are modules that will ALWAYS
@@ -462,8 +484,7 @@ void registerModules(duk_context *ctx) {
 	ModuleConsole(ctx);
 	assert(top == duk_get_top(ctx));
 
-	ModuleESP32(ctx);
-	assert(top == duk_get_top(ctx));
+
 
 	ModuleFS(ctx);
 	assert(top == duk_get_top(ctx));
@@ -475,6 +496,9 @@ void registerModules(duk_context *ctx) {
 	assert(top == duk_get_top(ctx));
 
 #if defined(ESP_PLATFORM)
+	ModuleESP32(ctx);
+	assert(top == duk_get_top(ctx));
+
 	ModuleGPIO(ctx); // Load the GPIO module
 	assert(top == duk_get_top(ctx));
 

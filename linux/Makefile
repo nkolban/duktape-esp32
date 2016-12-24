@@ -25,7 +25,7 @@ INCLUDES=\
 -I../components/duktape/src \
 -I../components/duktape/extras/module-duktape \
 -I../components/duktape/examples/debug-trans-socket \
--I../main
+-I../main/include
 LIBS=-lm -lcrypto
 
 define cc-command

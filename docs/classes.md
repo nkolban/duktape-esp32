@@ -104,6 +104,14 @@ Perform a garbage collection.
 Syntax:
 `gc()`
 
+
+###gc
+Retrieve the global object
+
+Syntax:
+`global()`
+
+
 ###loadFile
 Load a text file from the local file system.  If the file can not be found or read
 then the result is `null`.
@@ -693,8 +701,27 @@ The mode can be either:
 
 ###close
 Close a previously opened namespace.
+
 Syntax:
 `close()`
+
+###commit
+Commit changes made to the store.
+
+Syntax:
+`commit()`
+
+###erase
+Erase a named key.
+
+Syntax:
+`erase(key)`
+
+###easeAll
+Erase all keys.
+
+Syntax:
+`eraseAll()`
 
 ###get
 Get the value of a given key.

@@ -16,6 +16,7 @@ var http = require("http.js");
 var URL = require("url.js");
 var ws = require("ws.js");
 
+
 /**
  * Read a file from the SPIFFS file system and send it to the output stream.
  * @param fileName The name of the file to read.
@@ -52,7 +53,8 @@ function saveFile(fileName, data) {
 
 
 function requestHandler(request, response) {
-   log("WebServer: We have received a new HTTP client request!");
+   log("IDE_WebServer: We have received a new HTTP client request!");
+   DUKF.logHeap("requestHandler");
    var postData = "";
    request.on("data", function(data) {
       log("HTTP Request on(data) passed: " + data);
@@ -75,6 +77,7 @@ function requestHandler(request, response) {
       log(" - method: " + request.method);
       log(" - path: " + request.path);
       log(" - headers: " + JSON.stringify(request.headers));
+      DUKF.logHeap("ide_webserver: request.on(end)");
 
       log("URL: " + JSON.stringify(URL.parse(request.path)));
       var pathParts = request.path.split("/");
@@ -139,23 +142,25 @@ function startIde() {
 	
 	var server = http.createServer(requestHandler);
 	server.listen(WEBSERVER_PORT);
-	log("WebServer listening on port " + WEBSERVER_PORT);
-	
+	log("IDE_WebServer listening on port " + WEBSERVER_PORT);
+   DUKF.logHeap("#C");
 
 
 	var webSocketServer = ws.Server();
 
 	webSocketServer.on("connection", function(wsConnection) {
+	   DUKF.logHeap("#D");
 		log("We have received a new WebSocket connection.  The path is \"" + wsConnection.path + "\"");
 		wsConnection.on("message", function(data) {
 			log("We have received an incoming message: " + data);
-			wsConnection.send("Hello back");
 			wsConnection.close();
 		});
+		
 		wsConnection.on("close", function() {
 			log("Web Socket connection closed, ending handler!");
 			console.handler = null;
 		});
+		
 		// Register a console.log() handler that will send the logged message to
 		// the WebSocket.
 		console.handler = function(message) {

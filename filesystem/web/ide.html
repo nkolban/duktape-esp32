@@ -21,6 +21,7 @@ Neil Kolban, 2016
 }
 .console {
 	font-family: monospace;
+	margin-top: 4px;
 	width: 100%;
 	resize: none;
 }
@@ -81,8 +82,13 @@ html {
 			<div id="editor">console.log("Hello World\n");</div>
 		</div>
 		<div class="ui-layout-south">
-			<div style="height: 100%; display: flex; flex-direction: column">
-				Console:
+			<div style="height: 100%; display: flex; flex-direction: column; ">
+				<div style="display: flex; align-items: flex-end;">
+					<span style="flex-grow: 1;">Console:</span>
+					<label for="consoleCheckbox">Enabled:</label>
+					<input type="checkbox" id="consoleCheckbox" title="Enable/Disable console stream">
+				</div>
+
 				<textarea readonly disabled id="console" class="console" style="flex-grow:1;"></textarea>
 				<div style="margin-top: 10px; display: flex; align-items: center;">
 					<span>Eval:&nbsp;</span>

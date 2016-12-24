@@ -2,8 +2,7 @@
  * This is the IDE for ESP32-Duktape
  */
 $(document).ready(function() {
-	
-	var consoleConnected = false; // Is the console web socket connected?
+	var consoleWS = null;
 	var settings;
 	
 	if (localStorage.settings) {
@@ -13,6 +12,12 @@ $(document).ready(function() {
 			esp32_host: location.host,
 			theme: "eclipse"
 		}	
+	}
+	
+	function isConsoleEnabled() {
+		ret = $("#consoleCheckbox").prop("checked");
+		//console.log("Console enabled: " + ret);
+		return ret;
 	}
 	
 	/**
@@ -41,20 +46,19 @@ $(document).ready(function() {
 	 * @returns N/A
 	 */
 	function createConsoleWebSocket(onOpen) {
-		var ws = new WebSocket("ws://" + location.hostname + ":8002/console");
+		consoleWS = new WebSocket("ws://" + location.hostname + ":8002/console");
 		// When a console message arrives, append it to the console log and scroll so that it is visible.
-		ws.onmessage = function(event) {
+		consoleWS.onmessage = function(event) {
 			console.log("WS message received!");
 			$("#console").val($("#console").val() + event.data);
 			$('#console').scrollTop($('#console')[0].scrollHeight);
 		}
-		ws.onclose = function() {
+		consoleWS.onclose = function() {
 			$("#newWebSocket").button("enable");
 			$("#console").prop("disabled", true);
-			consoleConnected = false;
+			consoleWS = null;
 		}
-		ws.onopen = function() {
-			consoleConnected = true;
+		consoleWS.onopen = function() {
 			$("#console").prop("disabled", false);
 			if (onOpen != null) {
 				onOpen();
@@ -125,13 +129,22 @@ $(document).ready(function() {
 	$("#run").button({
 		icon: "ui-icon-play" // Set the icon on the button to be the play icon.
 	}).click(function() {
-		if (consoleConnected) {
+		if (consoleWS != null || !isConsoleEnabled()) {
 			runScript(editor.getValue());
 		} else {
 			createConsoleWebSocket(function() {
 				console.log("Web socket open!");
 				runScript(editor.getValue());
 			});
+		}
+	});
+	
+	
+	$("#consoleCheckbox").checkboxradio().change(function() {
+		//console.log("Checkbox change: " + isConsoleEnabled());
+		if (consoleWS != null) {
+			consoleWS.close();
+			consoleWS = null;
 		}
 	});
 	

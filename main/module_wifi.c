@@ -572,6 +572,7 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 	// Perform the actual connection to the access point.
 	errRc = esp_wifi_set_mode(WIFI_MODE_STA);
 	if (errRc != ESP_OK) {
+		LOGD("esp_wifi_set_mode() rc=%d", errRc);
 		duk_error(ctx, 1, "esp_wifi_set_mode rc=%s", esp32_errToString(errRc));
 	}
 
@@ -583,16 +584,19 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 
   errRc = esp_wifi_set_config(WIFI_IF_STA, &sta_config);
 	if (errRc != ESP_OK) {
+		LOGD("esp_wifi_set_config() rc=%d", errRc);
 		duk_error(ctx, 1, "esp_wifi_set_config rc=%s", esp32_errToString(errRc));
 	}
 
 	errRc = esp_wifi_start();
 	if (errRc != ESP_OK) {
+		LOGD("esp_wifi_start() rc=%d", errRc);
 		duk_error(ctx, 1, "esp_wifi_start rc=%s", esp32_errToString(errRc));
 	}
 
 	errRc = esp_wifi_connect();
 	if (errRc != ESP_OK) {
+		LOGD("esp_wifi_connect() rc=%d", errRc);
 		duk_error(ctx, 1, "esp_wifi_connect rc=%s", esp32_errToString(errRc));
 	}
 

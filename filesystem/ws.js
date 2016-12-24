@@ -333,13 +333,10 @@ function requestHandler(request, response) {
 				}
 				else if (parsedFrame.opcode == OPCODE.CLOSE) {
 					// Handle the close request.
-					if (closeSent) {
-						response.end();
-						if (onCloseCallback != null) {
-							onCloseCallback();
-						}
-					} else {
-						newConnection.close();
+					newConnection.close();
+					response.end();
+					if (onCloseCallback != null) {
+						onCloseCallback();
 					}
 				}
          }); // sock.on("data", ...) 

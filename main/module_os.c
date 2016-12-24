@@ -28,240 +28,40 @@
 LOG_TAG("module_os");
 
 /**
- * Create a SHA1 encoding of data.
- * [0] - A string or buffer
+ * Accept an incoming client request.
+ * [0] - Parms Object
+ *  - sockfd - The socket fd.
  *
- * On return
- * A buffer (20 bytes long) containing the message digest.
+ * return:
+ * {
+ *    sockfd: <new socket fd>
+ * }
  */
-static duk_ret_t js_os_sha1(duk_context *ctx) {
-	uint8_t *data;
-	size_t length;
-
-	// The input may be a string or a buffer so handle appropriately based on the type of input.
-	if (duk_is_string(ctx, -1)) {
-		data = (uint8_t *)duk_get_string(ctx, -1);
-		length = strlen((char *)data);
-	} else {
-		data = duk_get_buffer_data(ctx, -1, &length);
+static duk_ret_t js_os_accept(duk_context *ctx) {
+	LOGD(">> js_os_accept");
+	if (!duk_is_object(ctx, -1)) {
+		LOGE("js_os_accept: No parameters object found.");
+		return 0;
 	}
-
-	if (data == NULL) {
-		duk_push_null(ctx);
+	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
+		LOGE("js_os_accept: No sockfd property found.");
+		return 0;
 	}
-	else {
-
-		// We now have the data from which we wish to create the message digest.
-		// We push a buffer of 20 bytes onto the value stack and get the handle to it.
-		// This is where we will write the message digest into.
-		unsigned char *result = duk_push_fixed_buffer(ctx, 20);
-
-#if defined(ESP_PLATFORM)
-		mbedtls_sha1(data, length, result);
-#else /* ESP_PLATFORM */
-		// The SHA1 function is part of openssl installed through libssl-dev.  One must link
-		// with -lcrypto.
-		SHA1(data, length, result);
-#endif /* ESP_PLATFORM */
-
-		// Convert the fixed buffer into a NodeJS Buffer object
-		duk_push_buffer_object(ctx, -1, 0, 20, DUK_BUFOBJ_NODEJS_BUFFER);
+	int sockfd = duk_get_int(ctx, -1);
+	LOGD(" About to call accept on %d", sockfd);
+	int newSockfd = accept(sockfd, NULL, NULL);
+	if (newSockfd < 0) {
+		LOGE("Error with accept: %d: %d - %s", newSockfd, errno, strerror(errno));
+		return 0;
 	}
-	return 1;
-} // js_os_sha1
-
-
-/**
- * Create a new socket.
- * The is no input to this function.
- *
- * The return is an object that contains:
- * * sockfd - The socket file descriptor.
- */
-static duk_ret_t js_os_socket(duk_context *ctx) {
-	LOGD(">> js_os_socket");
-	int sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (sockfd < 0) {
-		LOGE("Error with socket: %d: %d - %s", sockfd, errno, strerror(errno));
-	} else {
-		LOGD("New socket fd=%d", sockfd);
-	}
-	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
-	//fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NONBLOCK); // Set the socket to be non blocking.
+	//fcntl(newSockfd, F_SETFL, fcntl(newSockfd, F_GETFL, 0) | O_NONBLOCK); // Set the socket to be non blocking.
 	duk_push_object(ctx);
-	duk_push_int(ctx, sockfd);
+	duk_push_int(ctx, newSockfd);
 	duk_put_prop_string(ctx, -2, "sockfd");
-	LOGD("<< js_os_socket");
+	LOGD("<< js_os_accept: new socketfd=%d", newSockfd);
 	return 1;
-} // js_os_socket
+} // js_os_accept
 
-
-/**
- * Send data to a partner socket.  The input to this function is a
- * parameter object that contains:
- * - sockfd - The socket file descriptor we will use to send data.
- * - data - A buffer or string that contains the data we wish to send.
- *
- * The return is the return code from the underlying OS send().
- */
-static duk_ret_t js_os_send(duk_context *ctx) {
-	ssize_t sendRc;
-	duk_size_t size;
-	void *data;
-	int sockfd;
-
-	LOGD(">> js_os_send");
-	if (!duk_is_object(ctx, -1)) {
-		LOGE("js_os_send: No parameters object found.");
-		return 0;
-	}
-
-	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
-		LOGE("js_os_send: No sockfd property found.");
-		return 0;
-	}
-	sockfd = duk_get_int(ctx, -1);
-	duk_pop(ctx);
-
-	if (!duk_get_prop_string(ctx, -1, "data")) {
-		LOGE("js_os_send: No data property found.");
-		return 0;
-	}
-
-	// If the data is a string, then the string is the data to transmit else it
-	// is a buffer and the content of the buffer is the data to transmit,
-	if (duk_is_string(ctx, -1)) {
-		data = (void *)duk_get_string(ctx, -1);
-		size = strlen(data);
-	} else {
-		data = duk_get_buffer_data(ctx, -1, &size);
-		if (size == 0) {
-			LOGE("js_os_send: The data buffer is zero length.");
-			return 0;
-		}
-	}
-
-	LOGD("About to send %d bytes of data to sockfd=%d", (int)size, sockfd);
-	LOGD("- data: \"%.*s\"", (int)size, (char *)data);
-	sendRc = send(sockfd, data, size, 0);
-
-	if (sendRc < 0) {
-		LOGE("Error with send: %d: %d - %s", (int)sendRc, errno, strerror(errno));
-	}
-	duk_push_int(ctx, sendRc);
-	LOGD("<< js_os_send");
-	return 1;
-} // js_os_write
-
-
-/**
- * Receive data from the socket.
- * The input is a parameters object that contains:
- * - sockfd - The socket we are to read from.
- * - data - A buffer used to hold the received data.
- *
- * The return is the amount of data actually received.
- */
-static duk_ret_t js_os_recv(duk_context *ctx) {
-	duk_size_t size;
-	ssize_t recvRc;
-	LOGD(">> js_os_recv");
-	void *data;
-	if (!duk_is_object(ctx, -1)) {
-		LOGE("js_os_recv: No parameters object found.");
-		return 0;
-	}
-
-	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
-		LOGE("js_os_recv: No sockfd property found.");
-		return 0;
-	}
-	int sockfd = duk_get_int(ctx, -1);
-	duk_pop(ctx);
-
-	if (!duk_get_prop_string(ctx, -1, "data")) {
-		LOGE("js_os_recv: No data property found.");
-		return 0;
-	}
-	/*
-	if (!duk_is_buffer(ctx, -1)) {
-		ESP_LOGE(tag, "js_os_recv: The data property is not a buffer.");
-		return 0;
-	}
-	*/
-
-	data = duk_get_buffer_data(ctx, -1, &size);
-	if (size == 0) {
-		LOGE("js_os_recv: The data buffer is zero length.");
-		return 0;
-	}
-	LOGD("-- js_os_recv: About to receive on fd=%d for a buffer of size %d", sockfd, (int)size);
-	recvRc = recv(sockfd, data, size, 0);
-	if (recvRc < 0) {
-		LOGE("Error with recv: %d: %d - %s", (int)recvRc, errno, strerror(errno));
-		recvRc=0;
-	}
-	LOGD("-- js_os_recv: Size of data returned is %d", (int)recvRc);
-	duk_push_int(ctx, recvRc);
-	LOGD("<< js_os_recv");
-	return 1;
-} // js_os_recv
-
-
-/**
- * Close the socket.
- * [0] - Params object
- * - sockfd: The socket to close.
- */
-static duk_ret_t js_os_closesocket(duk_context *ctx) {
-#if defined(ESP_PLATFORM)
-	if (!duk_is_object(ctx, -1)) {
-		LOGE("js_os_closesocket: No parameters object found.");
-		return 0;
-	}
-	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
-		LOGE("js_os_closesocket: No sockfd property found.");
-		return 0;
-	}
-	int sockfd = duk_get_int(ctx, -1);
-	duk_pop(ctx);
-	closesocket(sockfd);
-	return 0;
-#else /* ESP_PLATFORM */
-	LOGE("js_os_closesocket not implemented.");
-#endif /* ESP_PLATFORM */
-} // js_os_closesocket
-
-
-/**
- * Close the socket.
- * [0] - Params object
- * - sockfd: The socket to close.
- *
- * There is no return code.
- */
-static duk_ret_t js_os_close(duk_context *ctx) {
-	LOGD(">> js_os_close");
-	if (!duk_is_object(ctx, -1)) {
-		LOGE("js_os_close: No parameters object found.");
-		return 0;
-	}
-	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
-		LOGE("js_os_close: No sockfd property found.");
-		return 0;
-	}
-	int sockfd = duk_get_int(ctx, -1);
-	duk_pop(ctx);
-
-	LOGD("About to close fd=%d", sockfd);
-	int rc = close(sockfd);
-	if (rc < 0) {
-		LOGE("Error with close: %d: %d - %s", rc, errno, strerror(errno));
-	}
-
-	LOGD("<< js_os_close");
-	return 0;
-} // js_os_close
 
 /**
  * Bind a socket to an address
@@ -308,38 +108,59 @@ static duk_ret_t js_os_bind(duk_context *ctx) {
 
 
 /**
- * Listen on a server socket.
+ * Close the socket.
  * [0] - Params object
- * - sockfd: The socket to bind.
+ * - sockfd: The socket to close.
+ *
+ * There is no return code.
  */
-static duk_ret_t js_os_listen(duk_context *ctx) {
-	int sockfd;
-	LOGD(">> js_os_listen");
+static duk_ret_t js_os_close(duk_context *ctx) {
+	LOGD(">> js_os_close");
 	if (!duk_is_object(ctx, -1)) {
-		LOGE("js_os_listen: No parameters object found.");
+		LOGE("js_os_close: No parameters object found.");
 		return 0;
 	}
 	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
-		LOGE("js_os_listen: No sockfd property found.");
+		LOGE("js_os_close: No sockfd property found.");
 		return 0;
 	}
-	if (!duk_is_number(ctx, -1)) {
-		LOGE("js_os_listen: Sockfd property is not a number.");
-		return 0;
-	}
-
-	sockfd = duk_get_int(ctx, -1);
+	int sockfd = duk_get_int(ctx, -1);
 	duk_pop(ctx);
 
-	LOGD("About to call listen on fd=%d", sockfd);
-	int rc = listen(sockfd, 5);
-	if (rc != 0) {
-		LOGE("Error with listen: %d %d %s", rc, errno, strerror(errno));
+	LOGD("About to close fd=%d", sockfd);
+	int rc = close(sockfd);
+	if (rc < 0) {
+		LOGE("Error with close: %d: %d - %s", rc, errno, strerror(errno));
 	}
-	duk_push_int(ctx, rc);
-	LOGD("<< js_os_listen");
-	return 1;
-} // js_os_listen
+
+	LOGD("<< js_os_close");
+	return 0;
+} // js_os_close
+
+
+/**
+ * Close the socket.
+ * [0] - Params object
+ * - sockfd: The socket to close.
+ */
+static duk_ret_t js_os_closesocket(duk_context *ctx) {
+#if defined(ESP_PLATFORM)
+	if (!duk_is_object(ctx, -1)) {
+		LOGE("js_os_closesocket: No parameters object found.");
+		return 0;
+	}
+	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
+		LOGE("js_os_closesocket: No sockfd property found.");
+		return 0;
+	}
+	int sockfd = duk_get_int(ctx, -1);
+	duk_pop(ctx);
+	closesocket(sockfd);
+	return 0;
+#else /* ESP_PLATFORM */
+	LOGE("js_os_closesocket not implemented.");
+#endif /* ESP_PLATFORM */
+} // js_os_closesocket
 
 
 /**
@@ -413,40 +234,169 @@ static duk_ret_t js_os_connect(duk_context *ctx) {
 } // js_os_connect
 
 
-/**
- * Accept an incoming client request.
- * [0] - Parms Object
- *  - sockfd - The socket fd.
- *
- * return:
- * {
- *    sockfd: <new socket fd>
- * }
+/*
+ * GPIO Functions
  */
-static duk_ret_t js_os_accept(duk_context *ctx) {
-	LOGD(">> js_os_accept");
+#if defined(ESP_PLATFORM)
+/*
+ * Set the GPIO direction of the pin.
+ * [0] - Pin number
+ * [1] - Direction - 0=Input, 1=output
+ */
+static duk_ret_t js_os_gpioSetDirection(duk_context *ctx) {
+	gpio_mode_t mode;
+	gpio_num_t pinNum = duk_get_int(ctx, -2);
+
+	int modeVal = duk_get_int(ctx, -1);
+	if (modeVal == 1) {
+		mode = GPIO_MODE_OUTPUT;
+	} else {
+		mode = GPIO_MODE_INPUT;
+	}
+	esp_err_t rc = gpio_set_direction(pinNum, mode);
+	if (rc != 0) {
+		LOGE("gpio_set_direction: %s", esp32_errToString(rc));
+	}
+	return 0;
+} // js_os_gpioSetDirection
+
+
+/*
+ * Initialize the GPIO pin.
+ * [0] - Pin number
+ */
+static duk_ret_t js_os_gpioInit(duk_context *ctx) {
+	gpio_num_t pinNum = duk_get_int(ctx, -2);
+	gpio_pad_select_gpio(pinNum);
+	return 0;
+} // js_os_gpioInit
+
+
+/*
+ * Set the GPIO level of the pin.
+ * [0] - Pin number
+ * [1] - level - true or false
+ */
+static duk_ret_t js_os_gpioSetLevel(duk_context *ctx) {
+	uint32_t level;
+	gpio_num_t pinNum = duk_get_int(ctx, -2);
+	duk_bool_t levelBool = duk_get_boolean(ctx, -1);
+	if (levelBool == 0) {
+		level = 0;
+	} else {
+		level = 1;
+	}
+	esp_err_t rc = gpio_set_level(pinNum, level);
+	if (rc != 0) {
+		LOGE("gpio_set_level: %s", esp32_errToString(rc));
+	}
+	return 0;
+} // js_os_gpioSetLevel
+
+
+/*
+ * Get the GPIO level of the pin.
+ * [0] - Pin number
+ */
+static duk_ret_t js_os_gpioGetLevel(duk_context *ctx) {
+	gpio_num_t pinNum = duk_get_int(ctx, -1);
+	int level = gpio_get_level(pinNum);
+	if (level == 0) {
+		duk_push_false(ctx);
+	} else {
+		duk_push_true(ctx);
+	}
+	return 1;
+} // js_os_gpioGetLevel
+#endif // ESP_PLATFORM
+
+
+/**
+ * Listen on a server socket.
+ * [0] - Params object
+ * - sockfd: The socket to bind.
+ */
+static duk_ret_t js_os_listen(duk_context *ctx) {
+	int sockfd;
+	LOGD(">> js_os_listen");
 	if (!duk_is_object(ctx, -1)) {
-		LOGE("js_os_accept: No parameters object found.");
+		LOGE("js_os_listen: No parameters object found.");
 		return 0;
 	}
 	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
-		LOGE("js_os_accept: No sockfd property found.");
+		LOGE("js_os_listen: No sockfd property found.");
+		return 0;
+	}
+	if (!duk_is_number(ctx, -1)) {
+		LOGE("js_os_listen: Sockfd property is not a number.");
+		return 0;
+	}
+
+	sockfd = duk_get_int(ctx, -1);
+	duk_pop(ctx);
+
+	LOGD("About to call listen on fd=%d", sockfd);
+	int rc = listen(sockfd, 5);
+	if (rc != 0) {
+		LOGE("Error with listen: %d %d %s", rc, errno, strerror(errno));
+	}
+	duk_push_int(ctx, rc);
+	LOGD("<< js_os_listen");
+	return 1;
+} // js_os_listen
+
+
+/**
+ * Receive data from the socket.
+ * The input is a parameters object that contains:
+ * - sockfd - The socket we are to read from.
+ * - data - A buffer used to hold the received data.
+ *
+ * The return is the amount of data actually received.
+ */
+static duk_ret_t js_os_recv(duk_context *ctx) {
+	duk_size_t size;
+	ssize_t recvRc;
+	LOGD(">> js_os_recv");
+	void *data;
+	if (!duk_is_object(ctx, -1)) {
+		LOGE("js_os_recv: No parameters object found.");
+		return 0;
+	}
+
+	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
+		LOGE("js_os_recv: No sockfd property found.");
 		return 0;
 	}
 	int sockfd = duk_get_int(ctx, -1);
-	LOGD(" About to call accept on %d", sockfd);
-	int newSockfd = accept(sockfd, NULL, NULL);
-	if (newSockfd < 0) {
-		LOGE("Error with accept: %d: %d - %s", newSockfd, errno, strerror(errno));
+	duk_pop(ctx);
+
+	if (!duk_get_prop_string(ctx, -1, "data")) {
+		LOGE("js_os_recv: No data property found.");
 		return 0;
 	}
-	//fcntl(newSockfd, F_SETFL, fcntl(newSockfd, F_GETFL, 0) | O_NONBLOCK); // Set the socket to be non blocking.
-	duk_push_object(ctx);
-	duk_push_int(ctx, newSockfd);
-	duk_put_prop_string(ctx, -2, "sockfd");
-	LOGD("<< js_os_accept");
+	/*
+	if (!duk_is_buffer(ctx, -1)) {
+		ESP_LOGE(tag, "js_os_recv: The data property is not a buffer.");
+		return 0;
+	}
+	*/
+
+	data = duk_get_buffer_data(ctx, -1, &size);
+	if (size == 0) {
+		LOGE("js_os_recv: The data buffer is zero length.");
+		return 0;
+	}
+	LOGD("-- js_os_recv: About to receive on fd=%d for a buffer of size %d", sockfd, (int)size);
+	recvRc = recv(sockfd, data, size, 0);
+	if (recvRc < 0) {
+		LOGE("Error with recv: %d: %d - %s", (int)recvRc, errno, strerror(errno));
+		recvRc=0;
+	}
+	duk_push_int(ctx, recvRc);
+	LOGD("<< js_os_recv: length=%d", (int)recvRc);
 	return 1;
-} // js_os_accept
+} // js_os_recv
 
 
 /**
@@ -636,79 +586,134 @@ static duk_ret_t js_os_select(duk_context *ctx) {
 	return 1;
 } // js_os_select
 
-/*
- * GPIO Functions
- */
 
-/*
- * Set the GPIO direction of the pin.
- * [0] - Pin number
- * [1] - Direction - 0=Input, 1=output
+/**
+ * Send data to a partner socket.  The input to this function is a
+ * parameter object that contains:
+ * - sockfd - The socket file descriptor we will use to send data.
+ * - data - A buffer or string that contains the data we wish to send.
+ *
+ * The return is the return code from the underlying OS send().
  */
-static duk_ret_t js_os_gpioSetDirection(duk_context *ctx) {
-	gpio_mode_t mode;
-	gpio_num_t pinNum = duk_get_int(ctx, -2);
+static duk_ret_t js_os_send(duk_context *ctx) {
+	ssize_t sendRc;
+	duk_size_t size;
+	void *data;
+	int sockfd;
 
-	int modeVal = duk_get_int(ctx, -1);
-	if (modeVal == 1) {
-		mode = GPIO_MODE_OUTPUT;
+	LOGD(">> js_os_send");
+	if (!duk_is_object(ctx, -1)) {
+		LOGE("js_os_send: No parameters object found.");
+		return 0;
+	}
+
+	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
+		LOGE("js_os_send: No sockfd property found.");
+		return 0;
+	}
+	sockfd = duk_get_int(ctx, -1);
+	duk_pop(ctx);
+
+	if (!duk_get_prop_string(ctx, -1, "data")) {
+		LOGE("js_os_send: No data property found.");
+		return 0;
+	}
+
+	// If the data is a string, then the string is the data to transmit else it
+	// is a buffer and the content of the buffer is the data to transmit,
+	if (duk_is_string(ctx, -1)) {
+		data = (void *)duk_get_string(ctx, -1);
+		size = strlen(data);
 	} else {
-		mode = GPIO_MODE_INPUT;
+		data = duk_get_buffer_data(ctx, -1, &size);
+		if (size == 0) {
+			LOGE("js_os_send: The data buffer is zero length.");
+			return 0;
+		}
 	}
-	esp_err_t rc = gpio_set_direction(pinNum, mode);
-	if (rc != 0) {
-		LOGE("gpio_set_direction: %s", esp32_errToString(rc));
+
+	LOGD("About to send %d bytes of data to sockfd=%d", (int)size, sockfd);
+	LOGD("- data: \"%.*s\"", (int)size, (char *)data);
+	sendRc = send(sockfd, data, size, 0);
+
+	if (sendRc < 0) {
+		LOGE("Error with send: %d: %d - %s", (int)sendRc, errno, strerror(errno));
 	}
-	return 0;
-} // js_os_gpioSetDirection
+	duk_push_int(ctx, sendRc);
+	LOGD("<< js_os_send");
+	return 1;
+} // js_os_send
 
-/*
- * Initialize the GPIO pin.
- * [0] - Pin number
+
+/**
+ * Create a SHA1 encoding of data.
+ * [0] - A string or buffer
+ *
+ * On return
+ * A buffer (20 bytes long) containing the message digest.
  */
-static duk_ret_t js_os_gpioInit(duk_context *ctx) {
-	gpio_num_t pinNum = duk_get_int(ctx, -2);
-	gpio_pad_select_gpio(pinNum);
-	return 0;
-} // js_os_gpioInit
+static duk_ret_t js_os_sha1(duk_context *ctx) {
+	uint8_t *data;
+	size_t length;
 
-
-/*
- * Set the GPIO level of the pin.
- * [0] - Pin number
- * [1] - level - true or false
- */
-static duk_ret_t js_os_gpioSetLevel(duk_context *ctx) {
-	uint32_t level;
-	gpio_num_t pinNum = duk_get_int(ctx, -2);
-	duk_bool_t levelBool = duk_get_boolean(ctx, -1);
-	if (levelBool == 0) {
-		level = 0;
+	// The input may be a string or a buffer so handle appropriately based on the type of input.
+	if (duk_is_string(ctx, -1)) {
+		data = (uint8_t *)duk_get_string(ctx, -1);
+		length = strlen((char *)data);
 	} else {
-		level = 1;
+		data = duk_get_buffer_data(ctx, -1, &length);
 	}
-	esp_err_t rc = gpio_set_level(pinNum, level);
-	if (rc != 0) {
-		LOGE("gpio_set_level: %s", esp32_errToString(rc));
+
+	if (data == NULL) {
+		duk_push_null(ctx);
 	}
-	return 0;
-} // js_os_gpioSetLevel
+	else {
 
+		// We now have the data from which we wish to create the message digest.
+		// We push a buffer of 20 bytes onto the value stack and get the handle to it.
+		// This is where we will write the message digest into.
+		unsigned char *result = duk_push_fixed_buffer(ctx, 20);
 
-/*
- * Get the GPIO level of the pin.
- * [0] - Pin number
- */
-static duk_ret_t js_os_gpioGetLevel(duk_context *ctx) {
-	gpio_num_t pinNum = duk_get_int(ctx, -1);
-	int level = gpio_get_level(pinNum);
-	if (level == 0) {
-		duk_push_false(ctx);
-	} else {
-		duk_push_true(ctx);
+#if defined(ESP_PLATFORM)
+		mbedtls_sha1(data, length, result);
+#else /* ESP_PLATFORM */
+		// The SHA1 function is part of openssl installed through libssl-dev.  One must link
+		// with -lcrypto.
+		SHA1(data, length, result);
+#endif /* ESP_PLATFORM */
+
+		// Convert the fixed buffer into a NodeJS Buffer object
+		duk_push_buffer_object(ctx, -1, 0, 20, DUK_BUFOBJ_NODEJS_BUFFER);
 	}
 	return 1;
-} // js_os_gpioGetLevel
+} // js_os_sha1
+
+
+/**
+ * Create a new socket.
+ * The is no input to this function.
+ *
+ * The return is an object that contains:
+ * * sockfd - The socket file descriptor.
+ */
+static duk_ret_t js_os_socket(duk_context *ctx) {
+	LOGD(">> js_os_socket");
+	int sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sockfd < 0) {
+		LOGE("Error with socket: %d: %d - %s", sockfd, errno, strerror(errno));
+	} else {
+		LOGD("New socket fd=%d", sockfd);
+	}
+	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
+	//fcntl(s, F_SETFL, fcntl(s, F_GETFL, 0) | O_NONBLOCK); // Set the socket to be non blocking.
+	duk_push_object(ctx);
+	duk_push_int(ctx, sockfd);
+	duk_put_prop_string(ctx, -2, "sockfd");
+	LOGD("<< js_os_socket");
+	return 1;
+} // js_os_socket
+
+
 
 /**
  * Create the OS module in Global.
@@ -731,48 +736,12 @@ void ModuleOS(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object - OS object
 
-	duk_push_c_function(ctx, js_os_select, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_select
-
-	duk_put_prop_string(ctx, idx, "select"); // Add select to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_socket, 0);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_socket
-
-	duk_put_prop_string(ctx, idx, "socket"); // Add socket to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
 	duk_push_c_function(ctx, js_os_bind, 1);
 	// [0] - Global object
 	// [1] - New object - OS object
 	// [2] - C Function - js_os_bind
 
 	duk_put_prop_string(ctx, idx, "bind"); // Add bind to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_listen, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_listen
-
-	duk_put_prop_string(ctx, idx, "listen"); // Add listen to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_closesocket, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_closesocket
-
-	duk_put_prop_string(ctx, idx, "closesocket"); // Add closesocket to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
 
@@ -785,21 +754,12 @@ void ModuleOS(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object - OS object
 
-	duk_push_c_function(ctx, js_os_recv, 1);
+	duk_push_c_function(ctx, js_os_closesocket, 1);
 	// [0] - Global object
 	// [1] - New object - OS object
-	// [2] - C Function - js_os_recv
+	// [2] - C Function - js_os_closesocket
 
-	duk_put_prop_string(ctx, idx, "recv"); // Add recv to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_send, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_send
-
-	duk_put_prop_string(ctx, idx, "send"); // Add send to new OS
+	duk_put_prop_string(ctx, idx, "closesocket"); // Add closesocket to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
 
@@ -812,21 +772,22 @@ void ModuleOS(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object - OS object
 
-	duk_push_c_function(ctx, js_os_sha1, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_sha1
-
-	duk_put_prop_string(ctx, idx, "sha1"); // Add sha1 to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
+#if defined(ESP_PLATFORM)
 	duk_push_c_function(ctx, js_os_gpioGetLevel, 1);
 	// [0] - Global object
 	// [1] - New object - OS object
 	// [2] - C Function - js_os_gpioGetLevel
 
 	duk_put_prop_string(ctx, idx, "gpioGetLevel"); // Add gpioGetLevel to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_gpioInit, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_gpioInit
+
+	duk_put_prop_string(ctx, idx, "gpioInit"); // Add js_os_gpioInit to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
 
@@ -847,15 +808,62 @@ void ModuleOS(duk_context *ctx) {
 	duk_put_prop_string(ctx, idx, "gpioSetLevel"); // Add gpioSetLevel to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
+#endif // ESP_PLATFORM
 
-	duk_push_c_function(ctx, js_os_gpioInit, 1);
+	duk_push_c_function(ctx, js_os_listen, 1);
 	// [0] - Global object
 	// [1] - New object - OS object
-	// [2] - C Function - js_os_gpioInit
+	// [2] - C Function - js_os_listen
 
-	duk_put_prop_string(ctx, idx, "gpioInit"); // Add js_os_gpioInit to new OS
+	duk_put_prop_string(ctx, idx, "listen"); // Add listen to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_recv, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_recv
+
+	duk_put_prop_string(ctx, idx, "recv"); // Add recv to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_select, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_select
+
+	duk_put_prop_string(ctx, idx, "select"); // Add select to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_send, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_send
+
+	duk_put_prop_string(ctx, idx, "send"); // Add send to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_sha1, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_sha1
+
+	duk_put_prop_string(ctx, idx, "sha1"); // Add sha1 to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_socket, 0);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_socket
+
+	duk_put_prop_string(ctx, idx, "socket"); // Add socket to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
 
 	duk_put_prop_string(ctx, 0, "OS"); // Add OS to global
 	// [0] - Global object

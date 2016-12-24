@@ -1,7 +1,7 @@
 #TODO
 These are the work items that need attended to.
 
-* Look to implement timers in the loop()
+* Add context menu to IDE
 * Design and implement security handling.
 * Design and implement HTTPS transports.
 * Design and implement GPIO mappings.

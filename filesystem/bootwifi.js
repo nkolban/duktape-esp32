@@ -1,3 +1,29 @@
+/*
+ * Module: bootwifi
+ * 
+ * When ESP32-Duktape boots, it wants to connect to WiFi.  In order to be able to do this, it must
+ * know the identity of the SSID and a password to use.  On first boot, it won't know these items
+ * and hence will become an access point to allow a client (such as a cell phone) to connect to
+ * it.  Once connected, a browser can be opened and we can then set the data.
+ * 
+ * The high level design is as follows:
+ * 
+ * Obtain the network credentials from NVS to connect to the local access point.
+ * If not found ... goto Be an access point.
+ * Connect to the external access point.
+ * If we fail to connect ... goto Be an access point.
+ * Invoke the callback that indicates we are now network connected.
+ * 
+ * Be an access point:
+ * Become an open access point.
+ * Start a Web Server.
+ * When a browser connection arrives {
+ *    "/":
+ *       Send the credentials form.
+ *    "/ssidSelected":
+ *       Save the credentials in the NVS storage.
+ * }
+ */
 /* globals require, log, WIFI, DUKF, ESP32, module */
 var NVS  = require("nvs.js");
 var HTTP = require("http.js");
@@ -34,7 +60,7 @@ function startWebServer() {
 	      	response.writeHead(200);
 	      	response.write(htmlText);
 	      	response.end();
-	      }
+	      } // Get for "/"
 	      // POST request received for form handling.
 	      else if (request.path == "/ssidSelected" && request.method == "POST") {
 	      	// We have received a response form page ... now we parse it.
@@ -47,25 +73,31 @@ function startWebServer() {
 	      	bootWiFi_ns.set("ip",       formObj.ip,       "string");
 	      	bootWiFi_ns.set("gw",       formObj.gw,       "string");
 	      	bootWiFi_ns.set("netmask",  formObj.netmask,  "string");
+	      	bootWiFi_ns.commit();
 	      	bootWiFi_ns.close();
 	      	
 	      	response.writeHead(200);
 	      	response.write("Got data - rebooting in 5");
 	      	response.end();
-	      }
+	      	// Reboot the ESP32 after 5 seconds.
+	      	setTimeout(function() {
+	      		ESP32.reboot();
+	      	}, 5000);
+	      } // Form received
 	      // Not a path that we handle.
 	      else {
 	      	response.writeHead(404);
 	      	response.end();
 	      }
-	   });
-	}
+	   }); // on("end")
+	} // requestHandler.
 	
 	// Create the HTTP server with the given request handler and start the server
 	// listening on the default HTTP port.
 	var server = HTTP.createServer(requestHandler);
 	server.listen(80);
 } // startWebServer 
+
 
 function becomeAccessPoint() {
 	log("Becoming an access point");
@@ -87,49 +119,51 @@ function becomeAccessPoint() {
 } // becomeAccessPoint()
 
 
-function boot(bootedCallback) {
+function bootwifi(bootedCallback) {
 	var bootWiFi_ns = NVS.open("bootwifi", "readwrite");
 	
-	try {
-		// Retrieve any saved NVS values.
-		var ssid     = bootWiFi_ns.get("ssid", "string");
-		var password = bootWiFi_ns.get("password", "string");
-		var ip       = bootWiFi_ns.get("ip", "string");
-		var gw       = bootWiFi_ns.get("gw", "string");
-		var netmask  = bootWiFi_ns.get("netmask", "string");
-		log("Going to try and connect to AP named \"" +  ssid + "\"");
-		log("Network info is: ip=%s, gw=%s, netmask=%s", ip, gw, netmask);
-		log("ESP32 Heap: " + ESP32.getState().heapSize);
-		
-		WIFI.connect({
-			ssid: ssid,
-			password: password,
-			network: {
-				ip: ip,
-				gw: gw,
-				netmask: netmask
-			}
-		}, function(err) {
-				log("Now connected as a station! - err: " + err);
-				if (err !== null) {
-					log("Performing a stop of WiFi");
-					WIFI.stop();
-					becomeAccessPoint();
-				} else {
-					log("Onwards ... we are now network connected!");
-					bootedCallback();
-				}
-				log("ESP32 Heap: " + ESP32.getState().heapSize);
-			}
-		);
-	}
-	catch(e) {
-		log("bootwifi: caught an exception: " + e.stack);
-		becomeAccessPoint();
-	}
-
+	// Retrieve any saved NVS values.
+	var ssid     = bootWiFi_ns.get("ssid", "string");
+	var password = bootWiFi_ns.get("password", "string");
+	var ip       = bootWiFi_ns.get("ip", "string");
+	var gw       = bootWiFi_ns.get("gw", "string");
+	var netmask  = bootWiFi_ns.get("netmask", "string");
+	
 	bootWiFi_ns.close();
+	
+	if (ssid === null || ssid.length === 0 || password === null || ip === null ||
+			gw === null || netmask === null) {
+		becomeAccessPoint();
+		return;
+	}
+	
+	log("Going to try and connect to AP named \"" +  ssid + "\"");
+	log("Network info is: ip=%s, gw=%s, netmask=%s", ip, gw, netmask);
 	log("ESP32 Heap: " + ESP32.getState().heapSize);
-} // boot()
+	
+	WIFI.connect({
+		ssid: ssid,
+		password: password,
+		network: {
+			ip: ip,
+			gw: gw,
+			netmask: netmask
+		}
+	}, function(err) {
+			log("Now connected as a station! - err: " + err);
+			if (err !== null) {
+				log("Performing a stop of WiFi");
+				WIFI.stop();
+				becomeAccessPoint();
+			} else {
+				log("Onwards ... we are now network connected!");
+				bootedCallback();
+			}
+			log("ESP32 Heap: " + ESP32.getState().heapSize);
+		}
+	); // WIFI.connect
+	
+	log("ESP32 Heap: " + ESP32.getState().heapSize);
+} // bootwifi()
 
-module.exports = boot;
+module.exports = bootwifi;

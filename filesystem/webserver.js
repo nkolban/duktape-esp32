@@ -53,11 +53,21 @@ function saveFile(fileName, data) {
 function requestHandler(request, response) {
    log("WebServer: We have received a new HTTP client request!");
    var postData = "";
+   
+   //
+   // request.on("data")
+   //
    request.on("data", function(data) {
-      log("HTTP Request on(data) passed: " + data);
+      log("HTTP Request on(data) passed: \"" + data + "\"");
+      DUKF.logHeap("request(onData)");
       postData += data;
    }); // on("data")
+   
+   //
+   // request.on("end")
+   //
    request.on("end", function() {
+   	DUKF.logHeap("request(onEnd)");
       log("HTTP Request on(end):");
       log(" - method: " + request.method);
       log(" - path: " + request.path);

@@ -1,5 +1,6 @@
 /*
  * Module: gpio
+ * 
  * Load with:
  * 
  * require("gpio.js")
@@ -18,6 +19,7 @@ function gpio(pinNumber) {
 	var ret = {
 		//
 		// setDirection
+		// Set the direction of the GPIO pin to either INPUT or OUTPUT.
 		//
 		setDirection: function(direction) {
 			currentDirection = direction;
@@ -25,12 +27,14 @@ function gpio(pinNumber) {
 		},
 		//
 		// setLevel
+		// Set the signal level of the GPIO to be HIGH or LOW.
 		//
 		setLevel: function(level) {
 			OS.gpioSetLevel(pinNumber, level);
 		},
 		//
 		// getLevel
+		// Get the current signal level of the GPIO.
 		//
 		getLevel: function(level) {
 			return OS.gpioGetLevel(pinNumber);
@@ -40,8 +44,10 @@ function gpio(pinNumber) {
 	return ret;
 } // gpio
 
-gpio.INPUT = 0;
-gpio.OUTPUT = 1;
-gpio.HIGH = true;
-gpio.LOW = false;
+
+// Set constants on the function.
+gpio.INPUT = 0;   // Set direction to INPUT
+gpio.OUTPUT = 1;  // Set direction to OUTPUT
+gpio.HIGH = true; // HIGH signal
+gpio.LOW = false; // LOW signal
 module.exports = gpio;

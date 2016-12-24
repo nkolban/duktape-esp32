@@ -47,7 +47,11 @@ you don't have network access?
 When ESP32-Duktape boots, it looks in its flash memory for the network name
 and password it should use.  Since on first boot, that is not present, the ESP32 itself
 becomes a WiFi access point.  Here you can connect your phone (or other mobile device)
-to it and open up a browser point to the IP address of your ESP32.
+to it and open up a browser point to the IP address of your ESP32.  By default this
+will be [http://192.168.4.1](http://192.168.4.1).  Once there, you will see a browse
+screen that looks like
+
+![bootwifi](images/bootwifi.jpg)
 
 From there, you will be presented with the opportunity to enter a network name and
 password.  Now, when you reboot your ESP32, it will connect to that network.  If the 

@@ -11,7 +11,7 @@
 
 LOG_TAG("duktape_utils");
 
-#define CALLBACK_STASH_OBJECT_NAME "callbackStash"
+#define CALLBACK_STASH_OBJECT_NAME "_dukf_callbackStash"
 
 // Global flag for whether or not a reset has been request.
 static int g_reset = 0;

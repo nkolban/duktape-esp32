@@ -1,3 +1,11 @@
+/*
+ * Master loop of ESP32-Duktape
+ * This is the loop function that is called as often as possible within the ESP32-Duktape
+ * environment.  It is primarily responsible for:
+ * 
+ * * Checking to see if timers have expired.
+ * * Polling network I/O to see if network actions are needed.
+ */
 /* globals _sockets, OS, log, Buffer, require */
 var net = require("net.js");
 
@@ -6,6 +14,8 @@ var net = require("net.js");
  * @returns
  */
 function loop() {
+	// Timer examination
+	//
 	// Handle a timer having expired ... we have a global variable called _timers.  This variable
 	// contains an array called timerEntries.  Each entry in timerEntries contains:
 	// {
@@ -28,7 +38,8 @@ function loop() {
 		timerCallback();
 	} // End of check timers.
 	
-	
+	// Network I/O Polling
+	//
 	// Process the file descriptors for sockets.  We build an array that contains
 	// the set of file descriptors corresponding to the sockets that we wish to read from.
 	var readfds = [];
@@ -69,7 +80,7 @@ function loop() {
 	// Process each ready to read file descriptor in turn
 	for (i=0; i<selectResult.readfds.length; i++) {
 		currentSocketFd = selectResult.readfds[i];
-		log("loop: working on read of: " + currentSocketFd);
+		log("loop: working on read of fd=" + currentSocketFd);
 		currentSock = _sockets[selectResult.readfds[i]];
 		
 		// We now have the object that represents the socket.  If it is a listening
@@ -92,7 +103,7 @@ function loop() {
 			// read the data from that socket.
 			var myData = new Buffer(512);
 			var recvSize = OS.recv({sockfd: currentSock._sockfd, data: myData});
-			log("Result from recv: " + recvSize);
+			log("Length of data from recv: " + recvSize);
 			if (recvSize === 0) {
 				if (currentSock._onEnd) {
 					currentSock._onEnd();
@@ -103,7 +114,7 @@ function loop() {
 				OS.close({sockfd: currentSock._sockfd});
 				// Now that we have closed the socket ... we can remove it from
 				// our cache list.
-			    delete _sockets[currentSock._sockfd];
+			   delete _sockets[currentSock._sockfd];
 			}  // We received no data.
 			else { // Data size was not 0.
 				if (currentSock._onData) {
@@ -112,6 +123,8 @@ function loop() {
 			} // Data size was not 0.
 		} // Data available and socket is NOT a server
 	} // For each socket that is able to read ... 
+	
+	// Garbage collection.
 	DUKF.gc();
 } // loop
 

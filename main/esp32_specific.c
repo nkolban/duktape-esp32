@@ -4,6 +4,7 @@
 
 #include <esp_log.h>
 #include <esp_vfs.h>
+#include <esp_wifi.h>
 #include <espfs.h>
 #include <fcntl.h>
 #include <math.h>
@@ -11,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 
 #include "logging.h"
 #include "sdkconfig.h"
@@ -358,12 +360,34 @@ char *esp32_errToString(esp_err_t value) {
 		return "ESP_ERR_NVS_INVALID_STATE";
 	case ESP_ERR_NVS_INVALID_LENGTH:
 		return "ESP_ERR_NVS_INVALID_LENGTH";
-	}
-	if (value >= ESP_ERR_WIFI_BASE) {
-		return "WiFi error";
+	case ESP_ERR_WIFI_NOT_INIT:
+		return "ESP_ERR_WIFI_NOT_INIT";
+	case ESP_ERR_WIFI_NOT_START:
+		return "ESP_ERR_WIFI_NOT_START";
+	case ESP_ERR_WIFI_IF:
+		return "ESP_ERR_WIFI_IF";
+	case ESP_ERR_WIFI_MODE:
+		return "ESP_ERR_WIFI_MODE";
+	case ESP_ERR_WIFI_STATE:
+		return "ESP_ERR_WIFI_STATE";
+	case ESP_ERR_WIFI_CONN:
+		return "ESP_ERR_WIFI_CONN";
+	case ESP_ERR_WIFI_NVS:
+		return "ESP_ERR_WIFI_NVS";
+	case ESP_ERR_WIFI_MAC:
+		return "ESP_ERR_WIFI_MAC";
+	case ESP_ERR_WIFI_SSID:
+		return "ESP_ERR_WIFI_SSID";
+	case ESP_ERR_WIFI_PASSWORD:
+		return "ESP_ERR_WIFI_PASSWORD";
+	case ESP_ERR_WIFI_TIMEOUT:
+		return "ESP_ERR_WIFI_TIMEOUT";
+	case ESP_ERR_WIFI_WAKE_FAIL:
+		return "ESP_ERR_WIFI_WAKE_FAIL";
 	}
 	return "Unknown ESP_ERR error";
 } // espToString
+
 
 /**
  * Hack fix for ESP-IDF issue https://github.com/espressif/esp-idf/issues/83
