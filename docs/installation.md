@@ -54,7 +54,14 @@ screen that looks like
 ![bootwifi](images/bootwifi.jpg)
 
 From there, you will be presented with the opportunity to enter a network name and
-password.  Now, when you reboot your ESP32, it will connect to that network.  If the 
+password.  If you want your ESP32 to connect to the access point with a dedicated IP
+address then you can fill in the IP address, gateway address and netmask.  If you want
+to use an allocated (DHCP) supplied address, leave these fields blank.  When you click
+the submit button, the data will be saved in your ESP32 which will then automatically
+reboot itself after a few seconds.
+
+Now, when you reboot your ESP32, it will connect to the network using the information
+you provided.  If the 
 network connection fails (because you are now somewhere else or you change your password),
 then the ESP32 will again reset to being an access point.
 
@@ -68,7 +75,7 @@ ESP32 at the IDE URL.  For example:
 
 `http://192.168.1.99:8000/web/ide.html`
 
-This will load the IDE that looks like:
+This will load the IDE into the browser.  The result will look like:
 
 ![editor2](images/editor2.jpg)
 
@@ -112,3 +119,22 @@ the log output again, run:
 ```
 ESP32.setLogLevel("*", "debug");
 ```
+
+##Installation cheat-sheet
+Here is a summary of a set of common steps to download, install and run ESP32-Duktape:
+
+1. `mkdir duktape`
+2. `cd duktape`
+3. `wget http://www.neilkolban.com/esp32/downloads/esp32-duktape-2016-12-24.tar.gz`
+4. `tar -xvzf esp32-duktape-2016-12-24.tar.gz`
+5. `git clone --recursive https://github.com/espressif/esp-idf.git`
+6. `export IDF_PATH=$(pwd)/esp-idf`
+7. `./install_binaries.sh`
+8. connect screen or other terminal emulator. (eg. `screen /dev/ttyUSB0 115200`).
+9. Reboot
+10. Connect to network "esp32-duktape"
+11. Open [http://192.168.4.1](http://192.168.4.1)
+12. Supply parameters and hit submit
+13. Check that start is clean
+14. Open browser to your IP address at port 8000 and /web/ide.html
+eg. [http://192.168.1.99:8000/web/ide.html](http://192.168.1.99:8000/web/ide.html)

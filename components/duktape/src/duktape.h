@@ -6,7 +6,7 @@
  *  include guard.  Other parts of the header are Duktape
  *  internal and related to platform/compiler/feature detection.
  *
- *  Git commit 28b601dbd267109bda884d1313370f1022c65da1 (28b601d-dirty).
+ *  Git commit c55098e3cd8ac43d812fb9f3d342e11831ce7646 (c55098e-dirty).
  *  Git branch master.
  *
  *  See Duktape AUTHORS.rst and LICENSE.txt for copyright and
@@ -260,8 +260,8 @@ struct duk_time_components {
  * which Duktape snapshot was used.  Not available in the Ecmascript
  * environment.
  */
-#define DUK_GIT_COMMIT                    "28b601dbd267109bda884d1313370f1022c65da1"
-#define DUK_GIT_DESCRIBE                  "28b601d-dirty"
+#define DUK_GIT_COMMIT                    "c55098e3cd8ac43d812fb9f3d342e11831ce7646"
+#define DUK_GIT_DESCRIBE                  "c55098e-dirty"
 #define DUK_GIT_BRANCH                    "master"
 
 /* Duktape debug protocol version used by this build. */
@@ -713,6 +713,7 @@ DUK_EXTERNAL_DECL duk_bool_t duk_is_nan(duk_context *ctx, duk_idx_t idx);
 DUK_EXTERNAL_DECL duk_bool_t duk_is_string(duk_context *ctx, duk_idx_t idx);
 DUK_EXTERNAL_DECL duk_bool_t duk_is_object(duk_context *ctx, duk_idx_t idx);
 DUK_EXTERNAL_DECL duk_bool_t duk_is_buffer(duk_context *ctx, duk_idx_t idx);
+DUK_EXTERNAL_DECL duk_bool_t duk_is_buffer_data(duk_context *ctx, duk_idx_t idx);
 DUK_EXTERNAL_DECL duk_bool_t duk_is_pointer(duk_context *ctx, duk_idx_t idx);
 DUK_EXTERNAL_DECL duk_bool_t duk_is_lightfunc(duk_context *ctx, duk_idx_t idx);
 

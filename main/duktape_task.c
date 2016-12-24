@@ -36,6 +36,33 @@ LOG_TAG("duktape_task");
 // The Duktape context.
 duk_context *esp32_duk_context;
 
+/*
+ * Log a logo to the console.
+ */
+static void showLogo() {
+	// Print a console logo.
+	esp32_duktape_console(
+	"\n ______  _____ _____ ____ ___\n"
+	"|  ____|/ ____|  __ \\___ \\__ \\\n"
+	"| |__  | (___ | |__) |__) | ) |\n"
+	"|  __|  \\___ \\|  ___/|__ < / /\n"
+	"| |____ ____) | |    ___) / /_\n"
+	"|______|_____/|_|  _|____/____|\n"
+	"|  __ \\      | |  | |\n"
+	"| |  | |_   _| | _| |_ __ _ _ __   ___ \n"
+	"| |  | | | | | |/ / __/ _` | '_ \\ / _ \\\n"
+	"| |__| | |_| |   <| || (_| | |_) |  __/\n"
+	"|_____/ \\__,_|_|\\_\\\\__\\__,_| .__/ \\___|\n"
+	"                           | |\n"
+	"                           |_|\n"
+	" http://duktape.org\n"
+	" ESP32 port/framework: Neil Kolban\n"
+	" Build: " __DATE__ " " __TIME__ "\n"
+	"\n"
+	);
+} // showLogo
+
+
 /**
  * Initialize the duktape environment.
  */
@@ -61,24 +88,7 @@ void duktape_init_environment() {
 	registerModules(esp32_duk_context); // Register the built-in modules
 	dukf_log_heap("Heap after duk register modules");
 
-	// Print a console logo.
-	esp32_duktape_console(
-	"\n ______  _____ _____ ____ ___\n"
-	"|  ____|/ ____|  __ \\___ \\__ \\\n"
-	"| |__  | (___ | |__) |__) | ) |\n"
-	"|  __|  \\___ \\|  ___/|__ < / /\n"
-	"| |____ ____) | |    ___) / /_\n"
-	"|______|_____/|_|  _|____/____|\n"
-	"|  __ \\      | |  | |\n"
-	"| |  | |_   _| | _| |_ __ _ _ __   ___ \n"
-	"| |  | | | | | |/ / __/ _` | '_ \\ / _ \\\n"
-	"| |__| | |_| |   <| || (_| | |_) |  __/\n"
-	"|_____/ \\__,_|_|\\_\\\\__\\__,_| .__/ \\___|\n"
-	"                           | |\n"
-	"                           |_|\n"
-	" http://duktape.org\n"
-	" ESP32 port/framework: Neil Kolban\n\n"
-	);
+
 	esp32_duktape_set_reset(0); // Flag the environment as having been reset.
 
 	// Load and run the script called "init.js"
@@ -366,6 +376,8 @@ void duktape_task(void *ignore) {
 #if defined(ESP_PLATFORM)
 	LOGD("Free heap at start of JavaScript main loop: %d", esp_get_free_heap_size());
 #endif /* ESP_PLATFORM */
+
+	showLogo();
 
 	LOGD("Starting main loop!");
 	while(1) {

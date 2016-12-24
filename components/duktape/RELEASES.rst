@@ -1801,9 +1801,10 @@ Planned
   call to match revised fatal error handler function signature (GH-781)
 
 * Incompatible change: default fatal error handler (similar to panic handler
-  in Duktape 1.x) segfaults and infinite loops without calling e.g. abort()
-  (which may not be available); this behavior can be overridden by defining
-  DUK_USE_FATAL_HANDLER() in duk_config.h (GH-781)
+  in Duktape 1.x) calls abort() without printing anything to stdout or stderr
+  (which avoids unnecessary platform dependencies); this behavior can be
+  overridden by defining DUK_USE_FATAL_HANDLER() in duk_config.h (GH-781,
+  GH-1218)
 
 * Incompatible change: change some debugger artificial property names to match
   internal renames: compiledfunction -> compfunc, nativefunction -> natfunc,
@@ -1962,6 +1963,9 @@ Planned
   DUK_EXIT(), DUK_PRINTF(), DUK_FPRINTF(), DUK_FOPEN(), DUK_FCLOSE(),
   DUK_FREAD(), DUK_FWRITE(), DUK_FSEEK(), DUK_FTELL(), DUK_FFLUSH(),
   DUK_FPUTC(), DUK_STDOUT, DUK_STDERR, DUK_STDIN, duk_file (GH-787, GH-761)
+
+* Add duk_is_buffer_data() API call to reliably test whether a value stack
+  entry is a plain buffer or any buffer object (GH-1221)
 
 * Add time functions to the C API (duk_get_now(), duk_time_to_components(),
   duk_components_to_time()) to allow C code to conveniently work with the
@@ -2281,7 +2285,7 @@ Planned
   packed arguments for some internal helper calls (GH-1158, GH-1172); misc
   internal helpers to reduce call site size (GH-1166, GH-1173); config options
   for function .name and .fileName control (GH-1153); internal helper
-  duk_push_hstring_empty() (GH-1186)
+  duk_push_hstring_empty() (GH-1186, GH-1220)
 
 * Internal change: rework shared internal string handling so that shared
   strings are plain string constants used in macro values, rather than
