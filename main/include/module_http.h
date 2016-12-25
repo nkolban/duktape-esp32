@@ -8,6 +8,7 @@
 #if !defined(COMPONENTS_JERRYSCRIPT_ESP32_INCLUDE_ESP32_MODULE_HTTP_H_)
 #define COMPONENTS_JERRYSCRIPT_ESP32_INCLUDE_ESP32_MODULE_HTTP_H_
 #include "duktape.h"
+
 void ModuleHTTP(duk_context *ctx);
 typedef struct http_request_options {
 	char *protocol;

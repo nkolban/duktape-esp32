@@ -30,14 +30,16 @@ static int g_runAtStartCount = 0;
 // Array of scripts to run at start.
 static char *g_runAtStartFileNames[MAX_RUN_AT_START];
 
+
 /**
  * Log the heap value to the console.
  */
 void dukf_log_heap(const char *localTag) {
-#ifdef ESP_PLATFORM
-	LOGD("%s: heapSize=%d", localTag, esp_get_free_heap_size());
-#endif
-}
+	if (localTag == NULL) {
+		localTag = "<no tag>";
+	}
+	LOGD("%s: heapSize=%d", localTag, dukf_get_free_heap_size();
+} // dukf_log_heap
 
 
 /**
@@ -95,6 +97,13 @@ void dukf_addRunAtStart(const char *fileName) {
 	}
 } // dukf_addRunAtStart
 
+uint32_t dukf_get_free_heap_size() {
+#if defined(ESP_PLATFORM)
+	return esp_get_free_heap_size();
+#else // ESP_PLATFORM
+	return 999999;
+#endif // ESP_PLATFORM
+}
 
 #if defined(ESP_PLATFORM)
 /**
@@ -102,7 +111,7 @@ void dukf_addRunAtStart(const char *fileName) {
  * We load the file from the DUKF file system.
  */
 const char *dukf_loadFile(const char *path, size_t *fileSize) {
-	LOGD(">> dukf_loadFile: %s", path);
+	LOGD(">> dukf_loadFile: (ESPFS) %s, heapSize=%d", path, dukf_get_freeHeap());
 	EspFsFile *fh = espFsOpen((char *)path);
 	if (fh == NULL) {
 		LOGD(" Failed to open file %s", path);

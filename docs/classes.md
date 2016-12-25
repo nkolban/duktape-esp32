@@ -7,6 +7,7 @@ Built into the solution are a variety of Modules.
 * [ESP32](#esp32)
 * [FS](#fs)
 * [HTTP](#http)
+* [HTTPClientResponse](#httpclientresponse)
 * [HTTPServerRequest](#httpserverrequest)
 * [HTTPServerResponse](#httpserverresponse)
 * [HTTPParser](#httpparser)
@@ -413,12 +414,23 @@ Syntax:
 
 
 ##HTTP
+This class provides the HTTP module.
+
 ###request
 Make an HTTP request.
 
 Syntax:
 
 `request(options, [callback])`
+
+The options is an object controlling the request being made.  It contains:
+* address - The address to call (DNS or dotted decimal).
+* method - The method to pass in the request.  This is optional.  If not supplied then
+`GET` is assumed.  Valid values are:
+  * GET
+  * POST
+* path - The URL path.  This is optional.  If not supplied then `/` is assumed.
+* port - The port number.  This is optional.  If not supplied then `80` is assumed.
 
 Example:
 ```
@@ -1160,12 +1172,14 @@ The return is an object:
 
 ```
 {
-   host: <The host part of the URL>
-   href: <The original URL>
-   protocol: <The protocol>
+   host:     <The host part of the URL>
+   hostname: <The hostname part of the URL; no port number>
+   href:     <The original URL>
    pathname: <The pathname of the URL>
-   search: <The search part of the URL including the ?>
-   query: <An object with the query parts broken out>
+   port:     <The port number>
+   protocol: <The protocol>
+   query:    <An object with the query parts broken out>
+   search:   <The search part of the URL including the ?>
 }
 ```	 
 

@@ -67,4 +67,5 @@ duktape_configure:
 		--source-directory components/duktape/src-input \
 		--option-file components/duktape/config/examples/low_memory.yaml \
 		--option-file data/duktape/ESP32-Duktape.yaml \
+		--fixup-file main/include/duktape_fixup.h \
 		--output-directory components/duktape/src

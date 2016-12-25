@@ -67,15 +67,19 @@ typedef union {
 	} callbackRequested;
 } esp32_duktape_event_t;
 
-void event_newTimerAddedEvent(unsigned long);
-void event_newTimerClearedEvent(unsigned long id);
-void event_newCommandLineEvent(char *commandData, size_t commandLength, int fromKeyboard);
-void event_newHTTPServerRequestEvent(char *uri, char *method);
-void event_newTimerFiredEvent(unsigned long id);
-void event_newCallbackRequestedEvent(uint32_t callbackType, uint32_t stashKey, esp32_duktape_callback_dataprovider dataProvider, void *contextData);
+void  esp32_duktape_freeEvent(duk_context *ctx, esp32_duktape_event_t *pEvent);
+void  esp32_duktape_initEvents();
+int   esp32_duktape_waitForEvent();
 char *event_eventTypeToString(int eventType);
+void  event_newCallbackRequestedEvent(
+	uint32_t callbackType,
+	uint32_t stashKey,
+	esp32_duktape_callback_dataprovider dataProvider,
+	void *contextData);
+void  event_newCommandLineEvent(char *commandData, size_t commandLength, int fromKeyboard);
+void  event_newHTTPServerRequestEvent(char *uri, char *method);
+void  event_newTimerAddedEvent(unsigned long);
+void  event_newTimerClearedEvent(unsigned long id);
+void  event_newTimerFiredEvent(unsigned long id);
 
-void esp32_duktape_initEvents();
-int esp32_duktape_waitForEvent();
-void esp32_duktape_freeEvent(duk_context *ctx, esp32_duktape_event_t *pEvent);
 #endif /* MAIN_ESP32_DUKTAPE_DUKTAPE_EVENT_H_ */

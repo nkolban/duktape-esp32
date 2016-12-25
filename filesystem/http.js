@@ -4,9 +4,9 @@
 /* globals require, log, module */
 /* exported http */
 
-var net = require("net.js");
-var Stream = require("stream.js");
-var HTTPParser = require("httpparser.js");
+var net = require("net");
+var Stream = require("stream");
+var HTTPParser = require("httpparser");
 
 
 /**
@@ -72,8 +72,7 @@ var http = {
 		if (httpRequestCallback !== null && httpRequestCallback !== undefined) {
 			httpRequestCallback(httpClientResponseStream.reader);
 		}
-		
-		
+			
 		var parserStreamWriter = new HTTPParser(HTTPParser.RESPONSE, function(parserStreamReader){
 			parserStreamReader.on("data", function(data) {
 				httpClientResponseStream.reader.httpStatus = parserStreamReader.httpStatus;

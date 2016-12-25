@@ -25,11 +25,13 @@ module.exports = {
 	 * Parse a URL string into its constituent parts.  An object is returned which contains:
 	 * {
 	 *    host:     <The host part of the URL>
+	 *    hostname: <The hostname part of the URL; no port number>
 	 *    href:     <The original URL>
-	 *    protocol: <The protocol>
 	 *    pathname: <The pathname of the URL>
-	 *    search:   <The search part of the URL including the ?>
+    *    port:     <The port number>    
+	 *    protocol: <The protocol>
 	 *    query:    <An object with the query parts broken out>
+	 *    search:   <The search part of the URL including the ?>
 	 * }
 	 */
 	parse: function(urlString) {

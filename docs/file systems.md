@@ -44,3 +44,11 @@ have enough flash (4MB is typical) we aren't in a squeeze there.
 This design is ripe for improvement and there are thoughts by the Duktape designer for a future
 enhancement which might allow compiled byte code to itself reside in flash.  If/when that day
 comes, we will look again at how file systems are managed. 
+
+The current SPIFFS implementation comes from:
+
+[https://github.com/whitecatboard/Lua-RTOS-ESP32/tree/master/components](https://github.com/whitecatboard/Lua-RTOS-ESP32/tree/master/components)
+
+The current ESPFS implementation comes from:
+
+[https://github.com/Spritetm/libesphttpd/tree/master/espfs](https://github.com/Spritetm/libesphttpd/tree/master/espfs)

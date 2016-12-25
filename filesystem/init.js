@@ -20,15 +20,18 @@ if (!String.prototype.startsWith) {
  };
 }
 
+
 Duktape.modSearch = function(id, require, exports, module) {
-	log("Module: Loading \"" + id + "\"");
+	DUKF.gc();
+	log("Module: require(\"" + id + "\") loading \"" + id + "\"");
 	var name = id;
 	if (!id.endsWith(".js")) {
 		name += ".js";
 	}
+	module.filename = name;
 	return DUKF.loadFile(name);
-	//return ESP32.loadFileESPFS(name);
-};
+}; // Duktape.modSearch
+
 
 //ESP32.setLogLevel("*", "debug");
 
