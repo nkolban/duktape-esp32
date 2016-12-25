@@ -242,4 +242,6 @@ function httpparser(type, httpParserConsumer) {
 	return networkStream.writer;
 } // httpparser
 
+httpparser.REQUEST = "request";
+httpparser.RESPONSE = "response";
 module.exports = httpparser;

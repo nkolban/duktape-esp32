@@ -18,7 +18,7 @@ The button bar at the bottom provides the following:
 ##WebSocket console response
 As scripts run within the environment, we want the console messages to be sent back to the user so that
 they can see the results.  This is best achieved with WebSockets.  When the browser based IDE loads, it
-will form a WebSocket connection back to the ESP32.  This will be understood by the ESP32 as the 
+can form a WebSocket connection back to the ESP32.  This will be understood by the ESP32 as the 
 destination for console output.  Since we are implementing the framework in JavaScript itself, this needs
 to take account of that notion.  We have a set of modules that should make this work for us.
 
@@ -30,3 +30,10 @@ function reference.  When a console message is logged, the handler will be invok
 
 If we then tie these together, when a websocket connection request is received, we can register the handler
 to send the message down that socket.
+
+By default, the Web Socket connection to show console output from `log.console()` is disabled but can
+be quickly enabled by clicking the enable button.  The reason that it is disabled by default is that
+running a Web Socket server inside the ESP32 as well as maintaining at least one active Web Socket
+connection isn't free.  The RAM cost appears to be on the order of 10K.  It was decided to switch
+the Web Console off by default until such time as optimization of the ESP32-Duktape RAM usage has
+improved and we are in less danger of running out. 

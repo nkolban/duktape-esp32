@@ -28,3 +28,7 @@ To tell Duktape which function to use, we edit `duk_config.h` and add:
 #define DUK_USE_DATE_GET_NOW(ctx) esp32_duktape_get_now()
 #define DUK_USE_DATE_GET_LOCAL_TZOFFSET(d)  0
 ```
+
+See also:
+
+* [https://github.com/svaarala/duktape/blob/master/doc/datetime.rst](https://github.com/svaarala/duktape/blob/master/doc/datetime.rst)

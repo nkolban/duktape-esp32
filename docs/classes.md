@@ -3,25 +3,25 @@ Built into the solution are a variety of Modules.
 
 * [Globals](#globals)
 * [console](#console)
-* [DUKF](#DUKF)
+* [DUKF](#dukf)
 * [ESP32](#esp32)
 * [FS](#fs)
 * [HTTP](#http)
-* [HTTPRequest](#HTTPRequest)
-* [HTTPResponse](#HTTPResponse)
+* [HTTPServerRequest](#httpserverrequest)
+* [HTTPServerResponse](#httpserverresponse)
 * [HTTPParser](#httpparser)
 * [net](#net)
-* [NVS](#NVS)
+* [NVS](#nvs)
 * [OS](#os)
 * [PARTITIONS](#partitions)
 * [RMT](#rmt)
 * [Stream](#stream)
-* [StreamReader](#StreamReader)
-* [StreamWriter](#StreamWriter)
+* [StreamReader](#streamreader)
+* [StreamWriter](#streamwriter)
 * [URL](#url)
-* [WS](#WS)
-* [WebSocketConnection](#WebSocketConnection)
-* [WebSocketServer](#WebSocketServer)
+* [WS](#ws)
+* [WebSocketConnection](#websocketconnection)
+* [WebSocketServer](#websocketserver)
 * [WiFi](#wifi)
 
 
@@ -92,6 +92,8 @@ Syntax:
 `console.log(string)`
 
 ##DUKF
+A general handler for  DUKF related functions.
+
 ###debug
 Attach the debugger.
 
@@ -418,6 +420,44 @@ Syntax:
 
 `request(options, [callback])`
 
+Example:
+```
+var http = require("http");
+
+function http_test1() {
+	var address = "54.175.219.8"; // httpbin.org
+	function logHTTP(obj) {
+		log("HTTP Status Code: " + obj.httpStatus);
+		log("Headers: " + JSON.stringify(obj.headers));
+	}
+
+	http.request({
+		address : address,
+		port : 80,
+		path : "/get"
+	}, function(response) {
+		log("HTTP Response ready ...");
+		response.on("data", function(data) {
+			log("**************")
+			log("Response data:");
+			logHTTP(response);
+			log(data);
+			log("**************")
+
+		});
+		response.on("end", function() {
+			log("**********************")
+			log("*** Response complete");
+			logHTTP(response);
+			log("**********************")
+		})
+	});
+}
+
+http_test1();
+
+```
+
 ###createServer
 Create an HTTP server.
 Syntax:
@@ -448,8 +488,25 @@ var server = HTTP.createServer(requestHandler);
 server.listen(80);
 ```
 
-##HTTPRequest
-The HTTPRequest object is not created directly.  Instead it is passed as the first parameter
+##HTTPClientResponse
+The HTTPClientResponse object is not created directly.  Instead, it is returned by a call to
+`HTTP.request()` and represents access to the response sent by that request.
+
+On the event callbacks registered with the `on()` method, properties will be presents on the
+`HTTPClientResponse` object that are populated if present.  These include:
+
+* `httpStatus` - The HTTP status code returned from the HTTP request.
+* `headers` - An object with name/value properties corresponding to the returned header items.
+
+###on
+Register callback handlers for events.  The event types that can be registered include:
+
+* `data` - Any data that may have been sent by the responder.
+* `end` - The response has been fully retrieved.
+
+
+##HTTPServerRequest
+The HTTPServerRequest object is not created directly.  Instead it is passed as the first parameter
 to an HTTP request handler.  Its purpose is to provide the data supplied by the HTTP requester.
 
 ###getHeader
@@ -493,7 +550,7 @@ The eventType can be one of:
 ###path
 The Path part of the incoming request.
 
-##HTTPResponse
+##HTTPServerResponse
 The HTTPResponse object is not created directly.  Instead it is passed as the second parameter
 to an HTTP request handler.  Its purpose in life is to send responses back to a connected HTTP partner.
 
@@ -533,25 +590,27 @@ we are acting as an HTTP client, we are expecting to receive response messages. 
 transmissions and are expected to come over sockets.  This class parses that data.
 
 We create a new instance of an HTTPParser passing in the type of parsing requested and a handler to be
-invoked as the parsing progresses.  The instance of an HTTPParser is a stream writer and we
-write in HTTP protocol data arriving over the network as it arrives.  The type of the parser can be one of:
+invoked as the parsing progresses.  The instance object returned from creating a new instance an HTTPParser is a stream writer and we
+write in HTTP protocol data arriving over the network as it arrives.  When we create a parser instance we supply
+the type of the parser can be one of:
 
 * `HTTPParser.REQUEST` - We are parsing an HTTP request.
 * `HTTPParser.RESPONSE` - We are parsing an HTTP response.
 
 The handler is passed a stream reader from which the parsed HTTP protocol can be obtained.  Any data passed will
 to the reader will be just the content
-of any payload for a POST or PUT request.  Status and headers will not be presented in the data stream.  
+of any payload for a POST or PUT request.  Status and headers will not be presented in the data stream.
+  
 The stream object has properties added to it:
 
 For a request:
-* method - The HTTP method in the request (eg. `GET`, `POST`, etc).
-* path - The local URL path (eg. "/" or "/dir/myfile.html").
-* headers - An object with name/value pairs for each of the headers received.
+* `method` - The HTTP method in the request (eg. `GET`, `POST`, etc).
+* `path` - The local URL path (eg. "/" or "/dir/myfile.html").
+* `headers` - An object with name/value pairs for each of the headers received.
 
 For a response:
-* status - The HTTP status code (eg. 200).
-* headers  - An object with name/value pairs for each of the headers received.
+* `status` - The HTTP status code (eg. 200).
+* `headers`  - An object with name/value pairs for each of the headers received.
 
 To be clear, when we create an instance of an HTTPParser, we must pass in a callback function
 with the signature:
@@ -620,6 +679,7 @@ server.listen(8888);
 
 ###connect
 Connect to a partner socket server.
+
 Syntax:
 `connect(options, connectionListener)`
 
@@ -650,6 +710,14 @@ function connectionListener(sock) {
 }
 socket.connect({address: "127.0.0.1", port: 99}, connectionListener);
 ```
+
+###getByName
+Retrieve the IP address for the supplied DNS address.
+
+Syntax:
+`getByName(name)`
+
+The name may also be supplied as a dotted decimal value.  The value `null` is returned on error.
 
 ###SocketServer
 This class is returned from createServer.  It is responsible for owning a server socket that is listening for
@@ -834,6 +902,7 @@ The `options` is an object that contains:
 
 ```
 
+###gethostbyname
 ###gpioGetLevel
 ###gpioInit
 ###gpioSetDirection

@@ -2,8 +2,10 @@
  * Mapping from JavaScript (Duktape) to the underling OS (ESP-IDF)
  */
 #if defined(ESP_PLATFORM)
+
 #include <driver/gpio.h>
 #include <esp_log.h>
+#include <lwip/netdb.h>
 #include <lwip/sockets.h>
 #include <mbedtls/sha1.h>
 #include <string.h>
@@ -12,9 +14,12 @@
 #include "sdkconfig.h"
 
 #else // ESP_PLATFORM
+
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <openssl/sha.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
+
 #endif // ESP_PLATFORM
 
 #include <errno.h>
@@ -233,6 +238,23 @@ static duk_ret_t js_os_connect(duk_context *ctx) {
 	return 1;
 } // js_os_connect
 
+/*
+ * Retrieve the hostname for the address or null if not resolvable.
+ * [0] - hostname
+ */
+static duk_ret_t js_os_gethostbyname(duk_context *ctx) {
+	const char *hostname = duk_get_string(ctx, -1);
+	struct hostent *hostent = gethostbyname(hostname);
+	if (hostent == NULL) {
+		duk_push_null(ctx);
+	} else {
+		char retName[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, hostent->h_addr_list[0], retName, sizeof(retName));
+		duk_push_string(ctx, retName);
+	}
+	return 1;
+} // js_os_gethostbyname
+
 
 /*
  * GPIO Functions
@@ -292,6 +314,9 @@ static duk_ret_t js_os_gpioSetLevel(duk_context *ctx) {
 	}
 	return 0;
 } // js_os_gpioSetLevel
+
+
+
 
 
 /*
@@ -771,6 +796,16 @@ void ModuleOS(duk_context *ctx) {
 	duk_put_prop_string(ctx, idx, "connect"); // Add connect to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_gethostbyname, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_gethostbyname
+
+	duk_put_prop_string(ctx, idx, "gethostbyname"); // Add gethostbyname to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
 
 #if defined(ESP_PLATFORM)
 	duk_push_c_function(ctx, js_os_gpioGetLevel, 1);

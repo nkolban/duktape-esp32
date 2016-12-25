@@ -24,12 +24,12 @@ module.exports = {
 	/*
 	 * Parse a URL string into its constituent parts.  An object is returned which contains:
 	 * {
-	 *    host: <The host part of the URL>
-	 *    href: <The original URL>
+	 *    host:     <The host part of the URL>
+	 *    href:     <The original URL>
 	 *    protocol: <The protocol>
 	 *    pathname: <The pathname of the URL>
-	 *    search: <The search part of the URL including the ?>
-	 *    query: <An object with the query parts broken out>
+	 *    search:   <The search part of the URL including the ?>
+	 *    query:    <An object with the query parts broken out>
 	 * }
 	 */
 	parse: function(urlString) {
@@ -42,12 +42,19 @@ module.exports = {
 			search: parts[6],
 			query: {}
 		};
+		var hostPortParts = retObj.host.split(":");
+		retObj.hostname = hostPortParts[0];
+		if (hostPortParts.length == 1) {
+			retObj.port = "80";
+		} else {
+			retObj.port = hostPortParts[1];
+		}
 		urlString.replace(
 		   queryRegexp,
 			function($0, $1, $2, $3) { retObj.query[$1] = $3; }
 		);
 		return retObj;
-	},
+	}, // parse
 	
 	/*
 	 * Parse a query string and return an object containing its name/value pairs.

@@ -1,7 +1,8 @@
 #TODO
 These are the work items that need attended to.
 
-* Add context menu to IDE
+* Add context menu to IDE.
+* Fix date() so it returns to the millisecond values.
 * Design and implement security handling.
 * Design and implement HTTPS transports.
 * Design and implement GPIO mappings.

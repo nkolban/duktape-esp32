@@ -91,7 +91,7 @@ var net = {
 				var connectRc = OS.connect({
 					sockfd: this._sockfd,
 					port: options.port,
-					address: options.address});
+					address: net.getByName(options.address)});
 				if (connectRc < 0) {
 					throw new Error("Underlying connect() failed");
 				}
@@ -142,7 +142,7 @@ var net = {
 	}, // createServer
 	
 	//
-	// net.connect(...)
+	// connect(...)
 	//
 	connect: function(options, connectCallback) {
 		var newSocket = new this.Socket();
@@ -157,7 +157,16 @@ var net = {
 			OS.close({sockfd: this._sockfd});
 			delete _sockets[this._sockfd];
 		}
-	} // closeAll
+	}, // closeAll
+	
+	//
+	// getByName()
+	//
+	// Return a string representation of the IP address of the address or null
+	// on an error.  Will also parse regular IP addresses.
+	getByName: function(address) {
+		return OS.gethostbyname(address);
+	} // getByName
 
 }; // End of module net
 

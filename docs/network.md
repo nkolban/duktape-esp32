@@ -1,10 +1,10 @@
-#Network procesisng.
+#Network processing.
 Node.js has the concept of sockets.  See: https://nodejs.org/api/net.html
 
 At a high level, we have the "net" object which has classes:
 
 * Server
- * listen(port)
+* listen(port)
 * Socket
 
 To create a server, we call `net.createServer(connectionListener)`.  The return from this is an instance

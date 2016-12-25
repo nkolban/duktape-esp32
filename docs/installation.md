@@ -97,8 +97,8 @@ storage of the ESP32.
 
 At this time, I strongly advise you not to save the ONLY copy of your JavaScript to flash
 but instead think about having a text editor open into which you copy and paste your
-JavaScript.  At this stage in the project, we will be reflashing the ESP32 on a regular
-basis and reflashing resets the content of the files in the flash memory and any files
+JavaScript.  At this stage in the project, we will be re-flashing the ESP32 on a regular
+basis and re-flashing resets the content of the files in the flash memory and any files
 you manually created or changed will be lost.
 
 
@@ -130,11 +130,11 @@ Here is a summary of a set of common steps to download, install and run ESP32-Du
 5. `git clone --recursive https://github.com/espressif/esp-idf.git`
 6. `export IDF_PATH=$(pwd)/esp-idf`
 7. `./install_binaries.sh`
-8. connect screen or other terminal emulator. (eg. `screen /dev/ttyUSB0 115200`).
-9. Reboot
-10. Connect to network "esp32-duktape"
+8. Connect `screen` or other terminal emulator to your ESP32. (eg. `screen /dev/ttyUSB0 115200`).
+9. Reboot.
+10. Connect to network "esp32-duktape".
 11. Open [http://192.168.4.1](http://192.168.4.1)
-12. Supply parameters and hit submit
-13. Check that start is clean
-14. Open browser to your IP address at port 8000 and /web/ide.html
+12. Supply parameters and hit submit.  Your ESP32 will save the settings and reboot after a few seconds.
+13. Check that start is clean by looking at the log.
+14. Open browser to your IP address at port 8000 and /web/ide.html.
 eg. [http://192.168.1.99:8000/web/ide.html](http://192.168.1.99:8000/web/ide.html)

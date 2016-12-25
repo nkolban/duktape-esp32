@@ -79,7 +79,6 @@ function requestHandler(request, response) {
       log(" - headers: " + JSON.stringify(request.headers));
       DUKF.logHeap("ide_webserver: request.on(end)");
 
-      log("URL: " + JSON.stringify(URL.parse(request.path)));
       var pathParts = request.path.split("/");
 
       if (pathParts.length < 2) {
