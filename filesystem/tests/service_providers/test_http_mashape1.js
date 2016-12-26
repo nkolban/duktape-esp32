@@ -3,7 +3,7 @@
 var http = require("http.js");
 
 function http_test1() {
-	var host = "weathers.co"; // httpbin.org
+	var host = "community-zippopotamus.p.mashape.com"; // httpbin.org
 	log("Host: " + host);
 	if (host === null) {
 		return;
@@ -16,7 +16,7 @@ function http_test1() {
 	http.request({
 		host : host,
 		port : 80,
-		path : "/api.php?city=Dallas"
+		path : "/us/ma/belmont"
 	}, function(response) {
 		log("HTTP Response ready ...");
 		response.on("data", function(data) {

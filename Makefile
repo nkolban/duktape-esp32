@@ -60,6 +60,11 @@ duktape_install:
 
 #
 #  Perform a configuration of duktape.
+#  See the following Duktape documentation for details.
+#  https://github.com/svaarala/duktape/blob/master/doc/duk-config.rst
+#
+#  The properties for the configuration are the "low_memory" profile with overrides
+#  supplied in data/duktape/ESP32-Duktape.yaml.
 #
 duktape_configure:
 	python ./components/duktape/tools/configure.py \
@@ -69,3 +74,16 @@ duktape_configure:
 		--option-file data/duktape/ESP32-Duktape.yaml \
 		--fixup-file main/include/duktape_fixup.h \
 		--output-directory components/duktape/src
+
+#
+#  Perform flashing of both ESPFS and SPIFFS to ESP32
+#
+flashdata: images
+	echo "Flashing both ESPFS and SPIFFS to ESP32"
+	$(ESPTOOLPY_WRITE_FLASH) --compress 0x360000 build/espfs.img
+	$(ESPTOOLPY_WRITE_FLASH) --compress 0x180000 build/spiffs.img
+
+#
+#  Build all, flash app & flash both ESPFS and SPIFFS to ESP32
+#
+flashall: images all flashdata

@@ -133,9 +133,10 @@ function httpparser(type, httpParserConsumer) {
 	
 	httpStream.reader.headers = {};
 	var unconsumedData = "";
-	var bodyLeftToRead;
-	var state;
-	var isRequest;
+	var bodyLeftToRead; // If we are processing a content-length body, how much remains?
+	var state;          // State of processing for state machine
+	var isRequest;      // Is this a request or response parse
+	var readBodyToEnd;  // If we are processing a body, process to the end of the stream?
 	
 	if (type == "request") {
 		state = STATE.START_REQUEST;
@@ -158,6 +159,9 @@ function httpparser(type, httpParserConsumer) {
 				log("http parsing: " + line.line);
 				
 				if (state == STATE.START_RESPONSE) {
+// In the HTTP spec, the format of this line is called a "status line"
+// status-line = HTTP-Version SP status-code SP reason-phrase
+//
 					// A header line is of the form <protocols>' '<code>' '<message>
 					//                                  0          1         2					
 					var splitData = line.line.split(" ");
@@ -167,6 +171,9 @@ function httpparser(type, httpParserConsumer) {
 					state = STATE.HEADERS;
 				} // End of in STATE.START_RESPONSE
 				else if (state == STATE.START_REQUEST) {
+// In the HTTP spec, the format of this line is called a "request line".
+// request-line = method SP request-target SP HTTP-version
+//
 					var splitData = line.line.split(" ");
 					httpStream.reader.method = splitData[0].toUpperCase();
 					httpStream.reader.path = splitData[1];
@@ -183,21 +190,45 @@ function httpparser(type, httpParserConsumer) {
 						log("End of headers\n" + JSON.stringify(httpStream.reader.headers));
 						// We are about to start the body ... BUT ... at this point we only have a body
 						// if we have a contentLength.
-						if (httpStream.reader.headers["Content-Length"] !== undefined) {
-							bodyLeftToRead = Number(httpStream.reader.headers["Content-Length"]);
-							state = STATE.BODY;
-							dataToProcess = line.remainder;
-						} else {
-							state = STATE.END;
-							httpStream.writer.end();
-						}
+// Do we have a body?  It varies on whether this was a request message or a response message.
+// For request:
+// We have a body based on "Content-Length" or "Transfer-Encoding"
+// For responses:
+// The following have NO body:
+// status: 1xxx, 204 (No Content), 304 (Not modified)
+// All others DO have a body
+						if (isRequest) {
+							if (httpStream.reader.headers["Content-Length"] !== undefined) {
+								state = STATE.BODY;
+								bodyLeftToRead = Number(httpStream.reader.headers["Content-Length"]);
+								readBodyToEnd = false;
+								dataToProcess = line.remainder;
+							} else {
+								state = STATE.END;
+								httpStream.writer.end();
+							}
+						} // isRequest
+						else {
+							
+							var statusCode = httpStream.reader.httpStatus;
+							if (statusCode >= "100" && statusCode <="199" || statusCode == "204" || statusCode == "304") {
+								// no body
+								state = STATE.END;
+								httpStream.writer.end();
+							}
+							else {
+								state = STATE.BODY;
+								readBodyToEnd = true;
+								dataToProcess = line.remainder;
+							}
+						} // isResponse
 					} else {
 					// we found a header
 						var i = line.line.indexOf(":");
-						var name = line.line.substr(0, i);
-						var value = line.line.substr(i+2);
+						var name = line.line.substr(0, i).trim();
+						var value = line.line.substr(i+2).trim();
 						httpStream.reader.headers[name] = value;
-					}
+					} // Header processing
 				} // End of in STATE.HEADERS
 				else if (state == STATE.END) {
 					throw new Error("We have been asked to parse more HTTP data but we are already past the end");
@@ -209,13 +240,16 @@ function httpparser(type, httpParserConsumer) {
 		if (state == STATE.BODY) {
 			httpStream.writer.write(dataToProcess);
 			line.remainder = "";
-			bodyLeftToRead = bodyLeftToRead - dataToProcess.length;
-			if (bodyLeftToRead < 0) {
-				throw new Error("We have written more data than we expected");
-			}
-			if (bodyLeftToRead === 0) {
-				state = STATE.END;
-				httpStream.writer.end();
+			
+			if (!readBodyToEnd) {
+				bodyLeftToRead = bodyLeftToRead - dataToProcess.length;
+				if (bodyLeftToRead < 0) {
+					throw new Error("We have written more data than we expected");
+				}
+				if (bodyLeftToRead === 0) {
+					state = STATE.END;
+					httpStream.writer.end();
+				}
 			}
 		}
 		return line.remainder;
@@ -237,6 +271,10 @@ function httpparser(type, httpParserConsumer) {
 // that there won't be any new data either ... but we need to be carfeful, we must NEVER call the the
 // stream writer twice!!
 		log("HTTP Parser: Received an end of network connection");
+		if (state == STATE.BODY) {
+			state = STATE.END;
+			httpStream.writer.end();
+		}
 		
 	}); // networkStream reader on("end")
 	return networkStream.writer;

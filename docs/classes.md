@@ -424,13 +424,17 @@ Syntax:
 `request(options, [callback])`
 
 The options is an object controlling the request being made.  It contains:
-* address - The address to call (DNS or dotted decimal).
-* method - The method to pass in the request.  This is optional.  If not supplied then
+* `host` - The address to call (DNS or dotted decimal).
+* `method` - The method to pass in the request.  This is optional.  If not supplied then
 `GET` is assumed.  Valid values are:
   * GET
   * POST
-* path - The URL path.  This is optional.  If not supplied then `/` is assumed.
-* port - The port number.  This is optional.  If not supplied then `80` is assumed.
+* `path` - The URL path.  This is optional.  If not supplied then `/` is assumed.
+* `port` - The port number.  This is optional.  If not supplied then `80` is assumed.
+* `headers` - An object that contains name/value properties.  The name of a property
+will be used as an HTTP header name in the outgoing request while its value will
+be used as the value of the corresponding header.
+ 
 
 Example:
 ```

@@ -38,7 +38,7 @@ void dukf_log_heap(const char *localTag) {
 	if (localTag == NULL) {
 		localTag = "<no tag>";
 	}
-	LOGD("%s: heapSize=%d", localTag, dukf_get_free_heap_size();
+	LOGD("%s: heapSize=%d", localTag, dukf_get_free_heap_size());
 } // dukf_log_heap
 
 
@@ -108,22 +108,32 @@ uint32_t dukf_get_free_heap_size() {
 #if defined(ESP_PLATFORM)
 /**
  * Load the named file and return the data and the size of it.
- * We load the file from the DUKF file system.
+ * We load the file from the DUKF file system based on ESPFS.
+ * Since this is flash mapped data, the return data does not need to be released
+ * and tests conducted do in fact show that it doesn't reduce the heap size.
+ *
+ * * path - The path to the file to be opened.
+ * * fileSize - The size of the data loaded.
  */
 const char *dukf_loadFile(const char *path, size_t *fileSize) {
-	LOGD(">> dukf_loadFile: (ESPFS) %s, heapSize=%d", path, dukf_get_freeHeap());
+	LOGD(">> dukf_loadFile: (ESPFS) %s, heapSize=%d", path, dukf_get_free_heap_size());
+
+	assert(fileSize != NULL);
+	assert(path != NULL);
+
 	EspFsFile *fh = espFsOpen((char *)path);
 	if (fh == NULL) {
 		LOGD(" Failed to open file %s", path);
 		return NULL;
 	}
-  char *data;
-  espFsAccess(fh, (void **)&data, fileSize);
+
+  char *fileData;
+  espFsAccess(fh, (void **)&fileData, fileSize);
   espFsClose(fh);
   // Note ... because data is mapped in memory from flash ... it will be good
   // past the file close.
   LOGD("<< duk_loadFile: Read file %s for size %d", path, *fileSize);
-  return data;
+  return fileData;
 } // dukf_loadFile
 
 #else // ESP_PLATFORM

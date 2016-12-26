@@ -23,7 +23,6 @@
 #include "module_dukf.h"
 #include "module_fs.h"
 #include "module_gpio.h"
-#include "module_http.h"
 #include "module_nvs.h"
 #include "module_os.h"
 #include "module_partitions.h"

@@ -1,5 +1,7 @@
 /**
  * Implement the HTTP classes.
+ * References:
+ * RFC 7230 - Hypertext Transfer Protocol (HTTP/1.1): Message Syntax and Routing
  */
 /* globals require, log, module */
 /* exported http */
@@ -21,7 +23,7 @@ var http = {
 	// Send an HTTP request.  The options object contains the details of the request
 	// to be sent.
 	// {
-	//    address: <IP Address of target of request>
+	//    host: <IP Address or DNS hostname of target of request>
 	//    port: <port number of target> [optional; default=80]
 	//    path: <Path within the url> [optional; default="/"]
 	// }
@@ -34,12 +36,12 @@ var http = {
 	request: function(options, httpRequestCallback) {
 		var path = options.path;
 		var port = options.port;
-		var address = options.address;
+		var host = options.host;
 		var method = options.method;
 		
 		// validate inputs and set defaults for unset properties.
-		if (address === undefined) {
-			log("http.request: No address set");
+		if (host === undefined) {
+			log("http.request: No host set");
 			return;
 		}
 		
@@ -89,13 +91,41 @@ var http = {
 
 		// Send a connect request and register the function to be invoked when the connect
 		// succeeds.  That registered function is responsible for sending the HTTP request to the partner.
-		sock.connect({address: address, path: path, port: port}, function() {
+		sock.connect({address: host, path: path, port: port}, function() {
 			// We are now connected ... send the HTTP message
 			// Build the message to send.
-			var requestMessage = "GET " + path + " HTTP/1.0\r\n" + 
-			"User-Agent: ESP32-Duktape\r\n" +
-			"\r\n";
+
+			var requestMessage = "GET " + path + " HTTP/1.1\r\n" +
+				"Host: " + host + ":" + port + "\r\n";
 			sock.write(requestMessage); // Send the message to the HTTP server.
+			if (options.headers != undefined) {
+				for (var name in options.headers) {
+					// Skip headers that we must NOT add to the headers.
+					if (name === "Host") {
+						continue;
+					}
+					
+					if (options.headers.hasOwnProperty(name)) {
+						log("Adding header " + name + ": " + options.headers[name]);
+						sock.write(name + ": " + options.headers[name] + "\r\n");
+					}
+				}
+			} // Add any headers
+			sock.write("\r\n");
+
+			/*
+			var requestMessage = "GET " + path + " HTTP/1.1\r\n";
+			if (options.headers != undefined) {
+				for (var name in options.headers) {
+					if (options.headers.hasOwnProperty(name)) {
+						log("Adding header " + name + ": " + options.headers[name]);
+						requestMessage += name + ": " + options.headers[name] + "\r\n";
+					}
+				}
+			} // Add any headers
+			requestMessage += "\r\n";
+			sock.write(requestMessage);
+			*/
 		}); // sock.connect connectionListener ...
 		
 		sock.on("data", function(data) {

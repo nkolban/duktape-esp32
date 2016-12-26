@@ -51,7 +51,7 @@ static duk_ret_t js_dukf_global(duk_context *ctx) {
  * Load a file.  The result is pushed onto the stack.
  */
 static duk_ret_t js_dukf_loadFile(duk_context *ctx) {
-	dukf_log_heap("js_dukf_loadFile");
+	//dukf_log_heap("js_dukf_loadFile");
 	size_t fileSize;
 	char *fileName = (char *)duk_get_string(ctx, -1);
 	const char *data = dukf_loadFile(fileName, &fileSize);
@@ -60,7 +60,7 @@ static duk_ret_t js_dukf_loadFile(duk_context *ctx) {
 	} else {
 		duk_push_lstring(ctx, data, fileSize);
 	}
-	dukf_log_heap("js_dukf_loadFile");
+	//dukf_log_heap("js_dukf_loadFile");
 	return 1;
 } // js_dukf_loadFile
 

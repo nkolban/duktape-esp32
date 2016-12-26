@@ -3,7 +3,9 @@
 # Makefile does just that.
 #
 
-OBJS=\
+TARGET:=esp32-duktape-linux
+
+OBJS:=\
 c_timeutils.o \
 duk_trans_socket_unix.o \
 duk_module_duktape.o \
@@ -20,13 +22,13 @@ module_fs.o \
 module_os.o
 
 
-CFLAGS=-g
-INCLUDES=\
+CFLAGS:=-g
+INCLUDES:=\
 -I../components/duktape/src \
 -I../components/duktape/extras/module-duktape \
 -I../components/duktape/examples/debug-trans-socket \
 -I../main/include
-LIBS=-lm -lcrypto
+LIBS:=-lm -lcrypto
 
 define cc-command
 @echo "CC $<"
@@ -34,11 +36,11 @@ define cc-command
 endef
 
 
-all: dtest
+all: $(TARGET)
 
-dtest: $(OBJS)
-	@echo "CC -o dtest"
-	@$(CC) -o dtest $(OBJS) $(LIBS)
+$(TARGET): $(OBJS)
+	@echo "CC -o $(TARGET)"
+	@$(CC) -o $(TARGET) $(OBJS) $(LIBS)
 
 c_timeutils.o: ../main/c_timeutils.c
 	$(cc-command)	
@@ -88,4 +90,4 @@ module_os.o: ../main/module_os.c
 	
 clean:
 	rm -f $(OBJS)
-	rm -f dtest
+	rm -f $(TARGET)

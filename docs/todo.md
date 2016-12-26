@@ -2,6 +2,7 @@
 These are the work items that need attended to.
 
 * Add context menu to IDE.
+* Add serial input support.
 * Fix date() so it returns to the millisecond values.
 * Look into handling HTTP redirects.
 * Remove the ".js" from module names. - *Done* - but not yet tested.
