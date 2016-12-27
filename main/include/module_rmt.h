@@ -7,7 +7,7 @@
 
 #if !defined(MAIN_MODULE_RMT_H_)
 #define MAIN_MODULE_RMT_H_
-
-void ModuleRMT(duk_context *ctx);
+#include <duktape.h>
+duk_ret_t ModuleRMT(duk_context *ctx);
 
 #endif /* MAIN_MODULE_RMT_H_ */

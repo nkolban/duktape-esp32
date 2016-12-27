@@ -8,6 +8,8 @@
 #if !defined(MAIN_MODULE_RTOS_H_)
 #define MAIN_MODULE_RTOS_H_
 
-void ModuleRTOS(duk_context *ctx);
+#include <duktape.h>
+
+duk_ret_t ModuleRTOS(duk_context *ctx);
 
 #endif /* MAIN_MODULE_RTOS_H_ */

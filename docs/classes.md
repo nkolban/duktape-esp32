@@ -16,6 +16,7 @@ Built into the solution are a variety of Modules.
 * [OS](#os)
 * [PARTITIONS](#partitions)
 * [RMT](#rmt)
+* [Serial](#serial)
 * [Stream](#stream)
 * [StreamReader](#streamreader)
 * [StreamWriter](#streamwriter)
@@ -1102,6 +1103,44 @@ The arrayOfItems is an array of item objects where each item object contains
 }
 ```
 
+
+##Serial
+The Serial class provides access to the ESP32 serial ports of which there are three.  This class
+is loaded with:
+
+```
+var Serial = require("Serial");
+```
+
+###configure
+Configure a serial port.  Any port must be configured before use.
+
+Syntax:
+`configure(portNumber, options)`
+
+The portNumber is either 0, 1 or 2.
+
+The options is an object that provides configuration data.
+```
+{
+   baud: The baud rate to use.  Default is 115200.
+   rxBufferSize: The size of the buffer to use to hold incoming data.  Must be > 128.  Default is 129.
+   txBuffserSize: The size of the buffer to buffer outgoing data.  Default is 0.
+}
+```
+
+###read
+Read data from the serial port.
+
+###write
+Write data to the serial port.
+
+Syntax:
+`write(portNumber, data)`
+
+The portNumber is either 0, 1 or 2.
+
+The data is either a string or a buffer.
 
 ##Stream
 A stream is a pair of object where one acts as a stream writer and the other as a stream reader.  When

@@ -21,6 +21,7 @@
 
 #include "duktape_utils.h"
 #include "logging.h"
+#include "module_fs.h"
 
 LOG_TAG("module_fs");
 

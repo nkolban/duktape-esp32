@@ -22,12 +22,12 @@
 #include "modules.h"
 #include "module_dukf.h"
 #include "module_fs.h"
-#include "module_gpio.h"
 #include "module_nvs.h"
 #include "module_os.h"
 #include "module_partitions.h"
 #include "module_rmt.h"
 #include "module_rtos.h"
+#include "module_serial.h"
 #include "module_timers.h"
 #include "module_wifi.h"
 
@@ -68,7 +68,22 @@ typedef struct {
 } functionTableEntry_t;
 
 
+/*
+ * Table of functions to be mapped to strings.  The format of an entry is
+ * { <Name>, <FunctionPtr>, <Parameter Count> },
+ *
+ * The last entry must be:
+ * { NULL, NULL, 0 }
+ */
 functionTableEntry_t functionTable[] = {
+#if defined(ESP_PLATFORM)
+
+	{ "ModuleRMT",        ModuleRMT,        1},
+	{ "ModuleSerial",     ModuleSerial,     1},
+	{ "ModulePartitions", ModulePartitions, 1},
+	{ "ModuleRTOS",       ModuleRTOS,       1},
+
+#endif // ESP_PLATFORM
 	// Must be last entry
 	{NULL, NULL, 0 }
 };
@@ -95,6 +110,7 @@ static duk_ret_t js_esp32_getNativeFunction(duk_context *ctx) {
 			}
 			ptr++; // Not found yet, let's move to the next entry
 		} // while we still have entries in the table
+
 		// If we found an entry, then set it as the return, otherwise return null.
 		if (ptr->id != NULL) {
 			duk_push_c_function(ctx, ptr->func, ptr->paramCount);
@@ -483,8 +499,6 @@ void registerModules(duk_context *ctx) {
 	ModuleConsole(ctx);
 	assert(top == duk_get_top(ctx));
 
-
-
 	ModuleFS(ctx);
 	assert(top == duk_get_top(ctx));
 
@@ -498,19 +512,7 @@ void registerModules(duk_context *ctx) {
 	ModuleESP32(ctx);
 	assert(top == duk_get_top(ctx));
 
-	ModuleGPIO(ctx); // Load the GPIO module
-	assert(top == duk_get_top(ctx));
-
 	ModuleWIFI(ctx); // Load the WiFi module
-	assert(top == duk_get_top(ctx));
-
-	ModuleRMT(ctx);
-	assert(top == duk_get_top(ctx));
-
-	ModulePARTITIONS(ctx); // Load the partitions module
-	assert(top == duk_get_top(ctx));
-
-	ModuleRTOS(ctx); // Load the RTOS module
 	assert(top == duk_get_top(ctx));
 
 	ModuleNVS(ctx); // Load the Non Volatile Storage module

@@ -86,4 +86,5 @@ flashdata: images
 #
 #  Build all, flash app & flash both ESPFS and SPIFFS to ESP32
 #
-flashall: images all flashdata
+flashall: flash flashdata
+

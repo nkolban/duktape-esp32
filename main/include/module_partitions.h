@@ -7,8 +7,8 @@
 
 #if !defined(MAIN_ESP32_DUKTAPE_MODULE_PARTITIONS_H_)
 #define MAIN_ESP32_DUKTAPE_MODULE_PARTITIONS_H_
-#include "duktape.h"
+#include <duktape.h>
 
-void ModulePARTITIONS(duk_context *ctx);
+duk_ret_t ModulePartitions(duk_context *ctx);
 
 #endif /* MAIN_ESP32_DUKTAPE_MODULE_PARTITIONS_H_ */

@@ -73,6 +73,7 @@ static const char *partitionTypeToString(esp_partition_type_t type) {
 	}
 } // partitionTypeToString
 
+
 /**
  * Build an return an array of partitions.
  * [0] - Type of partition either "app" or "data"
@@ -186,33 +187,24 @@ static duk_ret_t js_partitions_list(duk_context *ctx) {
 		it = esp_partition_next(it);
 	}
 	return 1;
-}
+} // js_partitions_list
 
 
 /**
- * Create the PARTITIONS module in Global.
+ * Create the PARTITIONS module in the new object
+ * [0] - Partitions object.
  */
-void ModulePARTITIONS(duk_context *ctx) {
+duk_ret_t ModulePartitions(duk_context *ctx) {
 
-	// [0] - Global object
-	duk_push_global_object(ctx);
-
-	// [0] - Global object
-	// [1] - New object
-	duk_idx_t idx = duk_push_object(ctx); // Create new PARTITIONS object
-
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_partitions_list
 	duk_push_c_function(ctx, js_partitions_list, 1);
+	// [0] - Partitions object
+	// [1] - c-func - js_partitions_list
 
-	// [0] - Global object
-	// [1] - New object
-	duk_put_prop_string(ctx, idx, "list"); // Add list to new PARTITIONS
-
-	// [0] - Global object
-	duk_put_prop_string(ctx, 0, "PARTITIONS"); // Add PARTITIONS to global
+	duk_put_prop_string(ctx, -2, "list"); // Add list to new PARTITIONS
+	// [0] - Partitions object
 
 	duk_pop(ctx);
 	// <Empty Stack>
+
+	return 0;
 } // module_partitions;

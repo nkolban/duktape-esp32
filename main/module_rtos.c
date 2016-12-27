@@ -33,34 +33,24 @@ static duk_ret_t js_rtos_systemState(duk_context *ctx) {
 	LOGD(">> js_rtos_systemState not enabled ... configUSE_TRACE_FACILITY <> 1");
 	return 0;
 #endif /* configUSE_TRACE_FACILITY */
-}
+} // js_rtos_systemState
+
 
 /**
  * Create the RTOS module in Global.
+ * [0] - RTOS Object to be populated.
  */
-void ModuleRTOS(duk_context *ctx) {
-	duk_push_global_object(ctx);
-	// [0] - Global object
-
-
-	duk_idx_t idx = duk_push_object(ctx); // Create new RTOS object
-	// [0] - Global object
-	// [1] - New object
-
+duk_ret_t ModuleRTOS(duk_context *ctx) {
 
 	duk_push_c_function(ctx, js_rtos_systemState, 0);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_rtos_systemState
+	// [0] - RTOS object
+	// [1] - c-func - js_rtos_systemState
 
 
-	duk_put_prop_string(ctx, idx, "systemState"); // Add systemState to new RTOS
-	// [0] - Global object
-	// [1] - New object
-
-
-	duk_put_prop_string(ctx, 0, "RTOS"); // Add RTOS to global
-	// [0] - Global object
+	duk_put_prop_string(ctx, -2, "systemState"); // Add systemState to new RTOS
+	// [0] - RTOS object
 
 	duk_pop(ctx);
+
+	return 0;
 } // ModuleRTOS

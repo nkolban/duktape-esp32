@@ -14,6 +14,9 @@ $(document).ready(function() {
 		}	
 	}
 	
+	/*
+	 * Determine if the enable console checkbox is checked and, if yes then return true.
+	 */
 	function isConsoleEnabled() {
 		ret = $("#consoleCheckbox").prop("checked");
 		//console.log("Console enabled: " + ret);
@@ -142,11 +145,16 @@ $(document).ready(function() {
 	
 	$("#consoleCheckbox").checkboxradio().change(function() {
 		//console.log("Checkbox change: " + isConsoleEnabled());
-		if (consoleWS != null) {
-			consoleWS.close();
-			consoleWS = null;
+		if (!isConsoleEnabled()) {
+			if (consoleWS != null) {
+				consoleWS.close();
+				consoleWS = null;
+			}
+		} else {
+			// Console was not enabled, so enable it now.
+			createConsoleWebSocket(null);
 		}
-	});
+	}); // #consoleCheckbox checkBox changed.
 	
 	// Handle the clear console button.
 	$("#clearConsole").button({
