@@ -578,8 +578,8 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 
 	LOGD(" - Connecting to access point: \"%s\" with \"%s\"", ssid, "<Password hidden>");
   wifi_config_t sta_config;
-  strcpy(sta_config.sta.ssid, ssid);
-  strcpy(sta_config.sta.password, password);
+  strcpy((char *)sta_config.sta.ssid, ssid);
+  strcpy((char *)sta_config.sta.password, password);
   sta_config.sta.bssid_set = 0;
 
   errRc = esp_wifi_set_config(WIFI_IF_STA, &sta_config);
@@ -689,9 +689,9 @@ static duk_ret_t js_wifi_listen(duk_context *ctx) {
 
 	LOGD(" - Being an access point: %s with auth mode %s", ssid, auth);
 	wifi_config_t ap_config;
-	strcpy(ap_config.ap.ssid, ssid);
+	strcpy((char *)ap_config.ap.ssid, ssid);
 	ap_config.ap.ssid_len = 0;
-	strcpy(ap_config.ap.password, password);
+	strcpy((char *)ap_config.ap.password, password);
 	ap_config.ap.channel = 0;
 	ap_config.ap.authmode = authMode;
 	ap_config.ap.ssid_hidden = 0;
