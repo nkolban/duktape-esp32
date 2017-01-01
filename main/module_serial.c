@@ -18,6 +18,8 @@ LOG_TAG("module_serial");
  *    baud: <baud rate> - default 115200
  *    rxBufferSize: Size of RX Buffer must be > UART_FIFO_LEN - default UART_FIFO_LEN + 1
  *    txBufferSize: Size of TX Buffer - default 0.
+ *    rxPin: pin number for RX - default No change.
+ *    txPin: pun number for TX - default No change.
  * }
  */
 static duk_ret_t js_serial_configure(duk_context *ctx) {
@@ -25,6 +27,8 @@ static duk_ret_t js_serial_configure(duk_context *ctx) {
 	int baud;
 	int rx_buffer_size;
 	int tx_buffer_size;
+	int tx_pin = UART_PIN_NO_CHANGE;
+	int rx_pin = UART_PIN_NO_CHANGE;
 	esp_err_t errRc;
 
 	port = duk_get_int(ctx, -2);
@@ -39,6 +43,7 @@ static duk_ret_t js_serial_configure(duk_context *ctx) {
 		baud = 115200;
 	} else {
 		baud = duk_get_int(ctx, -1);
+		duk_pop(ctx);
 	}
 
 	// Get the rx buffer size
@@ -47,6 +52,7 @@ static duk_ret_t js_serial_configure(duk_context *ctx) {
 		rx_buffer_size = UART_FIFO_LEN + 1;
 	} else {
 		rx_buffer_size = duk_get_int(ctx, -1);
+		duk_pop(ctx);
 		if (rx_buffer_size <= UART_FIFO_LEN) {
 			rx_buffer_size = UART_FIFO_LEN + 1;
 		}
@@ -58,6 +64,23 @@ static duk_ret_t js_serial_configure(duk_context *ctx) {
 		tx_buffer_size = 0;
 	} else {
 		tx_buffer_size = duk_get_int(ctx, -1);
+		duk_pop(ctx);
+	}
+
+	if (duk_get_prop_string(ctx, -1, "rxPin") == 1) {
+		rx_pin = duk_get_int(ctx, -1);
+		duk_pop(ctx);
+	} else {
+		LOGD("No rxPin found");
+		duk_pop(ctx);
+	}
+
+	if (duk_get_prop_string(ctx, -1, "txPin") == 1) {
+		tx_pin = duk_get_int(ctx, -1);
+		duk_pop(ctx);
+	} else {
+		LOGD("No txPin found");
+		duk_pop(ctx);
 	}
 
 	uart_config_t myUartConfig;
@@ -68,9 +91,18 @@ static duk_ret_t js_serial_configure(duk_context *ctx) {
 	myUartConfig.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
 	myUartConfig.rx_flow_ctrl_thresh = 120;
 
+	LOGD("Setting UART %d to baud %d", port, baud);
+
 	errRc = uart_param_config(port, &myUartConfig);
 	if (errRc != ESP_OK) {
 		LOGE("uart_param_config: %s", esp32_errToString(errRc));
+		return 0;
+	}
+
+	LOGD("Setting port %d pins to tx=%d, rx=%d", port, tx_pin, rx_pin);
+	errRc = uart_set_pin(port, tx_pin, rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+	if (errRc != ESP_OK) {
+		LOGE("uart_set_pin: %s", esp32_errToString(errRc));
 		return 0;
 	}
 
@@ -91,8 +123,8 @@ static duk_ret_t js_serial_configure(duk_context *ctx) {
 
 
 /*
- * Write data through the serial interface.
- * [0] - Read data from the serial port.
+ * Read data through the serial interface.
+ * [0] - The serial port to read from.
  * [1] - Buffer into which to store data.
  *
  * Returns the length actually read.
@@ -147,6 +179,7 @@ static duk_ret_t js_serial_write(duk_context *ctx) {
 	if (data == NULL || size == 0) {
 		return 0;
 	}
+	LOGD("Writing %d bytes to serial port %d", size, port);
 	uart_write_bytes(port, data, size);
 	return 0;
 } // js_serial_write

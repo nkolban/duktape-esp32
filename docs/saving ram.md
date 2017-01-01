@@ -9,4 +9,10 @@ An excellent paper on Duktape and RAM utilization can be found here
 [https://github.com/svaarala/duktape/blob/master/doc/low-memory.rst](https://github.com/svaarala/duktape/blob/master/doc/low-memory.rst)
 
 
-DUK_OPT_LIGHTFUNC_BUILTINS
+##Optional modules
+In order to save RAM, we can choose to include or exclude Duktape components.  If we had unlimited RAM, we would likely
+enable all components and all performance optimizations ... but they come at the cost of RAM so we must trade-off reduced
+function or less optimal run-time implementations in favor of reduced RAM.  Some of the options we can switch on or off
+include:
+
+* `DUK_USE_VERBOSE_ERRORS` - Quality of error reporting at the JS level.

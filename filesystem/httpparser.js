@@ -208,8 +208,11 @@ function httpparser(type, httpParserConsumer) {
 								httpStream.writer.end();
 							}
 						} // isRequest
-						else {
-							
+						
+						//
+						// isResponse
+						//
+						else {	
 							var statusCode = httpStream.reader.httpStatus;
 							if (statusCode >= "100" && statusCode <="199" || statusCode == "204" || statusCode == "304") {
 								// no body
@@ -218,7 +221,12 @@ function httpparser(type, httpParserConsumer) {
 							}
 							else {
 								state = STATE.BODY;
-								readBodyToEnd = true;
+								if (httpStream.reader.headers["Content-Length"] !== undefined) {
+									bodyLeftToRead = Number(httpStream.reader.headers["Content-Length"]);
+									readBodyToEnd = false;
+								} else {
+									readBodyToEnd = true;
+								}
 								dataToProcess = line.remainder;
 							}
 						} // isResponse
@@ -236,7 +244,11 @@ function httpparser(type, httpParserConsumer) {
 	
 				line = getLine(line.remainder);
 			} // End of we have processed all the lines. (end while)
-		} /// End was NOT STATE == BODY
+		} /// End: Was NOT STATE == BODY
+		
+		//
+		// STATE.BODY
+		//
 		if (state == STATE.BODY) {
 			httpStream.writer.write(dataToProcess);
 			line.remainder = "";

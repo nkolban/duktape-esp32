@@ -602,9 +602,15 @@ The `headers` is an optional object where the name/value pairs will be used as t
 
 ##HTTPParser
 Primarily designed as an internal module, this module parses HTTP protocol requests and responses.  When we are
-acting as a Web Server, we expected to receive incoming HTTP requests that are asking to retrieve or put data.  When
+acting as a Web Server, we expect to receive incoming HTTP requests that are asking to retrieve or put data.  When
 we are acting as an HTTP client, we are expecting to receive response messages.  Both are HTTP protocol
-transmissions and are expected to come over sockets.  This class parses that data.
+transmissions and are expected to come over sockets but other transports are possible (for example UART).
+This class parses that data incoming data but instead will be available as properties available on the stream reader.
+The signature of the handler function is:
+
+```
+function(streamReader)
+```
 
 We create a new instance of an HTTPParser passing in the type of parsing requested and a handler to be
 invoked as the parsing progresses.  The instance object returned from creating a new instance an HTTPParser is a stream writer and we
@@ -614,27 +620,23 @@ the type of the parser can be one of:
 * `HTTPParser.REQUEST` - We are parsing an HTTP request.
 * `HTTPParser.RESPONSE` - We are parsing an HTTP response.
 
-The handler is passed a stream reader from which the parsed HTTP protocol can be obtained.  Any data passed will
-to the reader will be just the content
+The handler is a function which is passed a stream reader from which the parsed HTTP protocol can be obtained.
+Any data passed to the reader will be just the content
 of any payload for a POST or PUT request.  Status and headers will not be presented in the data stream.
   
-The stream object has properties added to it:
+The stream reader object has properties added to it:
 
-For a request:
+When parsing a request:
 * `method` - The HTTP method in the request (eg. `GET`, `POST`, etc).
-* `path` - The local URL path (eg. "/" or "/dir/myfile.html").
+* `path` - The local URL path (eg. "`/`" or "`/dir/myfile.html`").
 * `headers` - An object with name/value pairs for each of the headers received.
 
-For a response:
+When parsing a response:
 * `status` - The HTTP status code (eg. 200).
 * `headers`  - An object with name/value pairs for each of the headers received.
 
-To be clear, when we create an instance of an HTTPParser, we must pass in a callback function
-with the signature:
 
-`function(parserStreamReader)`
-
-where `parserStreamReader` is a reader stream and hence has events on it such as `data` and `end`.
+The `streamReader` is a reader stream and hence has events on it such as `data` and `end`.
 
 For example:
 
@@ -1112,13 +1114,24 @@ is loaded with:
 var Serial = require("Serial");
 ```
 
+From there we can create instances of the class SerialPort using:
+
+```
+var serialPort = new SerialPort(<portNumber>);
+```
+
+where the `portNumber` can be 0, 1 or 2.
+
+##SerialPort
+Instance of this class are not created explicitly but are instead returned from calls to
+`new Serial(<portNumber>)`.
+
 ###configure
 Configure a serial port.  Any port must be configured before use.
 
 Syntax:
-`configure(portNumber, options)`
+`configure(options)`
 
-The portNumber is either 0, 1 or 2.
 
 The options is an object that provides configuration data.
 ```
@@ -1126,19 +1139,38 @@ The options is an object that provides configuration data.
    baud: The baud rate to use.  Default is 115200.
    rxBufferSize: The size of the buffer to use to hold incoming data.  Must be > 128.  Default is 129.
    txBuffserSize: The size of the buffer to buffer outgoing data.  Default is 0.
+   rxPin: The pin to use for TX.  Default is unchanged.
+   txPin: The pin to use for RX.  Default is unchanged.
 }
 ```
 
+###on
+Register an event processing callback.
+
+Syntax:
+`on(eventType, callback)`
+
+The event types available are:
+* `data` - Invoke the callback when new data is available from the serial port.  The
+parameter passed to the callback is a `Buffer` containing the newly received data.
+If the callback function passed in is `null` then the callback handler is removed.
+
 ###read
 Read data from the serial port.
+
+Syntax:
+`var length = read(buffer)`
+
+This function should not be called if there is currently an asynchronous event handler
+registered via `on("data", ...)` as the data will already have been consumed and
+passed to the event processor.
 
 ###write
 Write data to the serial port.
 
 Syntax:
-`write(portNumber, data)`
+`write(data)`
 
-The portNumber is either 0, 1 or 2.
 
 The data is either a string or a buffer.
 

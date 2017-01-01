@@ -1,0 +1,2 @@
+console.log("Hello!");
+console.log("Free heap: " + ESP32.getState().heapSize);
