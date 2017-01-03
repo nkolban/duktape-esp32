@@ -3000,7 +3000,7 @@ DUK_LOCAL void duk__nud_object_literal(duk_compiler_ctx *comp_ctx, duk_ivalue *r
 	first = 1;
 	for (;;) {
 		/*
-		 *  ES5 and ES6+ provide a lot of different PropertyDefinition
+		 *  ES5 and ES2015+ provide a lot of different PropertyDefinition
 		 *  formats, see http://www.ecma-international.org/ecma-262/6.0/#sec-object-initializer.
 		 *
 		 *  PropertyName can be IdentifierName (includes reserved words), a string
@@ -3140,7 +3140,7 @@ DUK_LOCAL void duk__nud_object_literal(duk_compiler_ctx *comp_ctx, duk_ivalue *r
 		} else {
 #if defined(DUK_USE_ES6)
 			if (comp_ctx->prev_token.t == DUK_TOK_LBRACKET) {
-				/* ES6 computed property name.  Executor ToPropertyKey()
+				/* ES2015 computed property name.  Executor ToPropertyKey()
 				 * coerces the key at runtime.
 				 */
 				DUK__SETTEMP(comp_ctx, reg_temp);
@@ -7778,21 +7778,26 @@ DUK_LOCAL duk_ret_t duk__js_compile_raw(duk_context *ctx, void *udata) {
 	 *  on flags.
 	 */
 
+	DUK_ASSERT(func->is_setget == 0);
 	func->is_strict = is_strict;
-	func->is_setget = 0;
+	DUK_ASSERT(func->is_notail == 0);
 
 	if (is_funcexpr) {
 		func->is_function = 1;
-		func->is_eval = 0;
-		func->is_global = 0;
+		DUK_ASSERT(func->is_eval == 0);
+		DUK_ASSERT(func->is_global == 0);
+		func->is_namebinding = 1;
+		func->is_constructable = 1;
 
 		duk__advance(comp_ctx);  /* init 'curr_token' */
 		duk__advance_expect(comp_ctx, DUK_TOK_FUNCTION);
 		(void) duk__parse_func_like_raw(comp_ctx, 0 /*flags*/);
 	} else {
-		func->is_function = 0;
+		DUK_ASSERT(func->is_function == 0);
 		func->is_eval = is_eval;
 		func->is_global = !is_eval;
+		DUK_ASSERT(func->is_namebinding == 0);
+		DUK_ASSERT(func->is_constructable == 0);
 
 		duk__parse_func_body(comp_ctx,
 		                     1,             /* expect_eof */

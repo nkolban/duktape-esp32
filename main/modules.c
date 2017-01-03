@@ -20,14 +20,17 @@
 #include "duktape_utils.h"
 #include "logging.h"
 #include "modules.h"
+#include "module_bluetooth.h"
 #include "module_dukf.h"
 #include "module_fs.h"
+#include "module_ledc.h"
 #include "module_nvs.h"
 #include "module_os.h"
 #include "module_partitions.h"
 #include "module_rmt.h"
 #include "module_rtos.h"
 #include "module_serial.h"
+#include "module_ssl.h"
 #include "module_timers.h"
 #include "module_wifi.h"
 
@@ -77,12 +80,15 @@ typedef struct {
  */
 functionTableEntry_t functionTable[] = {
 #if defined(ESP_PLATFORM)
-
-	{ "ModuleRMT",        ModuleRMT,        1},
-	{ "ModuleSerial",     ModuleSerial,     1},
+#if defined(ESP32_DUKTAPE_USE_BLUETOOTH)
+	{ "ModuleBluetooth",  ModuleBluetooth,  1},
+#endif
+	{ "ModuleLEDC",       ModuleLEDC,       1},
 	{ "ModulePartitions", ModulePartitions, 1},
+	{ "ModuleRMT",        ModuleRMT,        1},
 	{ "ModuleRTOS",       ModuleRTOS,       1},
-
+	{ "ModuleSerial",     ModuleSerial,     1},
+	{ "ModuleSSL",        ModuleSSL,        1},
 #endif // ESP_PLATFORM
 	// Must be last entry
 	{NULL, NULL, 0 }

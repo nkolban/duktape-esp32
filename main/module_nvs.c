@@ -66,20 +66,24 @@ static duk_ret_t js_nvs_eraseAll(duk_context *ctx) {
 
 
 /*
- *  Get a value from the store.
+ *  Get a value from the store.  If no such value is found, then
+ *  null is returned.
+ *
  *  [0] - handle
  *  [1] - key
  *  [2] - type - one of:
- *  * str
- *  * blob
- *  * u32
+ *  * string
+ *  * buffer
+ *  * int
+ *  * uint8
  */
 static duk_ret_t js_nvs_get(duk_context *ctx) {
 	nvs_handle handle = duk_get_int(ctx, -3);
-	const char *key = duk_get_string(ctx, -2);
-	const char *type = duk_get_string(ctx, -1);
+	const char *key   = duk_get_string(ctx, -2);
+	const char *type  = duk_get_string(ctx, -1);
+
 	//
-	// u32
+	// int
 	//
 	if (strcmp(type, "int") == 0) {
 		uint32_t u32Val;
@@ -93,8 +97,26 @@ static duk_ret_t js_nvs_get(duk_context *ctx) {
 		LOGD("Getting NVS for %s = %d", key, u32Val);
 		duk_push_int(ctx, u32Val);
 	}
+
 	//
-	// blob
+	// uint8
+	//
+	if (strcmp(type, "uint8") == 0) {
+		uint8_t u8Val;
+		esp_err_t rc = nvs_get_u8(handle, key, &u8Val);
+		if (rc == ESP_ERR_NVS_NOT_FOUND) {
+			goto notFound;
+		}
+		if (rc != ESP_OK) {
+			duk_error(ctx, 1, "nvs_get_u8 rc=%s", esp32_errToString(rc));
+		}
+		LOGD("Getting NVS for %s = %d", key, u8Val);
+		duk_push_int(ctx, u8Val);
+	}
+
+
+	//
+	// buffer
 	//
 	else if (strcmp(type, "buffer") == 0) {
 		size_t length;
@@ -117,8 +139,9 @@ static duk_ret_t js_nvs_get(duk_context *ctx) {
 		}
 		duk_push_buffer_object(ctx, -1, 0, length, DUK_BUFOBJ_NODEJS_BUFFER);
 	}
+
 	//
-	// str
+	// string
 	//
 	else if (strcmp(type, "string") == 0) {
 		size_t length;
@@ -164,7 +187,7 @@ notFound:
  * [n] - Access handle
  */
 static duk_ret_t js_nvs_open(duk_context *ctx) {
-	const char *nameSpace = duk_get_string(ctx, -2);
+	const char *nameSpace      = duk_get_string(ctx, -2);
 	const char *openModeString = duk_get_string(ctx, -1);
 	nvs_open_mode openMode;
 	if (strcmp(openModeString, "readwrite") == 0) {
@@ -176,7 +199,12 @@ static duk_ret_t js_nvs_open(duk_context *ctx) {
 		return 0;
 	}
 	nvs_handle handle;
-	nvs_open(nameSpace, openMode, &handle);
+	esp_err_t errRc = nvs_open(nameSpace, openMode, &handle);
+	if (errRc != ESP_OK) {
+		LOGE("Error: nvs_open: %s", esp32_errToString(errRc));
+		duk_push_null(ctx);
+		return 1;
+	}
 	duk_push_int(ctx, handle);
 	return 1;
 } // js_nvs_open
@@ -188,9 +216,11 @@ static duk_ret_t js_nvs_open(duk_context *ctx) {
  *  [1] - key
  *  [2] - data
  *  [3] - type - one of:
- *  * str
+ *  * string
+ *  * buffer
  *  * blob
- *  * u32
+ *  * int
+ *  * uint8
 
  */
 static duk_ret_t js_nvs_set(duk_context *ctx) {
@@ -207,6 +237,18 @@ static duk_ret_t js_nvs_set(duk_context *ctx) {
 		esp_err_t rc = nvs_set_u32(handle, key, u32Val);
 		if (rc != ESP_OK) {
 			duk_error(ctx, 1, "nvs_set_u32 rc=%s", esp32_errToString(rc));
+		}
+	}
+
+	//
+	// u8
+	//
+	if (strcmp(type, "uint8") == 0) {
+		uint8_t u8Val = (uint8_t)duk_get_int(ctx, -2);
+		LOGD("Setting nvs %s to %d", key, u8Val);
+		esp_err_t rc = nvs_set_u8(handle, key, u8Val);
+		if (rc != ESP_OK) {
+			duk_error(ctx, 1, "nvs_set_u8 rc=%s", esp32_errToString(rc));
 		}
 	}
 	//

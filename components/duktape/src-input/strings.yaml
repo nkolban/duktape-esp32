@@ -409,7 +409,7 @@ strings:
   - str: "get"
   - str: "set"
 
-  # --- ES6 specific strings ---
+  # --- ES2015 specific strings ---
 
   # Proxy
   - str: "Proxy"
@@ -417,7 +417,7 @@ strings:
   #- str: "revocable"
   #  es6: true
 
-  # Proxy trap names (ES6 Section 9.5)
+  # Proxy trap names (ES2015 Section 9.5)
   #- str: "getPrototypeOf"
   #  es6: true
   #- str: "setPrototypeOf"
@@ -438,7 +438,7 @@ strings:
     es6: true
   #- str: "defineProperty"
   #  es6: true
-  #- str: "enumerate"   # obsoleted in ES7
+  #- str: "enumerate"   # obsoleted in ES2016
   #  es6: true
   - str: "ownKeys"
     es6: true
@@ -651,12 +651,12 @@ strings:
     typed_array: true
   - str: "length"
     typed_array: true
-  - str: "byteLength"
-    typed_array: true
-  - str: "byteOffset"
-    typed_array: true
-  - str: "BYTES_PER_ELEMENT"
-    typed_array: true
+  #- str: "byteLength"
+  #  typed_array: true
+  #- str: "byteOffset"
+  #  typed_array: true
+  #- str: "BYTES_PER_ELEMENT"
+  #  typed_array: true
 
   # TypedArray TypedArray (e.g. Uint8Array)
   - str: "set"

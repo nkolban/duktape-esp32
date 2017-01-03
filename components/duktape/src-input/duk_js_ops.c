@@ -76,7 +76,7 @@ DUK_INTERNAL duk_bool_t duk_js_toboolean(duk_tval *tv) {
 		return 1;
 	}
 	case DUK_TAG_BUFFER: {
-		/* Mimic ArrayBuffer semantics: objects coerce true, regardless
+		/* Mimic Uint8Array semantics: objects coerce true, regardless
 		 * of buffer length (zero or not) or context.
 		 */
 		return 1;
@@ -584,7 +584,7 @@ DUK_INTERNAL duk_bool_t duk_js_equals_helper(duk_hthread *thr, duk_tval *tv_x, d
 			return DUK_TVAL_GET_HEAPHDR(tv_x) == DUK_TVAL_GET_HEAPHDR(tv_y);
 		}
 		case DUK_TAG_BUFFER: {
-			/* In Duktape 2.x plain buffers mimic ArrayBuffer objects
+			/* In Duktape 2.x plain buffers mimic Uint8Array objects
 			 * so always compare by heap pointer.  In Duktape 1.x
 			 * strict comparison would compare heap pointers and
 			 * non-strict would compare contents.
@@ -952,6 +952,7 @@ DUK_INTERNAL duk_bool_t duk_js_compare_helper(duk_hthread *thr, duk_tval *tv_x, 
 
 		if (!DUK_HSTRING_HAS_SYMBOL(h1) && !DUK_HSTRING_HAS_SYMBOL(h2)) {
 			rc = duk_js_string_compare(h1, h2);
+			duk_pop_2(ctx);
 			if (rc < 0) {
 				return retval ^ 1;
 			} else {
@@ -1105,7 +1106,7 @@ DUK_INTERNAL duk_bool_t duk_js_instanceof(duk_hthread *thr, duk_tval *tv_x, duk_
 		DUK_ASSERT(val != NULL);
 		break;
 	case DUK_TAG_BUFFER:
-		val = thr->builtins[DUK_BIDX_ARRAYBUFFER_PROTOTYPE];
+		val = thr->builtins[DUK_BIDX_UINT8ARRAY_PROTOTYPE];
 		DUK_ASSERT(val != NULL);
 		break;
 	case DUK_TAG_POINTER:
@@ -1202,7 +1203,7 @@ DUK_INTERNAL duk_bool_t duk_js_in(duk_hthread *thr, duk_tval *tv_x, duk_tval *tv
 	/* XXX: The ES5/5.1/6 specifications require that the key in 'key in obj'
 	 * must be string coerced before the internal HasProperty() algorithm is
 	 * invoked.  A fast path skipping coercion could be safely implemented for
-	 * numbers (as number-to-string coercion has no side effects).  For ES6
+	 * numbers (as number-to-string coercion has no side effects).  For ES2015
 	 * proxy behavior, the trap 'key' argument must be in a string coerced
 	 * form (which is a shame).
 	 */
@@ -1286,7 +1287,7 @@ DUK_INTERNAL duk_small_uint_t duk_js_typeof_stridx(duk_tval *tv_x) {
 	case DUK_TAG_BUFFER: {
 		/* Implementation specific.  In Duktape 1.x this would be
 		 * 'buffer', in Duktape 2.x changed to 'object' because plain
-		 * buffers now mimic ArrayBuffer objects.
+		 * buffers now mimic Uint8Array objects.
 		 */
 		stridx = DUK_STRIDX_LC_OBJECT;
 		break;

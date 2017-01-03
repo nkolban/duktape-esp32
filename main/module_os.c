@@ -243,15 +243,19 @@ static duk_ret_t js_os_connect(duk_context *ctx) {
  * [0] - hostname
  */
 static duk_ret_t js_os_gethostbyname(duk_context *ctx) {
+	LOGD(">> js_os_gethostbyname");
 	const char *hostname = duk_get_string(ctx, -1);
+	LOGD(" - Looking up %s", hostname);
 	struct hostent *hostent = gethostbyname(hostname);
 	if (hostent == NULL) {
+		LOGD(" - not found! h_errno = %d", h_errno);
 		duk_push_null(ctx);
 	} else {
 		char retName[INET_ADDRSTRLEN];
 		inet_ntop(AF_INET, hostent->h_addr_list[0], retName, sizeof(retName));
 		duk_push_string(ctx, retName);
 	}
+	LOGD("<< js_os_gethostbyname");
 	return 1;
 } // js_os_gethostbyname
 

@@ -42,7 +42,7 @@
   # No longer relevant
 -
   test: "test-bug-json-parse-__proto__.js"
-  knownissue: "when ES6 __proto__ enabled, JSON.parse() parses '__proto__' property incorrectly when a specially crafted reviver is used"
+  knownissue: "when ES2015 __proto__ enabled, JSON.parse() parses '__proto__' property incorrectly when a specially crafted reviver is used"
   # Moved
 -
   test: "test-bug-numconv-1e23.js"
@@ -116,10 +116,13 @@
   test: "test-dev-object-literal-method-computed.js"
   knownissue: "computed name for object literal method shorthand not yet implemented"
   # Moved
-
 -
   test: "test-bi-symbol-coercion.js"
   knownissue: "no @@toPrimitive coercion yet"
+  # Moved
+-
+  test: "test-bi-typedarray-misc-inherited-accessors.js"
+  knownissue: "typed array .length etc not yet inherited accessors (ES2015 requirement)"
   # Moved
 
 # Ecmascript testcases that need special options or environment to work

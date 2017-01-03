@@ -18,7 +18,7 @@ type so various approaches are used:
   - http://blogs.msdn.com/b/ie/archive/2011/12/01/working-with-binary-data-using-typed-arrays.aspx
   - https://www.inkling.com/read/javascript-definitive-guide-david-flanagan-6th/chapter-22/typed-arrays-and-arraybuffers
 
-* ES6 has adopted the Khronos specification, with more specific semantics:
+* ES2015 has adopted the Khronos specification, with more specific semantics:
 
   - http://www.ecma-international.org/ecma-262/6.0/index.html#sec-arraybuffer-constructor
   - http://www.ecma-international.org/ecma-262/6.0/index.html#sec-typedarray-constructors
@@ -39,7 +39,7 @@ type so various approaches are used:
   - http://www.ecma-international.org/ecma-262/6.0/index.html#sec-float32array
   - http://www.ecma-international.org/ecma-262/6.0/index.html#sec-float64array
 
-  ES6 spec:
+  ES2015 spec:
 
   - http:/www.ecma-international.org/ecma-262/6.0/index.html/
 
@@ -55,8 +55,8 @@ type so various approaches are used:
     a dynamic (resizable) buffer, or an external (user allocated)
     buffer.
 
-  - The plain buffer behaves like ArrayBuffer for Ecmascript code but maintains
-    separate typing in the C API.  It object coerces to an actual ``ArrayBuffer``
+  - The plain buffer behaves like Uint8Array for Ecmascript code but maintains
+    separate typing in the C API.  It object coerces to an actual ``Uint8Array``
     sharing the same underlying storage.
 
 * Blob; not very relevant for Duktape:
@@ -96,11 +96,11 @@ object.  Plain buffers can be fixed, dynamic, or external:
   and length can be changed but Duktape won't resize or automatically free
   the buffer.
 
-Plain buffers have virtual properties for buffer byte indices, .length,
-.byteOffset, .byteLength, and .BYTES_PER_ELEMENT.  Assignment has the same
-semantics as Uint8Array: bytes are written with modulo 256 semantics, bytes
-read back as unsigned 8-bit values.  The plain buffer type is designed to
-be as friendly as possible for low level embedded programming, and has a
+Plain buffers have Uint8Array-like virtual properties for buffer byte indices,
+.length, .byteOffset, .byteLength, and .BYTES_PER_ELEMENT.  Assignment has the
+same semantics as Uint8Array: bytes are written with modulo 256 semantics,
+bytes read back as unsigned 8-bit values.  The plain buffer type is designed
+to be as friendly as possible for low level embedded programming, and has a
 minimal footprint because there's no Ecmascript object associated with it.
 It is mostly intended to be accessed from C code.  Duktape also uses buffer
 values internally.
@@ -161,7 +161,7 @@ integers of multiple sizes, IEEE floats, or IEEE doubles.  All accesses to
 the underlying buffer are byte-based, and no alignment is required by Duktape;
 however, Khronos TypedArray specification restricts creation of
 non-element-aligned views.  All multi-byte elements are accessed in the host
-endianness (this is required by the Khronos/ES6 TypedArray specification).
+endianness (this is required by the ES2015 TypedArray specification).
 
 A ``duk_hbufobj`` acts as a both a buffer representation (providing Node.js
 Buffer and ArrayBuffer) and a view representation (prodiving e.g. DataView,
@@ -202,12 +202,12 @@ Summary of buffer-related values
 +-------------------+---------------+----------------+-------------+-------------+--------------------+---------+---------+--------------+---------------+---------------------+-------------+------------------+-----------------------------------+
 | Type              | Specification | .length        | .byteLength | .byteOffset | .BYTES_PER_ELEMENT | .buffer | [index] | Element type | Read coercion | Write coercion      | Endianness  | Accessor methods | Notes                             |
 +===================+===============+================+=============+=============+====================+=========+=========+==============+===============+=====================+=============+==================+===================================+
-| plain buffer      | Duktape       | yes (bytes)    | yes         | yes         | yes                | no      | yes     | uint8        | uint8         | ToUint32() & 0xff   | n/a         | no               | Mimic ArrayBuffer, inherit        |
-|                   |               |                |             |             |                    |         |         |              |               |                     |             |                  | from ArrayBuffer.prototype.       |
+| plain buffer      | Duktape       | yes (bytes)    | yes         | yes         | 1                  | no      | yes     | uint8        | uint8         | ToUint32() & 0xff   | n/a         | no               | Mimic Uint8Array, inherit         |
+|                   |               |                |             |             |                    |         |         |              |               |                     |             |                  | from Uint8Array.prototype.        |
 +-------------------+---------------+----------------+-------------+-------------+--------------------+---------+---------+--------------+---------------+---------------------+-------------+------------------+-----------------------------------+
 | Buffer            | Node.js       | yes (bytes)    | yes         | yes         | 1                  | no      | yes     | uint8        | uint8         | ToUint32() & 0xff   | n/a         | yes              | Based on Node.js v0.12.1.         |
 +-------------------+---------------+----------------+-------------+-------------+--------------------+---------+---------+--------------+---------------+---------------------+-------------+------------------+-----------------------------------+
-| ArrayBuffer       | TypedArray    | yes (bytes)    | yes         | yes         | 1                  | no      | yes     | uint8        | uint8         | ToUint32() & 0xff   | n/a         | no               |                                   |
+| ArrayBuffer       | TypedArray    | no             | yes         | no          | no                 | no      | no      | n/a          | n/a           | n/a                 | n/a         | no               |                                   |
 +-------------------+---------------+----------------+-------------+-------------+--------------------+---------+---------+--------------+---------------+---------------------+-------------+------------------+-----------------------------------+
 | DataView          | TypedArray    | yes (bytes)    | yes         | yes         | 1                  | yes     | yes     | uint8        | uint8         | ToUint32() & 0xff   | n/a         | yes              |                                   |
 +-------------------+---------------+----------------+-------------+-------------+--------------------+---------+---------+--------------+---------------+---------------------+-------------+------------------+-----------------------------------+
@@ -232,8 +232,8 @@ Summary of buffer-related values
 
 Notes:
 
-* A plain buffer mimics an ArrayBuffer wherever possible, and inherits
-  methods and other properties through ``ArrayBuffer.prototype``.
+* A plain buffer mimics an Uint8Array wherever possible, and inherits
+  methods and other properties through ``Uint8Array.prototype``.
 
 * DataView and Node.js Buffer inherit a set of accessor methods from their
   prototype.  These accessors allow fields of different width and type to
@@ -244,7 +244,7 @@ Notes:
   ArrayBuffer they are used on must also be a multiple of the element
   size (i.e. views must be naturally aligned).  These requirements are not
   very useful from Duktape point of view but they are required by the
-  Khronos/ES6 specifications.
+  ES2015 specification.
 
   (It would be trivial to use a specific endianness or allow unaligned
   views because Duktape works with the values byte-by-byte anyway.)
@@ -255,14 +255,6 @@ Notes:
 * An unsigned ``ToUint32()`` coercion is used in writing signed values too.
   For the bytes written to memory the signedness of this coercion doesn't
   really matter.
-
-* Every buffer object type in Duktape provides virtual index access (either
-  as bytes or as elements), and the virtual "length", "byteLength",
-  "byteOffset", and "BYTES_PER_ELEMENT" properties.  These are a union of
-  various virtual properties used (e.g. byteLength, byteOffset, and
-  BYTES_PER_ELEMENT come from TypedArray specification).  They're uniformly
-  provided for all objects implemented internally as a ``duk_hbufobj``.
-  They're also provided for the plain buffer type.
 
 Built-in objects related to buffers
 -----------------------------------
@@ -327,7 +319,7 @@ TypedArray:
 * Float64Array.prototype
 
 None of the prototype objects are mandated by the Khronos specification but
-are present in ES6.
+are present in ES2015.
 
 Conversions between buffer values
 ---------------------------------
@@ -343,9 +335,9 @@ As a general rule:
   Khronos DataView() constructor accepts a Node.js Buffer, and Node.js
   Buffer() accepts a Uint8Array as an input.
 
-* A plain Duktape buffer is accepted as if it was coerced to an ArrayBuffer.
-  To simplify implementation many internals actually do an explicit ArrayBuffer
-  coercion when given plain buffers.
+* A plain Duktape buffer is accepted as if it was coerced to an Uint8Array.
+  To simplify implementation many internals actually do an explicit
+  Uint8Array coercion when given plain buffers.
 
 This general rules is complicated by a few practical issues:
 
@@ -535,7 +527,7 @@ Khronos typed array notes
 The Khronos typed array specification is related to HTML canvas and WebGL
 programming.  Some of the design choices are affected by this, e.g. the
 endianness handling and clamped byte write support.  The Khronos specification
-has been refined and merged into ES6 so this specification has an official
+has been refined and merged into ES2015 so this specification has an official
 status now.
 
 Specification notes
@@ -549,15 +541,13 @@ Specification notes
 
 * ArrayBuffer does not have virtual indices or 'length' behavior, but TypedArray
   views do.  DataView does not have virtual indices but e.g. V8 provides them in
-  practice.  For simplicity, Duktape ArrayBuffers and plain buffers do provide
-  'length', virtual indices, and other virtual properties.  This allows plain
-  buffers and ArrayBuffers to be manipulated without a view, which saves memory.
+  practice.
 
-* ArrayBuffer has 'byteLength' and 'byteOffset' but no 'length'.  Views have
-  a 'byteLength' and a 'length', where 'length' refers to number of elements,
-  not bytes.  For example a Uint32Array view with length 4 would have
-  byteLength 16.  (For internal reasons, all Duktape ArrayBuffer and view
-  objects provide 'length', 'byteLength', and 'byteOffset'.)
+* ArrayBuffer has 'byteLength'.  Views have a 'byteLength' and a 'length', where
+  'length' refers to number of elements, not bytes.  For example a Uint32Array
+  view with length 4 would have byteLength 16.  (For internal reasons, all
+  Duktape ArrayBuffer and view objects provide 'length', 'byteLength', and
+  'byteOffset'.)
 
 * ArrayBufferView classes are host endian.  DataView is endian independent
   because caller specifies endianness for each call.
@@ -875,6 +865,9 @@ The ``set()`` and ``subarray()`` methods are inherited from the intermediate
 prototype object.  This reduces property count by about 16 at the cost of one
 additional object.
 
+ES2015 makes this the standard model; the TypedArreay prototype is referred to
+as %TypedArrayPrototype% intrinsic object in the ES2015 specification.
+
 View/slice notes
 ----------------
 
@@ -946,8 +939,8 @@ there must be no side effects between the check and the operation:
 Future work
 ===========
 
-Missing ES6 features
---------------------
+Missing ES2015 features
+-----------------------
 
 General semantics:
 
@@ -1196,7 +1189,7 @@ the required behavior (e.g. zero .byteLength) but not all (e.g. zero
 .byteOffset).  So an explicit neutered check, or a change in data structures,
 may be necessary.
 
-In ES6 neutering seems to be covered under the name "detached buffer" and
+In ES2015 neutering seems to be covered under the name "detached buffer" and
 many operations on detached buffers (like reads and writes) throw a TypeError
 which is close to what current code is doing:
 
@@ -1214,7 +1207,7 @@ This should be relatively straightforward to do, and perhaps useful.
 Allow non-aligned views
 -----------------------
 
-The Khronos/ES6 alignment limitation is not necessary with Duktape because
+The ES2015 alignment limitation is not necessary with Duktape because
 all element accesses are ultimately done using byte-by-byte reads without
 making any alignment assumptions.
 

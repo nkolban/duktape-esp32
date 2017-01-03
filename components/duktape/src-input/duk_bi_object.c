@@ -8,7 +8,7 @@
 DUK_INTERNAL duk_ret_t duk_bi_object_prototype_to_string(duk_context *ctx) {
 	duk_tval *tv;
 	tv = DUK_HTHREAD_THIS_PTR((duk_hthread *) ctx);
-	/* XXX: This is not entirely correct anymore; in ES6 the
+	/* XXX: This is not entirely correct anymore; in ES2015 the
 	 * default lookup should use @@toStringTag to come up with
 	 * e.g. [object Symbol].
 	 */
@@ -70,7 +70,7 @@ DUK_INTERNAL duk_ret_t duk_bi_object_constructor_assign(duk_context *ctx) {
 			continue;
 		}
 
-		/* duk_enum() respects ES6+ [[OwnPropertyKeys]] ordering, which is
+		/* duk_enum() respects ES2015+ [[OwnPropertyKeys]] ordering, which is
 		 * convenient here.
 		 */
 		duk_to_object(ctx, idx);
@@ -254,7 +254,7 @@ DUK_INTERNAL duk_ret_t duk_bi_object_constructor_seal_freeze_shared(duk_context 
 
 	h = duk_get_hobject(ctx, 0);
 	if (h == NULL) {
-		/* ES6 Sections 19.1.2.5, 19.1.2.17 */
+		/* ES2015 Sections 19.1.2.5, 19.1.2.17 */
 		return 1;
 	}
 
@@ -293,7 +293,7 @@ DUK_INTERNAL duk_ret_t duk_bi_object_constructor_is_sealed_frozen_shared(duk_con
 		                          1 :               /* lightfunc always frozen and sealed */
 		                          (is_frozen ^ 1)); /* buffer sealed but not frozen (index props writable) */
 	} else {
-		/* ES6 Sections 19.1.2.12, 19.1.2.13: anything other than an object
+		/* ES2015 Sections 19.1.2.12, 19.1.2.13: anything other than an object
 		 * is considered to be already sealed and frozen.
 		 */
 		h = duk_get_hobject(ctx, 0);
@@ -390,14 +390,14 @@ DUK_INTERNAL duk_ret_t duk_bi_object_getprototype_shared(duk_context *ctx) {
 	}
 	DUK_ASSERT(duk_get_top(ctx) >= 1);
 	if (magic < 2) {
-		/* ES6 Section 19.1.2.9, step 1 */
+		/* ES2015 Section 19.1.2.9, step 1 */
 		duk_to_object(ctx, 0);
 	}
 	tv = DUK_GET_TVAL_POSIDX(ctx, 0);
 
 	switch (DUK_TVAL_GET_TAG(tv)) {
 	case DUK_TAG_BUFFER:
-		proto = thr->builtins[DUK_BIDX_ARRAYBUFFER_PROTOTYPE];
+		proto = thr->builtins[DUK_BIDX_UINT8ARRAY_PROTOTYPE];
 		break;
 	case DUK_TAG_LIGHTFUNC:
 		proto = thr->builtins[DUK_BIDX_FUNCTION_PROTOTYPE];
@@ -422,7 +422,7 @@ DUK_INTERNAL duk_ret_t duk_bi_object_getprototype_shared(duk_context *ctx) {
 #endif  /* DUK_USE_OBJECT_BUILTIN || DUK_USE_REFLECT_BUILTIN */
 
 #if defined(DUK_USE_OBJECT_BUILTIN) || defined(DUK_USE_REFLECT_BUILTIN)
-/* Shared helper to implement ES6 Object.setPrototypeOf,
+/* Shared helper to implement ES2015 Object.setPrototypeOf,
  * Object.prototype.__proto__ setter, and Reflect.setPrototypeOf.
  *
  * http://www.ecma-international.org/ecma-262/6.0/index.html#sec-get-object.prototype.__proto__
@@ -475,7 +475,7 @@ DUK_INTERNAL duk_ret_t duk_bi_object_setprototype_shared(duk_context *ctx) {
 		duk_hobject *curr_proto;
 		curr_proto = thr->builtins[(mask & DUK_TYPE_MASK_LIGHTFUNC) ?
 		                               DUK_BIDX_FUNCTION_PROTOTYPE :
-		                               DUK_BIDX_ARRAYBUFFER_PROTOTYPE];
+		                               DUK_BIDX_UINT8ARRAY_PROTOTYPE];
 		if (h_new_proto == curr_proto) {
 			goto skip;
 		}
@@ -614,7 +614,7 @@ DUK_INTERNAL duk_ret_t duk_bi_object_constructor_define_property(duk_context *ct
 DUK_INTERNAL duk_ret_t duk_bi_object_constructor_get_own_property_descriptor(duk_context *ctx) {
 	DUK_ASSERT_TOP(ctx, 2);
 
-	/* ES6 Section 19.1.2.6, step 1 */
+	/* ES2015 Section 19.1.2.6, step 1 */
 	if (duk_get_current_magic(ctx) == 0) {
 		duk_to_object(ctx, 0);
 	}
@@ -696,12 +696,12 @@ DUK_INTERNAL duk_ret_t duk_bi_object_constructor_keys_shared(duk_context *ctx) {
 
 	magic = duk_get_current_magic(ctx);
 	if (magic == 3) {
-		/* ES6 Section 26.1.11 requires a TypeError for non-objects.  Lightfuncs
+		/* ES2015 Section 26.1.11 requires a TypeError for non-objects.  Lightfuncs
 		 * and plain buffers pretend to be objects, so accept those too.
 		 */
 		obj = duk_require_hobject_promote_mask(ctx, 0, DUK_TYPE_MASK_LIGHTFUNC | DUK_TYPE_MASK_BUFFER);
 	} else {
-		/* ES6: ToObject coerce. */
+		/* ES2015: ToObject coerce. */
 		obj = duk_to_hobject(ctx, 0);
 	}
 	DUK_ASSERT(obj != NULL);
@@ -739,7 +739,7 @@ DUK_INTERNAL duk_ret_t duk_bi_object_constructor_keys_shared(duk_context *ctx) {
 	DUK_UNREF(h_trap_result);
 
 	magic = duk_get_current_magic(ctx);
-	DUK_ASSERT(magic >= 0 && magic < sizeof(duk__object_keys_enum_flags) / sizeof(duk_small_uint_t));
+	DUK_ASSERT(magic >= 0 && magic < (duk_int_t) (sizeof(duk__object_keys_enum_flags) / sizeof(duk_small_uint_t)));
 	enum_flags = duk__object_keys_enum_flags[magic];
 
 	duk_proxy_ownkeys_postprocess(ctx, h_proxy_target, enum_flags);
@@ -750,7 +750,7 @@ DUK_INTERNAL duk_ret_t duk_bi_object_constructor_keys_shared(duk_context *ctx) {
 
 	DUK_ASSERT_TOP(ctx, 1);
 	magic = duk_get_current_magic(ctx);
-	DUK_ASSERT(magic >= 0 && magic < sizeof(duk__object_keys_enum_flags) / sizeof(duk_small_uint_t));
+	DUK_ASSERT(magic >= 0 && magic < (duk_int_t) (sizeof(duk__object_keys_enum_flags) / sizeof(duk_small_uint_t)));
 	enum_flags = duk__object_keys_enum_flags[magic];
 	return duk_hobject_get_enumerated_keys(ctx, enum_flags);
 }

@@ -106,6 +106,7 @@ static duk_ret_t js_serial_configure(duk_context *ctx) {
 		return 0;
 	}
 
+	LOGD("Setting port %d rxBufferSize: %d, txBufferSize: %d", port, rx_buffer_size, tx_buffer_size);
 	errRc = uart_driver_install(
 		port, // Port
 		rx_buffer_size, // RX buffer size
@@ -196,21 +197,21 @@ duk_ret_t ModuleSerial(duk_context *ctx) {
 	// [1] - C Function - js_serial_configure
 
 	duk_put_prop_string(ctx, idx, "configure"); // Add configure to Serial
-	// [0] - RMT object
+	// [0] - Serial object
 
 	duk_push_c_function(ctx, js_serial_read, 2);
 	// [0] - Serial object
 	// [1] - C Function - js_serial_read
 
 	duk_put_prop_string(ctx, idx, "read"); // Add read to Serial
-	// [0] - RMT object
+	// [0] - Serial object
 
 	duk_push_c_function(ctx, js_serial_write, 2);
 	// [0] - Serial object
 	// [1] - C Function - js_serial_write
 
 	duk_put_prop_string(ctx, idx, "write"); // Add write to Serial
-	// [0] - RMT object
+	// [0] - Serial object
 
 
 	duk_pop(ctx);

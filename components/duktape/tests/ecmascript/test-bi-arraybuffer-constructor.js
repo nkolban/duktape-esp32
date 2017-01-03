@@ -16,26 +16,26 @@ function str(x) {
 }
 
 /*===
-string NONE object 0 0 0 1
-undefined undefined object 0 0 0 1
-object null object 0 0 0 1
-boolean true object 1 1 0 1
-boolean false object 0 0 0 1
-string foo object 0 0 0 1
-string 123 object 123 123 0 1
-object 123 object 123 123 0 1
-object [object Object] object 0 0 0 1
-function [function] object 0 0 0 1
-object [object Object] object 321 321 0 1
+string NONE object undefined 0 undefined undefined
+undefined undefined object undefined 0 undefined undefined
+object null object undefined 0 undefined undefined
+boolean true object undefined 1 undefined undefined
+boolean false object undefined 0 undefined undefined
+string foo object undefined 0 undefined undefined
+string 123 object undefined 123 undefined undefined
+object 123 object undefined 123 undefined undefined
+object [object Object] object undefined 0 undefined undefined
+function [function] object undefined 0 undefined undefined
+object [object Object] object undefined 321 undefined undefined
 number -Infinity RangeError
 number -1000000000 RangeError
 number -1 RangeError
-number 0 object 0 0 0 1
-number 1 object 1 1 0 1
-number 100 object 100 100 0 1
-number 1000000 object 1000000 1000000 0 1
+number 0 object undefined 0 undefined undefined
+number 1 object undefined 1 undefined undefined
+number 100 object undefined 100 undefined undefined
+number 1000000 object undefined 1000000 undefined undefined
 number Infinity RangeError
-number NaN object 0 0 0 1
+number NaN object undefined 0 undefined undefined
 ===*/
 
 function arrayBufferConstructorTest() {
@@ -63,7 +63,7 @@ function arrayBufferConstructorTest() {
 
             if (typeof b.byteLength === 'number') {
                 for (var i = 0; i < b.byteLength; i++) {
-                    if (b[i] != 0) {
+                    if (new Uint8Array(b)[i] != 0) {
                         throw new Error('arraybuffer not zeroed as expected, non-zero byte at index: ' + i);
                     }
                 }
@@ -200,7 +200,7 @@ NaN 0
 
 /* Test the ArrayBuffer argument coercion.
  *
- * Currently Duktape doesn't follow ES6 ToLength() (which *clamps* to
+ * Currently Duktape doesn't follow ES2015 ToLength() (which *clamps* to
  * [0,2^53-1]).
  */
 
@@ -224,7 +224,7 @@ function arrayBufferArgumentTest() {
         true,
         false,
 
-        // ES6 requires that ToNumber(arg) match ToLength(ToNumber(arg))
+        // ES2015 requires that ToNumber(arg) match ToLength(ToNumber(arg))
         // (using SameValueZero which ignores zero sign).  In other words,
         // fractional input values cause a RangeError.  V8 doesn't follow
         // this behavior but truncates instead.
@@ -240,7 +240,7 @@ function arrayBufferArgumentTest() {
         -1,
         -1.5,
 
-        // Negative zero is explicitly allowed by ES6, the SameValueZero()
+        // Negative zero is explicitly allowed by ES2015, the SameValueZero()
         // comparison ignores zero sign.
 
         -0,
@@ -261,7 +261,7 @@ function arrayBufferArgumentTest() {
 
         // For now there's an internal maximum buffer length in Duktape.
         // It is triggered at least by 2^32 so test for that.  Exceeding
-        // the limit causes a RangeError.  ES6 doesn't specify what to do
+        // the limit causes a RangeError.  ES2015 doesn't specify what to do
         // if an internal limit is reached but a RangeError seems suitable
         // and matches V8.
 

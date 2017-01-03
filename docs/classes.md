@@ -11,6 +11,7 @@ Built into the solution are a variety of Modules.
 * [HTTPServerRequest](#httpserverrequest)
 * [HTTPServerResponse](#httpserverresponse)
 * [HTTPParser](#httpparser)
+* [LEDC](#ledc)
 * [net](#net)
 * [NVS](#nvs)
 * [OS](#os)
@@ -647,6 +648,35 @@ var parserStreamWriter = new HTTPParser(HTTPParser.REQUEST, function(parserStrea
 });
 ```
 
+##LEDC/PWM
+The LEDC/PWM class provides access to the PWM functions of the ESP32.  To use this class one must
+study the ESP32 PWM functions and understand the notions of timers and channels.
+
+###configureChannel
+Configure a channel.
+
+Syntax:
+`configureChannel(options)`
+
+The `options` object contains the following:
+
+* `channel` - The channel to use.  Value between 0 and 7.
+* `duty` - The duty period of the channel.  A value between 0 and 2^bitSize.
+* `gpio` - The GPIO pin on which the signal should appear.
+* `timer` - The associated timer.  A value between 0 and 3.
+
+###configureTimer
+Configure a timer.
+
+Syntax:
+`configureTimer(options)`
+
+The `options` object contains the following:
+
+* `bitSize` - The number of bits in the granularity of the timer.  A value between 10 and 15.
+* `freq` - The frequency of the period in Hz.
+* `timer` - The timer being configured.  A value between 0 and 3.
+
 ## net
 The net module owns the lowest level networking components.
 
@@ -816,15 +846,19 @@ Get the value of a given key.
 Syntax:
 `get(key, type)`
 
-The type must be one of:
+The `type` must be one of:
+
+* `buffer`
 * `int`
-* `blob`
 * `string`
+* `uint8`
 
 For example:
 ```
 var value = namespace.get("name", "string");
 ```
+
+If a key with the given name does not exist, then `null` is returned.
 
 ###set
 Set the value of a given key to a value.
@@ -833,9 +867,10 @@ Syntax:
 `set(key, value, type)`
 
 The type must be one of:
+* `buffer`
 * `int`
-* `blob`
 * `string`
+* `uint8`
 
 For example:
 ```
@@ -1041,7 +1076,11 @@ is an array of object where each object contains:
 
 
 ##RMT
-The RMT module is a built-in and is available through "RMT".
+The RMT module must be loaded with:
+
+```
+var RMT = require("RMT");
+```
 
 The ESP32 has hardware support for a "Remote Control Peripheral".  At first this may seem like an odd choice.
 The purpose of this is to control an infrared transmitter or receiver and modulate the transmission of 
@@ -1477,6 +1516,14 @@ wifi.scan(function(list) {
    log(JSON.stringify(list));
 });
 ```
+
+###setDNS
+Set the DNS servers.
+
+Syntax:
+`setDNS(servers)`
+
+The `servers` is an array of IP address strings.
 
 ###start
 Perform a start of the WiFi subsystem.

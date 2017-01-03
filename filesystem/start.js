@@ -9,11 +9,20 @@ function startIDE() {
 	ide_webserver();
 };
 
-var bootwifi = require("bootwifi.js");
 
 // Boot WiFi and, when done, start the IDE WebServer.
 if (DUKF.OS == "ESP32") {
-	bootwifi(startIDE);
+	// Check to see if we are booting serial ...
+	var NVS = require("nvs");
+	var esp32duktapeNS = NVS.open("esp32duktape", "readwrite");
+	var useSerial = esp32duktapeNS.get("useSerial", "uint8");
+	esp32duktapeNS.close();
+	if (useSerial === 1) {
+		require("uart_processor");
+	} else {
+		var bootwifi = require("bootwifi.js");
+		bootwifi(startIDE);
+	}
 } else {
 	startIDE();
 }

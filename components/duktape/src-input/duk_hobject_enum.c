@@ -26,15 +26,8 @@
  */
 #define DUK__ENUM_START_INDEX  2
 
-DUK_LOCAL const duk_uint16_t duk__bufobj_virtual_props[] = {
-	DUK_STRIDX_LENGTH,
-	DUK_STRIDX_BYTE_LENGTH,
-	DUK_STRIDX_BYTE_OFFSET,
-	DUK_STRIDX_BYTES_PER_ELEMENT
-};
-
 #if 0
-/* Current implementation suffices for ES6 for now because there's no symbol
+/* Current implementation suffices for ES2015 for now because there's no symbol
  * sorting, so commented out for now.
  */
 
@@ -60,7 +53,7 @@ DUK_LOCAL duk_bool_t duk__sort_compare_es6(duk_hstring *a, duk_hstring *b, duk_u
 	DUK_ASSERT(b != NULL);
 	DUK_UNREF(b);  /* Not actually needed now, val_b suffices. */
 
-	/* ES6 [[OwnPropertyKeys]] enumeration order for ordinary objects:
+	/* ES2015 [[OwnPropertyKeys]] enumeration order for ordinary objects:
 	 * (1) array indices in ascending order, (2) non-array-index keys in
 	 * insertion order, symbols in insertion order:
 	 * http://www.ecma-international.org/ecma-262/6.0/#sec-ordinary-object-internal-methods-and-internal-slots-ownpropertykeys.
@@ -164,7 +157,7 @@ DUK_LOCAL void duk__sort_enum_keys_es6(duk_hthread *thr, duk_hobject *h_obj, duk
 #endif  /* disabled */
 
 /*
- *  Helper to sort keys into ES6 [[OwnPropertyKeys]] enumeration order:
+ *  Helper to sort keys into ES2015 [[OwnPropertyKeys]] enumeration order:
  *  array keys in ascending order first, followed by keys in insertion
  *  order, followed by symbols in insertion order (not handled here).
  *  Insertion sort based.
@@ -173,7 +166,7 @@ DUK_LOCAL void duk__sort_enum_keys_es6(duk_hthread *thr, duk_hobject *h_obj, duk
  *  index" marker is higher than any array index, non-array-index keys are
  *  sorted after array indices.  Non-array-index keys are also considered
  *  equal for sorting which means that their order is kept as is, so the end
- *  result matches ES6 [[OwnPropertyKeys]].
+ *  result matches ES2015 [[OwnPropertyKeys]].
  *
  *  Insertion sort is used because (1) it's simple and compact, (2) works
  *  in-place, (3) minimizes operations if data is already nearly sorted,
@@ -310,7 +303,7 @@ DUK_INTERNAL void duk_hobject_enumerator_create(duk_context *ctx, duk_small_uint
 
 	/* XXX: share code with Object.keys() Proxy handling */
 
-	/* In ES6 for-in invoked the "enumerate" trap; in ES7 "enumerate"
+	/* In ES2015 for-in invoked the "enumerate" trap; in ES2016 "enumerate"
 	 * has been obsoleted and "ownKeys" is used instead.
 	 */
 	DUK_DDD(DUK_DDDPRINT("proxy enumeration"));
@@ -386,8 +379,8 @@ DUK_INTERNAL void duk_hobject_enumerator_create(duk_context *ctx, duk_small_uint
 		 * array part, and finally entry part.
 		 *
 		 * If there are array index keys in the entry part or any
-		 * other risk of the ES6 [[OwnPropertyKeys]] order being
-		 * violated, need_sort is set and an explicit ES6 sort is
+		 * other risk of the ES2015 [[OwnPropertyKeys]] order being
+		 * violated, need_sort is set and an explicit ES2015 sort is
 		 * done for the inheritance level.
 		 */
 
@@ -410,6 +403,8 @@ DUK_INTERNAL void duk_hobject_enumerator_create(duk_context *ctx, duk_small_uint
 #else
 		if (DUK_HOBJECT_HAS_EXOTIC_STRINGOBJ(curr)) {
 #endif
+			duk_bool_t have_length = 1;
+
 			/* String and buffer enumeration behavior is identical now,
 			 * so use shared handler.
 			 */
@@ -424,14 +419,14 @@ DUK_INTERNAL void duk_hobject_enumerator_create(duk_context *ctx, duk_small_uint
 				duk_hbufobj *h_bufobj;
 				DUK_ASSERT(DUK_HOBJECT_IS_BUFOBJ(curr));
 				h_bufobj = (duk_hbufobj *) curr;
-				if (h_bufobj == NULL ||
-				   (DUK_HOBJECT_GET_CLASS_NUMBER(curr) == DUK_HOBJECT_CLASS_ARRAYBUFFER &&
-				    ((enum_flags & DUK_ENUM_INCLUDE_NONENUMERABLE) == 0))) {
+
+				if (h_bufobj == NULL || !h_bufobj->is_typedarray) {
 					/* Zero length seems like a good behavior for neutered buffers.
-					 * ArrayBuffer index properties are non-enumerable, so use len = 0
-					 * to ensure they're not enumerated (unless requested explicitly).
+					 * ArrayBuffer (non-view) and DataView don't have index properties
+					 * or .length property.
 					 */
 					len = 0;
+					have_length = 0;
 				} else {
 					/* There's intentionally no check for
 					 * current underlying buffer length.
@@ -460,25 +455,8 @@ DUK_INTERNAL void duk_hobject_enumerator_create(duk_context *ctx, duk_small_uint
 			 * properties are requested.
 			 */
 
-			if (enum_flags & DUK_ENUM_INCLUDE_NONENUMERABLE) {
-				duk_uint_fast32_t n;
-
-#if defined(DUK_USE_BUFFEROBJECT_SUPPORT)
-				if (DUK_HOBJECT_IS_BUFOBJ(curr)) {
-					n = sizeof(duk__bufobj_virtual_props) / sizeof(duk_uint16_t);
-				}
-				else
-#endif
-				{
-					DUK_ASSERT(DUK_HOBJECT_HAS_EXOTIC_STRINGOBJ(curr));
-					DUK_ASSERT(duk__bufobj_virtual_props[0] == DUK_STRIDX_LENGTH);
-					n = 1;  /* only 'length' */
-				}
-
-				for (i = 0; i < n; i++) {
-					duk__add_enum_key_stridx(ctx, duk__bufobj_virtual_props[i]);
-				}
-
+			if (have_length && (enum_flags & DUK_ENUM_INCLUDE_NONENUMERABLE)) {
+				duk__add_enum_key_stridx(ctx, DUK_STRIDX_LENGTH);
 			}
 		} else if (DUK_HOBJECT_HAS_EXOTIC_DUKFUNC(curr)) {
 			if (enum_flags & DUK_ENUM_INCLUDE_NONENUMERABLE) {
@@ -564,9 +542,9 @@ DUK_INTERNAL void duk_hobject_enumerator_create(duk_context *ctx, duk_small_uint
 			/* [enum_target res] */
 		}
 
-		/* Sort enumerated keys according to ES6 requirements for
+		/* Sort enumerated keys according to ES2015 requirements for
 		 * the "inheritance level" just processed.  This is far from
-		 * optimal, ES6 semantics could be achieved more efficiently
+		 * optimal, ES2015 semantics could be achieved more efficiently
 		 * by handling array index string keys (and symbol keys)
 		 * specially above in effect doing the sort inline.
 		 *
@@ -616,7 +594,7 @@ DUK_INTERNAL void duk_hobject_enumerator_create(duk_context *ctx, duk_small_uint
 		 * cases.
 		 */
 
-		/* Sort to ES6 order which works for pure array incides but
+		/* Sort to ES2015 order which works for pure array incides but
 		 * also for mixed keys.
 		 */
 		duk__sort_enum_keys_es6(thr, res, DUK__ENUM_START_INDEX, DUK_HOBJECT_GET_ENEXT(res));

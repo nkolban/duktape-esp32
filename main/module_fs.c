@@ -349,6 +349,12 @@ static duk_ret_t js_fs_unlink(duk_context *ctx) {
 
 /**
  * Get a listing of SPIFFs files.
+ * The return is a JS array which contains objects.  Each
+ * object represents one file entry.  Each object contains:
+ * {
+ *    name: <file name>
+ *    size: <file size>
+ * }
  */
 static duk_ret_t js_fs_spiffsDir(duk_context *ctx) {
 #if defined(ESP_PLATFORM)

@@ -32,6 +32,18 @@ static uint32_t g_scanCallbackStashKey = -1;
 static uint32_t g_gotipCallbackStashKey = -1;
 static uint32_t g_apStartCallbackStashKey = -1;
 
+static int scanParamsDataProvider(duk_context *ctx, void *context);
+
+static int addError(duk_context *ctx, void *context) {
+	if (context == NULL) {
+		duk_push_null(ctx);
+	} else {
+		duk_push_string(ctx, (char *)context);
+	}
+	return 1;
+}
+
+
 /**
  * Convert an authentication mode to a string.
  */
@@ -53,88 +65,6 @@ static char *authModeToString(wifi_auth_mode_t mode) {
 } // authModeToString
 
 
-// Handle the event that a Wifi scan has completed.  Our logic here is to build an
-// object that contains the results and leave that on the value stack.
-//
-// A published scan record will contain:
-// {
-//    ssid: <network id>,
-//    mac: <mac address>
-//    rssi: <signal strength>
-//    auth: <authentication mode>
-// }
-//
-static int scanParamsDataProvider(duk_context *ctx, void *context) {
-	LOGD("Here we build the scan results ...");
-
-
-	LOGD("Process a scan result event.");
-
-	// Get the number of access points in our last scan.
-	uint16_t numAp;
-	ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&numAp));
-
-	// Allocate storage for our scan results and retrieve them.
-	wifi_ap_record_t *apRecords = calloc(sizeof(wifi_ap_record_t), numAp);
-	ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&numAp, apRecords));
-	LOGD("Number of Access Points: %d", numAp);
-
-	// Build an array for the results ...
-	duk_idx_t resultIdx = duk_push_array(ctx);
-	// [0] - Array - results
-
-	// Add each of the scan results into the array.
-	int i;
-	for (i=0; i<numAp; i++) {
-		LOGD("%d: ssid=%s", i, apRecords[i].ssid);
-		duk_idx_t scanResultIdx = duk_push_object(ctx); // Create a new scan result object
-		// [0] - Array - results
-		// [1] - New object
-
-		duk_push_string(ctx, (char *)apRecords[i].ssid);
-		// [0] - Array - results
-		// [1] - New object
-		// [2] - String (ssid)
-
-		duk_put_prop_string(ctx, scanResultIdx, "ssid");
-		// [0] - Array - results
-		// [1] - New object
-
-		duk_push_sprintf(ctx, MACSTR, MAC2STR(apRecords[i].bssid));
-		// [0] - Array - results
-		// [1] - New object
-		// [2] - String (mac)
-
-		duk_put_prop_string(ctx, scanResultIdx, "mac");
-		// [0] - Array - results
-		// [1] - New object
-
-		duk_push_int(ctx, apRecords[i].rssi);
-		// [0] - Array - results
-		// [1] - New object
-		// [2] - Number (rssi)
-
-		duk_put_prop_string(ctx, scanResultIdx, "rssi");
-		// [0] - Array - results
-		// [1] - New object
-
-		duk_push_string(ctx, authModeToString(apRecords[i].authmode));
-		// [0] - Array - results
-		// [1] - New object
-		// [2] - String (auth)
-
-		duk_put_prop_string(ctx, scanResultIdx, "auth");
-		// [0] - Array - results
-		// [1] - New object
-
-		duk_put_prop_index(ctx, resultIdx, i); // Add the new record into the results array
-		// [0] - Array - results
-	}
-	free(apRecords);
-	return 1;
-} //scanParamsDataProvider
-
-
 /**
  * An ESP32 WiFi event handler.
  * The types of events that can be received here are:
@@ -153,16 +83,6 @@ static int scanParamsDataProvider(duk_context *ctx, void *context) {
  * SYSTEM_EVENT_STA_STOP
  * SYSTEM_EVENT_WIFI_READY
  */
-
-static int addError(duk_context *ctx, void *context) {
-	if (context == NULL) {
-		duk_push_null(ctx);
-	} else {
-		duk_push_string(ctx, (char *)context);
-	}
-	return 1;
-}
-
 static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event) {
 	LOGD(">> esp32_wifi_eventHandler");
 	// Your event handling code here...
@@ -240,237 +160,6 @@ static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event)
 	LOGD("<< esp32_wifi_eventHandler");
 	return ESP_OK;
 } // esp32_wifi_eventHandler
-
-static duk_ret_t js_wifi_stop(duk_context *ctx) {
-	LOGD(">> js_wifi_stop");
-	esp_err_t errRc = esp_wifi_stop();
-	if (errRc != ESP_OK) {
-		duk_error(ctx, 1, "js_wifi_stop rc=%s", esp32_errToString(errRc));
-	}
-	LOGD("<< js_wifi_stop");
-	return 0;
-} // js_wifi_stop
-
-static duk_ret_t js_wifi_start(duk_context *ctx) {
-	LOGD(">> js_wifi_start");
-	esp_err_t errRc = esp_wifi_start();
-	if (errRc != ESP_OK) {
-		duk_error(ctx, 1, "js_wifi_start rc=%s", esp32_errToString(errRc));
-	}
-	LOGD("<< js_wifi_start");
-	return 0;
-} // js_wifi_start
-
-/**
- * Handle a request to do a scan.  We are expecting that the caller will pass
- * in a function reference that will be a callback function.
- * [0] - Function object
- */
-static duk_ret_t js_wifi_scan(duk_context *ctx) {
-	LOGD(">> js_wifi_scan");
-	if (!duk_is_function(ctx, 0)) {
-		LOGD("Scan: not a function!");
-		return 0;
-	}
-
-	// Stash the top [1] items on the value stack and place in an array in stash.
-	g_scanCallbackStashKey = esp32_duktape_stash_array(ctx, 1);
-
-	/*
-	duk_push_heap_stash(ctx);
-	// [0] - Function object
-	// [1] - Heap stash
-
-	if (!duk_get_prop_string(ctx, -1, "scan_callbacks_array")) {
-		// [0] - Function object
-		// [1] - Heap stash
-		// [2] - scan_callbacks array (undefined)
-
-		duk_pop(ctx);
-		// [0] - Function object
-		// [1] - Heap stash
-
-		duk_push_array(ctx);
-		// [0] - Function object
-		// [1] - Heap stash
-		// [2] - new array
-
-		duk_put_prop_string(ctx, -2, "scan_callbacks_array");
-		// [0] - Function object
-		// [1] - Heap stash
-
-		duk_get_prop_string(ctx, -1, "scan_callbacks_array");
-		// [0] - Function object
-		// [1] - Heap stash
-		// [2] - scan_callbacks array
-	}
-
-	int length = duk_get_length(ctx, -1);
-
-	duk_dup(ctx, 0);
-	// [0] - Function object
-	// [1] - Heap stash
-	// [2] - scan_callbacks array
-	// [3] - Function object
-
-	duk_put_prop_index(ctx, -2, length); // Add the function object to the array.
-	// [0] - Function object
-	// [1] - Heap stash
-	// [2] - scan_callbacks array
-
-	duk_pop_3(ctx);
-	// <Stack Empty>
-	 */
-
-	// Now that we have saved the callback, request that the scan is performed.
-	wifi_scan_config_t conf;
-	conf.channel     = 0;
-	conf.bssid       = NULL;
-	conf.ssid        = NULL;
-	conf.show_hidden = 1;
-	ESP_ERROR_CHECK(esp_wifi_scan_start(&conf, 0 /* don't block */));
-
-	LOGD("<< js_wifi_scan");
-	return 0;
-} // js_wifi_scan
-
-
-/**
- * Retrieve the DNS servers that are associated with the device.
- * The return is an object on the stack of the form:
- * [ <string>, <string>, ... ] where each of the strings is an IP address
- * of a DNS server.  The reason there are "DNS_MAX_SERVER" is that the ESP32 can have
- * a primary and secondary DNS server (and maybe more or less).
- */
-static duk_ret_t js_wifi_getDNS(duk_context *ctx) {
-	char ipString[20];
-	ip_addr_t ip;
-	int i;
-
-	LOGD(">> js_wifi_getDNS");
-
-	duk_idx_t idx = duk_push_array(ctx); // Create new WIFI object
-	// [0] - New array - DNS servers
-
-	// There are "DNS_MAX_SERVERS" DNS servers that may be known to us.
-	for (i=0; i<DNS_MAX_SERVERS; i++) { // DNS_MAX_SERVERS comes from lwip ... see http://www.nongnu.org/lwip/2_0_0/group__dns.html
-
-		ip = dns_getserver(i);
-		inet_ntop(AF_INET, &ip, ipString, sizeof(ipString));
-
-		duk_push_string(ctx, ipString);
-		// [0] - New array - DNS servers
-		// [1] - IP address
-
-		duk_put_prop_index(ctx, idx, 0);
-		// [0] - New array - DNS servers
-	}
-
-	LOGD("<< js_wifi_getDNS");
-	return 1; // New array - DNS servers
-} // js_wifi_getDNS
-
-
-/**
- * WIFI.getState()
- * Return an object that describes the state of the WiFi environment.
- * {
- *    isStation:
- *    isAccessPoint:
- *    apMac:
- *    staMac:
- *    country:
- * }
- */
-static duk_ret_t js_wifi_getState(duk_context *ctx) {
-	wifi_mode_t mode;
-
-	int isAccessPoint;
-	int isStation;
-	ESP_ERROR_CHECK(esp_wifi_get_mode(&mode));
-	switch(mode) {
-	case WIFI_MODE_NULL:
-		isAccessPoint = 0;
-		isStation = 0;
-		break;
-	case WIFI_MODE_STA:
-		isAccessPoint = 0;
-		isStation = 1;
-		break;
-	case WIFI_MODE_AP:
-		isAccessPoint = 1;
-		isStation = 0;
-		break;
-	case WIFI_MODE_APSTA:
-		isAccessPoint = 1;
-		isStation = 1;
-		break;
-	default:
-		isAccessPoint = 0;
-		isStation = 0;
-		break;
-	}
-
-
-	char apMacString[20];
-	char staMacString[20];
-	uint8_t mac[6];
-
-	ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_AP, mac));
-	sprintf(apMacString, MACSTR, MAC2STR(mac));
-
-	ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_STA, mac));
-	sprintf(staMacString, MACSTR, MAC2STR(mac));
-
-	wifi_country_t country;
-	ESP_ERROR_CHECK(esp_wifi_get_country(&country));
-	char *countryString;
-	switch(country) {
-	case WIFI_COUNTRY_CN:
-		countryString = "CN";
-		break;
-	case WIFI_COUNTRY_EU:
-		countryString = "EU";
-		break;
-	case WIFI_COUNTRY_JP:
-		countryString = "JP";
-		break;
-	case WIFI_COUNTRY_US:
-		countryString = "US";
-		break;
-	default:
-		countryString = "Unknown";
-		break;
-	}
-
-	tcpip_adapter_ip_info_t staIpInfo;
-	char staIpString[20];
-	tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &staIpInfo);
-	sprintf(staIpString, IPSTR, IP2STR(&staIpInfo.ip));
-
-	tcpip_adapter_ip_info_t apIpInfo;
-	char apIpString[20];
-	tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &apIpInfo);
-	sprintf(apIpString, IPSTR, IP2STR(&apIpInfo.ip));
-
-	duk_push_object(ctx);
-	duk_push_boolean(ctx, isStation);
-	duk_put_prop_string(ctx, -2, "isStation");
-	duk_push_boolean(ctx, isAccessPoint);
-	duk_put_prop_string(ctx, -2, "isAccessPoint");
-	duk_push_string(ctx, apMacString);
-	duk_put_prop_string(ctx, -2, "apMac");
-	duk_push_string(ctx, staMacString);
-	duk_put_prop_string(ctx, -2, "staMac");
-	duk_push_string(ctx, countryString);
-	duk_put_prop_string(ctx, -2, "country");
-	duk_push_string(ctx, staIpString);
-	duk_put_prop_string(ctx, -2, "staIp");
-	duk_push_string(ctx, apIpString);
-	duk_put_prop_string(ctx, -2, "apIp");
-
-	return 1;
-} // End of js_wifi_getState_func
 
 
 /**
@@ -605,6 +294,156 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 } // js_wifi_connect
 
 
+static duk_ret_t js_wifi_disconnect(duk_context *ctx) {
+	LOGD(">> js_wifi_disconnect");
+	esp_err_t errRc = esp_wifi_disconnect();
+	if (errRc != ESP_OK) {
+		LOGE("esp_wifi_disconnect: %s", esp32_errToString(errRc));
+	}
+	LOGD("<< js_wifi_disconnect");
+	return 0;
+} // js_wifi_disconnect
+
+
+/**
+ * Retrieve the DNS servers that are associated with the device.
+ * The return is an object on the stack of the form:
+ * [ <string>, <string>, ... ] where each of the strings is an IP address
+ * of a DNS server.  The reason there are "DNS_MAX_SERVER" is that the ESP32 can have
+ * a primary and secondary DNS server (and maybe more or less).
+ */
+static duk_ret_t js_wifi_getDNS(duk_context *ctx) {
+	char ipString[20];
+	ip_addr_t ip;
+	int i;
+
+	LOGD(">> js_wifi_getDNS");
+
+	duk_idx_t idx = duk_push_array(ctx); // Create new WIFI object
+	// [0] - New array - DNS servers
+
+	// There are "DNS_MAX_SERVERS" DNS servers that may be known to us.
+	for (i=0; i<DNS_MAX_SERVERS; i++) { // DNS_MAX_SERVERS comes from lwip ... see http://www.nongnu.org/lwip/2_0_0/group__dns.html
+
+		ip = dns_getserver(i);
+		inet_ntop(AF_INET, &ip, ipString, sizeof(ipString));
+		LOGD("DNS: %d = %s", i, ipString);
+
+		duk_push_string(ctx, ipString);
+		// [0] - New array - DNS servers
+		// [1] - IP address
+
+		duk_put_prop_index(ctx, idx, i);
+		// [0] - New array - DNS servers
+	}
+
+	LOGD("<< js_wifi_getDNS");
+	return 1; // New array - DNS servers
+} // js_wifi_getDNS
+
+
+/**
+ * WIFI.getState()
+ * Return an object that describes the state of the WiFi environment.
+ * {
+ *    isStation:
+ *    isAccessPoint:
+ *    apMac:
+ *    staMac:
+ *    country:
+ * }
+ */
+static duk_ret_t js_wifi_getState(duk_context *ctx) {
+	wifi_mode_t mode;
+
+	int isAccessPoint;
+	int isStation;
+	ESP_ERROR_CHECK(esp_wifi_get_mode(&mode));
+	switch(mode) {
+	case WIFI_MODE_NULL:
+		isAccessPoint = 0;
+		isStation = 0;
+		break;
+	case WIFI_MODE_STA:
+		isAccessPoint = 0;
+		isStation = 1;
+		break;
+	case WIFI_MODE_AP:
+		isAccessPoint = 1;
+		isStation = 0;
+		break;
+	case WIFI_MODE_APSTA:
+		isAccessPoint = 1;
+		isStation = 1;
+		break;
+	default:
+		isAccessPoint = 0;
+		isStation = 0;
+		break;
+	}
+
+
+	char apMacString[20];
+	char staMacString[20];
+	uint8_t mac[6];
+
+	ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_AP, mac));
+	sprintf(apMacString, MACSTR, MAC2STR(mac));
+
+	ESP_ERROR_CHECK(esp_wifi_get_mac(WIFI_IF_STA, mac));
+	sprintf(staMacString, MACSTR, MAC2STR(mac));
+
+	wifi_country_t country;
+	ESP_ERROR_CHECK(esp_wifi_get_country(&country));
+	char *countryString;
+	switch(country) {
+	case WIFI_COUNTRY_CN:
+		countryString = "CN";
+		break;
+	case WIFI_COUNTRY_EU:
+		countryString = "EU";
+		break;
+	case WIFI_COUNTRY_JP:
+		countryString = "JP";
+		break;
+	case WIFI_COUNTRY_US:
+		countryString = "US";
+		break;
+	default:
+		countryString = "Unknown";
+		break;
+	}
+
+	tcpip_adapter_ip_info_t staIpInfo;
+	char staIpString[20];
+	tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &staIpInfo);
+	sprintf(staIpString, IPSTR, IP2STR(&staIpInfo.ip));
+
+	tcpip_adapter_ip_info_t apIpInfo;
+	char apIpString[20];
+	tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &apIpInfo);
+	sprintf(apIpString, IPSTR, IP2STR(&apIpInfo.ip));
+
+	duk_push_object(ctx);
+	duk_push_boolean(ctx, isStation);
+	duk_put_prop_string(ctx, -2, "isStation");
+	duk_push_boolean(ctx, isAccessPoint);
+	duk_put_prop_string(ctx, -2, "isAccessPoint");
+	duk_push_string(ctx, apMacString);
+	duk_put_prop_string(ctx, -2, "apMac");
+	duk_push_string(ctx, staMacString);
+	duk_put_prop_string(ctx, -2, "staMac");
+	duk_push_string(ctx, countryString);
+	duk_put_prop_string(ctx, -2, "country");
+	duk_push_string(ctx, staIpString);
+	duk_put_prop_string(ctx, -2, "staIp");
+	duk_push_string(ctx, apIpString);
+	duk_put_prop_string(ctx, -2, "apIp");
+
+	return 1;
+} // End of js_wifi_getState_func
+
+
 /**
  * Listen as an access point
  * options:
@@ -719,6 +558,215 @@ static duk_ret_t js_wifi_listen(duk_context *ctx) {
 
 
 /**
+ * Handle a request to do a scan.  We are expecting that the caller will pass
+ * in a function reference that will be a callback function.
+ * [0] - Function object
+ */
+static duk_ret_t js_wifi_scan(duk_context *ctx) {
+	LOGD(">> js_wifi_scan");
+	if (!duk_is_function(ctx, 0)) {
+		LOGD("Scan: not a function!");
+		return 0;
+	}
+
+	// Stash the top [1] items on the value stack and place in an array in stash.
+	g_scanCallbackStashKey = esp32_duktape_stash_array(ctx, 1);
+
+	/*
+	duk_push_heap_stash(ctx);
+	// [0] - Function object
+	// [1] - Heap stash
+
+	if (!duk_get_prop_string(ctx, -1, "scan_callbacks_array")) {
+		// [0] - Function object
+		// [1] - Heap stash
+		// [2] - scan_callbacks array (undefined)
+
+		duk_pop(ctx);
+		// [0] - Function object
+		// [1] - Heap stash
+
+		duk_push_array(ctx);
+		// [0] - Function object
+		// [1] - Heap stash
+		// [2] - new array
+
+		duk_put_prop_string(ctx, -2, "scan_callbacks_array");
+		// [0] - Function object
+		// [1] - Heap stash
+
+		duk_get_prop_string(ctx, -1, "scan_callbacks_array");
+		// [0] - Function object
+		// [1] - Heap stash
+		// [2] - scan_callbacks array
+	}
+
+	int length = duk_get_length(ctx, -1);
+
+	duk_dup(ctx, 0);
+	// [0] - Function object
+	// [1] - Heap stash
+	// [2] - scan_callbacks array
+	// [3] - Function object
+
+	duk_put_prop_index(ctx, -2, length); // Add the function object to the array.
+	// [0] - Function object
+	// [1] - Heap stash
+	// [2] - scan_callbacks array
+
+	duk_pop_3(ctx);
+	// <Stack Empty>
+	 */
+
+	// Now that we have saved the callback, request that the scan is performed.
+	wifi_scan_config_t conf;
+	conf.channel     = 0;
+	conf.bssid       = NULL;
+	conf.ssid        = NULL;
+	conf.show_hidden = 1;
+	ESP_ERROR_CHECK(esp_wifi_scan_start(&conf, 0 /* don't block */));
+
+	LOGD("<< js_wifi_scan");
+	return 0;
+} // js_wifi_scan
+
+
+/*
+ * [0] - An array of dotted decimal IP addresses.
+ */
+static duk_ret_t js_wifi_setDNS(duk_context *ctx) {
+	LOGD(">> js_wifi_setDNS");
+	int length = duk_get_length(ctx, -1);
+	if (length > DNS_MAX_SERVERS) {
+		length = DNS_MAX_SERVERS;
+	}
+
+	int i;
+	for (i=0; i<length; i++) {
+		duk_get_prop_index(ctx, -1, i);
+		// [0] - An array of dotted decimal IP addresses.
+		// [1] - An IP address
+		const char *ipAddrString = duk_get_string(ctx, -1);
+		LOGD("Setting DNS[%d] to %s", i, ipAddrString);
+		ip_addr_t ipAddr;
+		int rc = ipaddr_aton(ipAddrString, &ipAddr);
+		if (rc != 1) {
+			LOGE("Failed to parse IP address: %s", ipAddrString);
+			return 0;
+		}
+		dns_setserver(i, &ipAddr);
+		duk_pop(ctx);
+	}
+	LOGD("<< js_wifi_setDNS");
+	return 0;
+}
+
+
+static duk_ret_t js_wifi_start(duk_context *ctx) {
+	LOGD(">> js_wifi_start");
+	esp_err_t errRc = esp_wifi_start();
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "js_wifi_start rc=%s", esp32_errToString(errRc));
+	}
+	LOGD("<< js_wifi_start");
+	return 0;
+} // js_wifi_start
+
+
+static duk_ret_t js_wifi_stop(duk_context *ctx) {
+	LOGD(">> js_wifi_stop");
+	esp_err_t errRc = esp_wifi_stop();
+	if (errRc != ESP_OK) {
+		duk_error(ctx, 1, "js_wifi_stop rc=%s", esp32_errToString(errRc));
+	}
+	LOGD("<< js_wifi_stop");
+	return 0;
+} // js_wifi_stop
+
+
+// Handle the event that a Wifi scan has completed.  Our logic here is to build an
+// object that contains the results and leave that on the value stack.
+//
+// A published scan record will contain:
+// {
+//    ssid: <network id>,
+//    mac: <mac address>
+//    rssi: <signal strength>
+//    auth: <authentication mode>
+// }
+//
+static int scanParamsDataProvider(duk_context *ctx, void *context) {
+	LOGD("Here we build the scan results ...");
+
+
+	LOGD("Process a scan result event.");
+
+	// Get the number of access points in our last scan.
+	uint16_t numAp;
+	ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&numAp));
+
+	// Allocate storage for our scan results and retrieve them.
+	wifi_ap_record_t *apRecords = calloc(sizeof(wifi_ap_record_t), numAp);
+	ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&numAp, apRecords));
+	LOGD("Number of Access Points: %d", numAp);
+
+	// Build an array for the results ...
+	duk_idx_t resultIdx = duk_push_array(ctx);
+	// [0] - Array - results
+
+	// Add each of the scan results into the array.
+	int i;
+	for (i=0; i<numAp; i++) {
+		LOGD("%d: ssid=%s", i, apRecords[i].ssid);
+		duk_idx_t scanResultIdx = duk_push_object(ctx); // Create a new scan result object
+		// [0] - Array - results
+		// [1] - New object
+
+		duk_push_string(ctx, (char *)apRecords[i].ssid);
+		// [0] - Array - results
+		// [1] - New object
+		// [2] - String (ssid)
+
+		duk_put_prop_string(ctx, scanResultIdx, "ssid");
+		// [0] - Array - results
+		// [1] - New object
+
+		duk_push_sprintf(ctx, MACSTR, MAC2STR(apRecords[i].bssid));
+		// [0] - Array - results
+		// [1] - New object
+		// [2] - String (mac)
+
+		duk_put_prop_string(ctx, scanResultIdx, "mac");
+		// [0] - Array - results
+		// [1] - New object
+
+		duk_push_int(ctx, apRecords[i].rssi);
+		// [0] - Array - results
+		// [1] - New object
+		// [2] - Number (rssi)
+
+		duk_put_prop_string(ctx, scanResultIdx, "rssi");
+		// [0] - Array - results
+		// [1] - New object
+
+		duk_push_string(ctx, authModeToString(apRecords[i].authmode));
+		// [0] - Array - results
+		// [1] - New object
+		// [2] - String (auth)
+
+		duk_put_prop_string(ctx, scanResultIdx, "auth");
+		// [0] - Array - results
+		// [1] - New object
+
+		duk_put_prop_index(ctx, resultIdx, i); // Add the new record into the results array
+		// [0] - Array - results
+	}
+	free(apRecords);
+	return 1;
+} //scanParamsDataProvider
+
+
+/**
  * Create the WIFI module in Global.
  */
 void ModuleWIFI(duk_context *ctx) {
@@ -726,24 +774,6 @@ void ModuleWIFI(duk_context *ctx) {
 	// [0] - Global object
 
 	duk_idx_t idx = duk_push_object(ctx); // Create new WIFI object
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_wifi_scan, 1);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_scan
-
-	duk_put_prop_string(ctx, idx, "scan"); // Add scan to new WIFI
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_wifi_getDNS, 0);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_getDNS
-
-	duk_put_prop_string(ctx, idx, "getDNS"); // Add getDNS to new WIFI
 	// [0] - Global object
 	// [1] - New object
 
@@ -756,12 +786,21 @@ void ModuleWIFI(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object
 
-	duk_push_c_function(ctx, js_wifi_listen, 2);
+	duk_push_c_function(ctx, js_wifi_disconnect, 0);
 	// [0] - Global object
 	// [1] - New object
-	// [2] - c-func - js_wifi_listen
+	// [2] - c-func - js_wifi_disconnect
 
-	duk_put_prop_string(ctx, idx, "listen"); // Add listen to new WIFI
+	duk_put_prop_string(ctx, idx, "disconnect"); // Add connect to new WIFI
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_wifi_getDNS, 0);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-func - js_wifi_getDNS
+
+	duk_put_prop_string(ctx, idx, "getDNS"); // Add getDNS to new WIFI
 	// [0] - Global object
 	// [1] - New object
 
@@ -774,12 +813,30 @@ void ModuleWIFI(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object
 
-	duk_push_c_function(ctx, js_wifi_stop, 0);
+	duk_push_c_function(ctx, js_wifi_listen, 2);
 	// [0] - Global object
 	// [1] - New object
-	// [2] - c-func - js_wifi_stop
+	// [2] - c-func - js_wifi_listen
 
-	duk_put_prop_string(ctx, idx, "stop"); // Add stop to new WIFI
+	duk_put_prop_string(ctx, idx, "listen"); // Add listen to new WIFI
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_wifi_scan, 1);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-func - js_wifi_scan
+
+	duk_put_prop_string(ctx, idx, "scan"); // Add scan to new WIFI
+	// [0] - Global object
+	// [1] - New object
+
+	duk_push_c_function(ctx, js_wifi_setDNS, 1);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-func - js_wifi_setDNS
+
+	duk_put_prop_string(ctx, idx, "setDNS"); // Add setDNS to new WIFI
 	// [0] - Global object
 	// [1] - New object
 
@@ -791,6 +848,17 @@ void ModuleWIFI(duk_context *ctx) {
 	duk_put_prop_string(ctx, idx, "start"); // Add start to new WIFI
 	// [0] - Global object
 	// [1] - New object
+
+
+	duk_push_c_function(ctx, js_wifi_stop, 0);
+	// [0] - Global object
+	// [1] - New object
+	// [2] - c-func - js_wifi_stop
+
+	duk_put_prop_string(ctx, idx, "stop"); // Add stop to new WIFI
+	// [0] - Global object
+	// [1] - New object
+
 
 	duk_put_prop_string(ctx, 0, "WIFI"); // Add WIFI to global
 	// [0] - Global object
