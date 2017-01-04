@@ -29,6 +29,7 @@
 #include "module_os.h"
 #include "logging.h"
 
+extern int h_errno;
 
 LOG_TAG("module_os");
 
@@ -215,7 +216,7 @@ static duk_ret_t js_os_connect(duk_context *ctx) {
 		return 0;
 	}
 	if (!duk_is_string(ctx, -1)) {
-		LOGE("js_os_connect: address property is not a sting.");
+		LOGE("js_os_connect: address property is not a string.");
 		return 0;
 	}
 

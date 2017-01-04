@@ -1,3 +1,6 @@
+#include <assert.h>
+#include <errno.h>
+#include <lwip/sockets.h>
 #include <mbedtls/platform.h> // Has to come early
 
 #include <mbedtls/ctr_drbg.h>
@@ -8,10 +11,16 @@
 #include <mbedtls/ssl.h>
 #include <string.h>
 
+
 #include "logging.h"
 #include "module_ssl.h"
 
 LOG_TAG("ssl");
+
+static void debug_log(void *context, int level, const char *file, int line, const char *message) {
+	LOGD("%s:%04d: %s", file, line, message);
+}
+
 
 /*
  * Provide support for SSL (secure sockets layer) from within the ESP32-Duktape environment.
@@ -21,34 +30,59 @@ typedef struct {
   mbedtls_ssl_config conf;
   mbedtls_ctr_drbg_context ctr_drbg;
   mbedtls_entropy_context entropy;
-  mbedtls_net_context server_fd;
   mbedtls_ssl_context ssl;
-} ssl_socket_t;
+  int fd;
+} dukf_ssl_context_t;
 
 const static char *pers = "ssl_client1";
 
-static ssl_socket_t *create_ssl_socket() {
-	char errortext[256];
-	ssl_socket_t *ssl_socket;
+static int ssl_send(void *ctx, const unsigned char *buf, size_t len) {
+	LOGD(">> ssl_send");
+	assert(ctx != NULL);
+	assert(buf != NULL);
+	assert(len > 0);
+	dukf_ssl_context_t *dukf_ssl_context = (dukf_ssl_context_t *)ctx;
 
-	ssl_socket = malloc(sizeof(ssl_socket_t));
-	mbedtls_net_init(&ssl_socket->server_fd);
-	mbedtls_ssl_init(&ssl_socket->ssl);
-	mbedtls_ssl_config_init(&ssl_socket->conf);
-	mbedtls_x509_crt_init(&ssl_socket->cacert);
-	mbedtls_ctr_drbg_init(&ssl_socket->ctr_drbg);
-	mbedtls_entropy_init(&ssl_socket->entropy);
+	int rc = send(dukf_ssl_context->fd, buf, len, 0);
+	if (rc == -1) {
+		LOGE("send(): errno=%s", strerror(errno));
+	}
+	LOGD("<< ssl_send: fd=%d, rc=%d",dukf_ssl_context->fd, rc);
+	return rc;
+} // ssl_send
+
+static int ssl_recv(void *ctx, unsigned char *buf, size_t len) {
+	LOGD(">> ssl_recv: max_length=%d", len);
+	dukf_ssl_context_t *dukf_ssl_context = (dukf_ssl_context_t *)ctx;
+	int rc = recv(dukf_ssl_context->fd, buf, len, 0);
+	LOGD("<< ssl_recv: fd=%d, rc=%d", dukf_ssl_context->fd, rc);
+	return rc;
+} // ssl_recv
+
+static dukf_ssl_context_t *create_dukf_ssl_context(const char *hostname, int fd) {
+	char errortext[256];
+	dukf_ssl_context_t *dukf_ssl_context;
+
+	dukf_ssl_context = malloc(sizeof(dukf_ssl_context_t));
+	mbedtls_ssl_init(&dukf_ssl_context->ssl);
+	mbedtls_ssl_config_init(&dukf_ssl_context->conf);
+	mbedtls_x509_crt_init(&dukf_ssl_context->cacert);
+	mbedtls_ctr_drbg_init(&dukf_ssl_context->ctr_drbg);
+	mbedtls_entropy_init(&dukf_ssl_context->entropy);
+
+	mbedtls_ssl_conf_dbg(&dukf_ssl_context->conf, debug_log, NULL);
+	dukf_ssl_context->fd = fd;
 
   int rc = mbedtls_ctr_drbg_seed(
-     &ssl_socket->ctr_drbg,
-     mbedtls_entropy_func, &ssl_socket->entropy, (const unsigned char *) pers, strlen(pers));
+     &dukf_ssl_context->ctr_drbg,
+     mbedtls_entropy_func, &dukf_ssl_context->entropy, (const unsigned char *) pers, strlen(pers));
   if (rc != 0) {
      LOGE(" failed\n  ! mbedtls_ctr_drbg_seed returned %d", rc);
      return NULL;
   }
 
   rc = mbedtls_ssl_config_defaults(
-		&ssl_socket->conf,
+		&dukf_ssl_context->conf,
 		MBEDTLS_SSL_IS_CLIENT,
 		MBEDTLS_SSL_TRANSPORT_STREAM,
 		MBEDTLS_SSL_PRESET_DEFAULT);
@@ -57,95 +91,109 @@ static ssl_socket_t *create_ssl_socket() {
 		 return NULL;
 	}
 
-	mbedtls_ssl_conf_authmode(&ssl_socket->conf, MBEDTLS_SSL_VERIFY_NONE);
+	mbedtls_ssl_conf_authmode(&dukf_ssl_context->conf, MBEDTLS_SSL_VERIFY_NONE);
 
-	mbedtls_ssl_conf_rng(&ssl_socket->conf, mbedtls_ctr_drbg_random, &ssl_socket->ctr_drbg);
+	mbedtls_ssl_conf_rng(&dukf_ssl_context->conf, mbedtls_ctr_drbg_random, &dukf_ssl_context->ctr_drbg);
 
-	rc = mbedtls_ssl_setup(&ssl_socket->ssl, &ssl_socket->conf);
+	rc = mbedtls_ssl_setup(&dukf_ssl_context->ssl, &dukf_ssl_context->conf);
 	if (rc != 0) {
 		 mbedtls_strerror(rc, errortext, sizeof(errortext));
 		 LOGE("error from mbedtls_ssl_setup: %d - %x - %s\n", rc, rc, errortext);
 		 return NULL;
 	}
 
-	rc = mbedtls_ssl_set_hostname(&ssl_socket->ssl, "httpbin.org");
+	rc = mbedtls_ssl_set_hostname(&dukf_ssl_context->ssl, hostname);
 	if (rc) {
 		 mbedtls_strerror(rc, errortext, sizeof(errortext));
-		 LOGE("error from mbedtls_ssl_set_hostname: %d - %x - %s", rc, rc, errortext);
+		 LOGE("error from mbedtls_ssl_set_hostname: %s %d - %x - %s", hostname, rc, rc, errortext);
 		 return NULL;
 	}
-	return ssl_socket;
+
+	mbedtls_ssl_set_bio(&dukf_ssl_context->ssl, dukf_ssl_context, ssl_send, ssl_recv, NULL);
+	return dukf_ssl_context;
 } // create_ssl_socket
 
 
-static int connect_ssl_socket(ssl_socket_t *ssl_socket, const char *hostname, uint16_t port) {
-	if (ssl_socket == NULL) {
-		LOGE("ssl_socket was NULL");
-		return -1;
-	}
-	if (hostname == NULL) {
-		LOGE("hostname was NULL");
-		return -1;
-	}
-	char port_string[10];
-	char errortext[256];
-	sprintf(port_string, "%d", port);
-	int rc = mbedtls_net_connect(&ssl_socket->server_fd, hostname, port_string, MBEDTLS_NET_PROTO_TCP);
-	if (rc != 0) {
-		LOGE("mbedtls_net_connect returned %d", rc);
-		mbedtls_strerror(rc, errortext, sizeof(errortext));
-		LOGE("error from mbedtls_net_connect: %d - %x - %s", rc, rc, errortext);
-		return rc;
-	}
-	return 0;
-} // connect_ssl_socket
-
-
-static void free_ssl_socket(ssl_socket_t *ssl_socket) {
-  mbedtls_net_free(&ssl_socket->server_fd);
-  mbedtls_ssl_free(&ssl_socket->ssl);
-  mbedtls_ssl_config_free(&ssl_socket->conf);
-  mbedtls_ctr_drbg_free(&ssl_socket->ctr_drbg);
-  mbedtls_entropy_free(&ssl_socket->entropy);
-  free(ssl_socket);
+static void free_dukf_ssl_context(dukf_ssl_context_t *dukf_ssl_context) {
+  mbedtls_ssl_free(&dukf_ssl_context->ssl);
+  mbedtls_ssl_config_free(&dukf_ssl_context->conf);
+  mbedtls_ctr_drbg_free(&dukf_ssl_context->ctr_drbg);
+  mbedtls_entropy_free(&dukf_ssl_context->entropy);
+  free(dukf_ssl_context);
 } // free_ssl_socket
 
 /*
- * [0] - ptr to ssl_socket
- * [1] - hostname
- * [2] - port
+ * [0] - hostname
+ * [1] - socket fd
  */
-static duk_ret_t js_ssl_connect(duk_context *ctx) {
-	LOGD(">> js_ssl_connect");
-	ssl_socket_t *ssl_socket = duk_get_pointer(ctx, -3);
+static duk_ret_t js_ssl_create_dukf_ssl_context(duk_context *ctx) {
 	const char *hostname = duk_get_string(ctx, -2);
-	int port = duk_get_int(ctx, -1);
-	LOGD(" - Hostname: %s, port: %d", hostname, port);
-	connect_ssl_socket(ssl_socket, hostname, (uint16_t)port);
-	LOGD("<< js_ssl_connect");
-	return 0;
-}
-
-
-static duk_ret_t js_ssl_createSSLSocket(duk_context *ctx) {
-	LOGD(">> js_ssl_createSSLSocket");
-	ssl_socket_t *ssl_socket = create_ssl_socket();
-	duk_push_pointer(ctx, ssl_socket);
-	LOGD("<< js_ssl_createSSLSocket");
+	int fd = duk_get_int(ctx, -1);
+	LOGD(">> js_ssl_create_dukf_ssl_context: hostname=\"%s\", fd=%d", hostname, fd);
+	dukf_ssl_context_t *dukf_ssl_context = create_dukf_ssl_context(hostname, fd);
+	duk_push_pointer(ctx, dukf_ssl_context);
+	LOGD("<< js_ssl_create_dukf_ssl_context");
 	return 1;
 } // js_ssl_createSSLSocket
 
-
-static duk_ret_t js_ssl_test(duk_context *ctx) {
-	ssl_socket_t *ssl_socket = create_ssl_socket();
-	if (ssl_socket == NULL) {
-		return 0;
+/*
+ * Set the mbedtls sebug threshold.
+ * 0 – no debug
+ * 1 – error
+ * 2 – state change
+ * 3 – informational
+ * 4 – verbose
+ * [0] - Debug level
+ */
+static duk_ret_t js_ssl_debug_set_threshold(duk_context *ctx) {
+	LOGD(">> js_ssl_debug_set_threshold");
+	int threshold = duk_get_int(ctx, -1);
+	if (threshold < 0 || threshold > 4) {
+		LOGE("bad threshold");
+	} else {
+		mbedtls_debug_set_threshold(threshold);
 	}
-	int rc = connect_ssl_socket(ssl_socket, "httpbin.org", 443);
-	free_ssl_socket(ssl_socket);
-	LOGD("SSL test complete! rc=%d", rc);
+	LOGD("<< js_ssl_debug_set_threshold");
 	return 0;
-}
+} // js_ssl_debug_set_threshold
+
+
+/*
+ * [0] - ptr to ssl_socket
+ */
+static duk_ret_t js_ssl_free_dukf_ssl_context(duk_context *ctx) {
+	LOGD(">> js_ssl_free");
+	dukf_ssl_context_t *dukf_ssl_context = duk_get_pointer(ctx, -1);
+	if (dukf_ssl_context != NULL) {
+		free_dukf_ssl_context(dukf_ssl_context);
+	} else {
+		LOGE("No ssl_socket passed.");
+	}
+	LOGD("<< js_ssl_free");
+	return 0;
+} // js_ssl_free
+
+/*
+ * [0] - ssl_socket - pointer
+ * [1] - data to write - buffer
+ */
+static duk_ret_t js_ssl_write(duk_context *ctx) {
+	char errortext[256];
+	LOGD(">> js_ssl_write");
+	dukf_ssl_context_t *dukf_ssl_context = duk_get_pointer(ctx, -2);
+	size_t len;
+	uint8_t *buf = duk_get_buffer_data(ctx, -1, &len);
+	int rc = mbedtls_ssl_write(&dukf_ssl_context->ssl, buf, len);
+	if (rc < 0) {
+		 mbedtls_strerror(rc, errortext, sizeof(errortext));
+		 LOGE("error from mbedtls_ssl_write: %d - %x - %s", rc, rc, errortext);
+		 duk_push_nan(ctx);
+	} else {
+		duk_push_int(ctx, rc);
+	}
+	LOGD("<< js_ssl_write: rc=%d", rc);
+	return 1;
+} // js_ssl_write
 
 
 /**
@@ -153,27 +201,34 @@ static duk_ret_t js_ssl_test(duk_context *ctx) {
  * [0] - SSL Object
  */
 duk_ret_t ModuleSSL(duk_context *ctx) {
-
 	int idx = -2;
-	duk_push_c_function(ctx, js_ssl_connect, 0);
-	// [0] - SSL object
-	// [1] - C Function - js_ssl_connect
 
-	duk_put_prop_string(ctx, idx, "connect"); // Add connect to SSL
+	duk_push_c_function(ctx, js_ssl_create_dukf_ssl_context, 2);
 	// [0] - SSL object
+	// [1] - C Function - js_ssl_create_dukf_ssl_context
 
-	duk_push_c_function(ctx, js_ssl_createSSLSocket, 0);
-	// [0] - SSL object
-	// [1] - C Function - js_ssl_createSSLSocket
-
-	duk_put_prop_string(ctx, idx, "createSSLSocket"); // Add createSSLSocket to SSL
+	duk_put_prop_string(ctx, idx, "create_dukf_ssl_context"); // Add create_dukf_ssl_context to SSL
 	// [0] - SSL object
 
-	duk_push_c_function(ctx, js_ssl_test, 2);
+	duk_push_c_function(ctx, js_ssl_debug_set_threshold, 1);
 	// [0] - SSL object
-	// [1] - C Function - js_ssl_test
+	// [1] - C Function - js_ssl_debug_set_threshold
 
-	duk_put_prop_string(ctx, idx, "test"); // Add test to SSL
+	duk_put_prop_string(ctx, idx, "debugThreshold"); // Add debugThreshold to SSL
+	// [0] - SSL object
+
+	duk_push_c_function(ctx, js_ssl_free_dukf_ssl_context, 1);
+	// [0] - SSL object
+	// [1] - C Function - js_ssl_free
+
+	duk_put_prop_string(ctx, idx, "free_dukf_ssl_context"); // Add free to SSL
+	// [0] - SSL object
+
+	duk_push_c_function(ctx, js_ssl_write, 2);
+	// [0] - SSL object
+	// [1] - C Function - js_ssl_write
+
+	duk_put_prop_string(ctx, idx, "write"); // Add write to SSL
 	// [0] - SSL object
 
 	duk_pop(ctx);

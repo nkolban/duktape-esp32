@@ -648,7 +648,7 @@ var parserStreamWriter = new HTTPParser(HTTPParser.REQUEST, function(parserStrea
 });
 ```
 
-##LEDC/PWM
+##LEDC
 The LEDC/PWM class provides access to the PWM functions of the ESP32.  To use this class one must
 study the ESP32 PWM functions and understand the notions of timers and channels.
 
@@ -695,10 +695,11 @@ The optional `options` object can contain:
 The creation of a new object is an object with methods:
 
 * on - Register an event handler
- * `close`
- * `data`
- * `end`
-* `write` - Write data to a target.
+ * `close` - Called when the socket is closed.
+ * `connect` - Called when a connection completes.
+ * `data` - Called when data arrives.  Parameter is a Buffer of new data.
+ * `end` - Called when all the data has been received.
+* `write(data)` - Write data to a target.
 * `end([data])` - End the connection optionally sending some final data.
 
 ###createServer

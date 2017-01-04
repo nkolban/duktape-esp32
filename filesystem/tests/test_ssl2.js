@@ -1,4 +1,5 @@
 var SSL = require("ssl");
+//SSL.debugThreshold(4);
 var net = require("net");
 WIFI.disconnect();
 WIFI.connect({
@@ -11,14 +12,17 @@ WIFI.connect({
   }
 }, function() {
 	log("Connected! - free heap: " + ESP32.getState().heapSize);
-	log("DNS: " + JSON.stringify(WIFI.getDNS()));
 	WIFI.setDNS(["8.8.8.8", "8.8.4.4"]);
-	log("DNS: " + JSON.stringify(WIFI.getDNS()));
-	var ip = net.getByName("httpbin.org");
-	log("IP: " + ip);
 
 	log("Creating ssl socket!");
-	var socket = SSL.createSSLSocket();
-	SSL.connect(socket, "httpbin.org", 443);
-	SSL.free(socket);
+	var socket = new SSL.Socket();
+	log("Socket created ...");
+	socket.connect({
+		address: "httpbin.org",
+		port: 443
+	}, function() {
+		log("Socket connected!");
+		socket.write("GET / HTTP/1.1\r\n\r\n");
+	});
+	log("End");
 });

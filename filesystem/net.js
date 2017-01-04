@@ -56,16 +56,16 @@ var net = {
 			// on - Register events.
 			//
 			on: function(eventType, callback) {
-				if (eventType === "data") {
-					this._onData = callback;
-					return;
-				}
 				if (eventType === "close") {
 					this._onClose = callback;
 					return;
 				}
 				if (eventType === "connect") {
 					this._onConnect = callback;
+					return;
+				}
+				if (eventType === "data") {
+					this._onData = callback;
 					return;
 				}
 				if (eventType === "end") {
@@ -113,6 +113,9 @@ var net = {
 			},
 			setNote: function(text) {
 				this._note = text;
+			},
+			getFD: function() {
+				return sockfd;
 			}
 		}; // ret object
 		_sockets[sockfd] = ret;

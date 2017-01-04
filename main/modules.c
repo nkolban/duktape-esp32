@@ -23,6 +23,7 @@
 #include "module_bluetooth.h"
 #include "module_dukf.h"
 #include "module_fs.h"
+#include "module_i2c.h"
 #include "module_ledc.h"
 #include "module_nvs.h"
 #include "module_os.h"
@@ -83,6 +84,7 @@ functionTableEntry_t functionTable[] = {
 #if defined(ESP32_DUKTAPE_USE_BLUETOOTH)
 	{ "ModuleBluetooth",  ModuleBluetooth,  1},
 #endif
+	{ "ModuleI2C",        ModuleI2C,        1},
 	{ "ModuleLEDC",       ModuleLEDC,       1},
 	{ "ModulePartitions", ModulePartitions, 1},
 	{ "ModuleRMT",        ModuleRMT,        1},

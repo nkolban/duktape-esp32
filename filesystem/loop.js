@@ -80,7 +80,7 @@ function loop() {
 	// Process each ready to read file descriptor in turn
 	for (i=0; i<selectResult.readfds.length; i++) {
 		currentSocketFd = selectResult.readfds[i];
-		log("loop: working on read of fd=" + currentSocketFd);
+		log("loop: working on ready to read of fd=" + currentSocketFd);
 		currentSock = _sockets[selectResult.readfds[i]];
 		
 		// We now have the object that represents the socket.  If it is a listening
@@ -121,6 +121,7 @@ function loop() {
 					currentSock._onData(myData.slice(0, recvSize));
 				}
 			} // Data size was not 0.
+			myData = null;
 		} // Data available and socket is NOT a server
 	} // For each socket that is able to read ... 
 	
