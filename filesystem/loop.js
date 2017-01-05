@@ -6,8 +6,16 @@
  * * Checking to see if timers have expired.
  * * Polling network I/O to see if network actions are needed.
  */
-/* globals _sockets, OS, log, Buffer, require */
+/* globals _sockets, OS, log, Buffer, require, ESP32, _timers, module, DUKF */
 var net = require("net.js");
+var internalSSL = {};
+var moduleSSL = ESP32.getNativeFunction("ModuleSSL");
+if (moduleSSL === null) {
+	log("Unable to find ModuleSSL");
+} else {
+	moduleSSL(internalSSL);
+}
+
 
 /**
  * Primary loop that processes events.
@@ -48,16 +56,18 @@ function loop() {
 	
 	// Loop through each of the sockets and determine if we are going to work with them.
 	for (var sock in _sockets) {
-		readfds.push(_sockets[sock]._sockfd);
-		if (_sockets[sock].connecting) {
-			writefds.push(_sockets[sock]._sockfd);
+		if (_sockets.hasOwnProperty(sock)) {
+			readfds.push(_sockets[sock].getFD());
+			if (_sockets[sock].connecting) {
+				writefds.push(_sockets[sock].getFD());
+			}
+			exceptfds.push(_sockets[sock].getFD());
 		}
-		exceptfds.push(_sockets[sock]._sockfd);
 	} // End of each socket id.
 	
 	// Invoke select() to see if there is any work to do.
 	var selectResult = OS.select({readfds: readfds, writefds: writefds, exceptfds: exceptfds});
-	if (selectResult.readfds.length > 0 || selectResult.writefds.length > 0 | selectResult.exceptfds.length > 0) {
+	if (selectResult.readfds.length > 0 || selectResult.writefds.length > 0 || selectResult.exceptfds.length > 0) {
 		log("selectResult: " + JSON.stringify(selectResult));
 	}
 	
@@ -86,11 +96,11 @@ function loop() {
 		// We now have the object that represents the socket.  If it is a listening
 		// socket ... that means it is a server and we should accept a new client connection.
 		if (currentSock.listening) {
-			var acceptData = OS.accept({sockfd: currentSock._sockfd});
+			var acceptData = OS.accept({sockfd: currentSock.getFD()});
 			log("We accepted a new client connection: " + JSON.stringify(acceptData));
 			var newSocket = new net.Socket({sockfd: acceptData.sockfd});
-			newSocket._createdFromFd = currentSock._sockfd;
-			_sockets[newSocket._sockfd] = newSocket;
+
+			newSocket._createdFromFd = currentSock.getFD();	// For debugging purposes only
 			
 			newSocket.on("connect", currentSock._onConnect);
 			if (newSocket._onConnect) {
@@ -102,7 +112,12 @@ function loop() {
 			// We have a socket in currentSocket that had data ready to be read from it.  Now we
 			// read the data from that socket.
 			var myData = new Buffer(512);
-			var recvSize = OS.recv({sockfd: currentSock._sockfd, data: myData});
+			var recvSize;
+			if (currentSock.hasOwnProperty("dukf_ssl_context")) {
+				recvSize = internalSSL.read(currentSock.dukf_ssl_context, myData);
+			} else {
+				recvSize = OS.recv({sockfd: currentSock.getFD(), data: myData});
+			}
 			log("Length of data from recv: " + recvSize);
 			if (recvSize === 0) {
 				if (currentSock._onEnd) {
@@ -111,16 +126,19 @@ function loop() {
 				if (currentSock._onClose) {
 					currentSock._onClose();
 				}
-				OS.close({sockfd: currentSock._sockfd});
+				OS.close({sockfd: currentSock.getFD()});
+				if (currentSock.hasOwnProperty("dukf_ssl_context")) {
+					internalSSL.free_dukf_ssl_context(currentSock.dukf_ssl_context);
+				}
 				// Now that we have closed the socket ... we can remove it from
 				// our cache list.
-			   delete _sockets[currentSock._sockfd];
+			   delete _sockets[currentSock.getFD()];
 			}  // We received no data.
-			else { // Data size was not 0.
+			else if (recvSize > 0 ) { // Data size was > 0 .
 				if (currentSock._onData) {
 					currentSock._onData(myData.slice(0, recvSize));
 				}
-			} // Data size was not 0.
+			} // Data size was > 0
 			myData = null;
 		} // Data available and socket is NOT a server
 	} // For each socket that is able to read ... 

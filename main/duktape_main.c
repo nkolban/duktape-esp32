@@ -1,5 +1,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/heap_regions.h>
+#include <freertos/task.h>
 #include <esp_event.h>
 #include <esp_event_loop.h>
 #include <esp_log.h>
@@ -86,7 +87,7 @@ static void init() {
 	//xTaskCreatePinnedToCore(&telnetTask, "telnetTask", 8048, NULL, 5, NULL, 0);
 	//startMongooseServer();
 	//xTaskCreatePinnedToCore(&socket_server, "socket_server", 8048, NULL, 5, NULL, 0);
-	xTaskCreatePinnedToCore(&duktape_task, "duktape_task", 16*1024, NULL, 5, NULL, 0);
+	xTaskCreatePinnedToCore(&duktape_task, "duktape_task", 16*1024, NULL, 5, NULL, tskNO_AFFINITY);
 } // init
 
 

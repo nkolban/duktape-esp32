@@ -34,6 +34,12 @@ static uint32_t g_apStartCallbackStashKey = -1;
 
 static int scanParamsDataProvider(duk_context *ctx, void *context);
 
+/*
+ * This function is called when the ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION is
+ * being processed and adds the context as a parameter to the called back
+ * function.  It adds an error code which is either "null" to indicate that
+ * there was no error or it adds a string indicating the error.
+ */
 static int addError(duk_context *ctx, void *context) {
 	if (context == NULL) {
 		duk_push_null(ctx);
@@ -41,7 +47,7 @@ static int addError(duk_context *ctx, void *context) {
 		duk_push_string(ctx, (char *)context);
 	}
 	return 1;
-}
+} // addError
 
 
 /**

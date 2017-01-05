@@ -419,12 +419,14 @@ void duktape_task(void *ignore) {
 		} // End of check for value stack leakage.
 
 #if defined(ESP_PLATFORM)
-		taskYIELD();
-
+		//taskYIELD();
+		vTaskDelay(1);
+/*
 		uint32_t heapSize = esp_get_free_heap_size();
 		if (heapSize < 10000) {
 			LOGV("heap: %d",heapSize);
 		}
+*/
 #endif /* ESP_PLATFORM */
 
 	} // End while loop.

@@ -15,6 +15,7 @@ var net = {
 	// * sockfd - A numeric socket fd of an open socket.
 	//
 	// connect - Connect to a target.
+	// getFD - Return the underlyng file descriptor.
 	// on - Register an event handler
 	// - close
 	// - data
@@ -30,7 +31,6 @@ var net = {
 			sockfd = OS.socket().sockfd;
 		}
 		var ret = {
-			_sockfd: sockfd,
 			_onData: null,
 			_onClose: null,
 			_onConnect: null,
@@ -46,7 +46,7 @@ var net = {
 			// write - Write data down the socket.
 			//
 			write: function(data) {
-				var sendRc = OS.send({sockfd: this._sockfd, data: data});
+				var sendRc = OS.send({sockfd: sockfd, data: data});
 				if (sendRc < 0) {
 					throw new Error("Underlying send() failed");
 				}
@@ -89,9 +89,10 @@ var net = {
 				this.connecting = true;
 				this.on("connect", connectListener);
 				var connectRc = OS.connect({
-					sockfd: this._sockfd,
+					sockfd: sockfd,
 					port: options.port,
-					address: net.getByName(options.address)});
+					address: net.getByName(options.address)
+				});
 				if (connectRc < 0) {
 					throw new Error("Underlying connect() failed");
 				}
@@ -108,15 +109,19 @@ var net = {
 				if (data !== undefined) {
 					this.write(data);
 				}
-				OS.close({sockfd: this._sockfd});
-				delete _sockets[this._sockfd];
+				OS.shutdown({sockfd: sockfd});
+				OS.close({sockfd: sockfd});
+				delete _sockets[sockfd];
 			},
 			setNote: function(text) {
 				this._note = text;
 			},
+			//
+			// getFD
+			//
 			getFD: function() {
 				return sockfd;
-			}
+			} // getFD
 		}; // ret object
 		_sockets[sockfd] = ret;
 		return ret;
@@ -132,10 +137,10 @@ var net = {
 		return {
 			listen: function(port) {
 				sock.localPort = port;
-				if (OS.bind({sockfd: sock._sockfd, port: port}) != 0) {
+				if (OS.bind({sockfd: sock.getFD(), port: port}) != 0) {
 					throw new Error("Underlying bind() failed");
 				}
-				if (OS.listen({sockfd: sock._sockfd}) !=0) {
+				if (OS.listen({sockfd: sock.getFD()}) !=0) {
 					throw new Error("Underlying listen() failed");
 				}
 				// Listen on the port
@@ -149,16 +154,19 @@ var net = {
 	//
 	connect: function(options, connectCallback) {
 		var newSocket = new this.Socket();
-		_sockets[newSocket._sockfd] = newSocket;
 		newSocket.connect(options, connectCallback);
 		return newSocket;
 	}, // connect
 	
+	//
+	// closeAll
+	//
 	closeAll: function() {
 		// force the close of ALL sockets ...
 		while(_sockets.length > 0) {
-			OS.close({sockfd: this._sockfd});
-			delete _sockets[this._sockfd];
+			OS.shutdown({sockfd: _sockets[0].getFD()});
+			OS.close({sockfd: _sockets[0].getFD()});
+			delete _sockets[_sockets[0].getFD()];
 		}
 	}, // closeAll
 	
@@ -168,7 +176,8 @@ var net = {
 	// Return a string representation of the IP address of the address or null
 	// on an error.  Will also parse regular IP addresses.
 	getByName: function(address) {
-		return OS.gethostbyname(address);
+		//return OS.gethostbyname(address);
+		return OS.getaddrinfo(address);
 	} // getByName
 
 }; // End of module net

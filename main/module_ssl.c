@@ -17,9 +17,19 @@
 
 LOG_TAG("ssl");
 
-static void debug_log(void *context, int level, const char *file, int line, const char *message) {
+static void debug_log(
+	void *context,
+	int level,
+	const char *file,
+	int line,
+	const char *message) {
+	// mbedtls messages seem to add a newline, let's remove that.
+	char *ptr = (char *)message;
+	if (ptr[strlen(ptr)-1] == '\n') {
+		ptr[strlen(ptr)-1] = ' ';
+	}
 	LOGD("%s:%04d: %s", file, line, message);
-}
+} // debug_log
 
 
 /*
@@ -173,8 +183,32 @@ static duk_ret_t js_ssl_free_dukf_ssl_context(duk_context *ctx) {
 	return 0;
 } // js_ssl_free
 
+
 /*
- * [0] - ssl_socket - pointer
+ * [0] - dukf_ssl_context_t - pointer
+ * [1] - data to read - buffer
+ */
+static duk_ret_t js_ssl_read(duk_context *ctx) {
+	char errortext[256];
+	LOGD(">> js_ssl_read");
+	dukf_ssl_context_t *dukf_ssl_context = duk_get_pointer(ctx, -2);
+	size_t len;
+	uint8_t *buf = duk_get_buffer_data(ctx, -1, &len);
+	int rc = mbedtls_ssl_read(&dukf_ssl_context->ssl, buf, len);
+	if (rc < 0) {
+		 mbedtls_strerror(rc, errortext, sizeof(errortext));
+		 LOGE("error from mbedtls_ssl_read: %d - %x - %s", rc, rc, errortext);
+		 duk_push_nan(ctx);
+	} else {
+		duk_push_int(ctx, rc);
+	}
+	LOGD("<< js_ssl_read: rc=%d", rc);
+	return 1;
+} // js_ssl_read
+
+
+/*
+ * [0] - dukf_ssl_context_t - pointer
  * [1] - data to write - buffer
  */
 static duk_ret_t js_ssl_write(duk_context *ctx) {
@@ -183,6 +217,7 @@ static duk_ret_t js_ssl_write(duk_context *ctx) {
 	dukf_ssl_context_t *dukf_ssl_context = duk_get_pointer(ctx, -2);
 	size_t len;
 	uint8_t *buf = duk_get_buffer_data(ctx, -1, &len);
+	LOGD("About to send data over SSL: %.*s", len, buf);
 	int rc = mbedtls_ssl_write(&dukf_ssl_context->ssl, buf, len);
 	if (rc < 0) {
 		 mbedtls_strerror(rc, errortext, sizeof(errortext));
@@ -222,6 +257,13 @@ duk_ret_t ModuleSSL(duk_context *ctx) {
 	// [1] - C Function - js_ssl_free
 
 	duk_put_prop_string(ctx, idx, "free_dukf_ssl_context"); // Add free to SSL
+	// [0] - SSL object
+
+	duk_push_c_function(ctx, js_ssl_read, 2);
+	// [0] - SSL object
+	// [1] - C Function - js_ssl_read
+
+	duk_put_prop_string(ctx, idx, "read"); // Add read to SSL
 	// [0] - SSL object
 
 	duk_push_c_function(ctx, js_ssl_write, 2);

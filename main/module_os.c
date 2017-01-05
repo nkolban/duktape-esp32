@@ -239,9 +239,52 @@ static duk_ret_t js_os_connect(duk_context *ctx) {
 	return 1;
 } // js_os_connect
 
+
 /*
  * Retrieve the hostname for the address or null if not resolvable.
  * [0] - hostname
+ *
+ *  * The return is the string representation of the IP address of the hostname.
+ */
+static duk_ret_t js_os_getaddrinfo(duk_context *ctx) {
+	struct addrinfo *result;
+	char retName[INET_ADDRSTRLEN];
+
+	LOGD(">> js_os_getaddrinfo");
+
+	const char *hostname = duk_get_string(ctx, -1);
+	LOGD(" - Looking up %s", hostname);
+	strcpy(retName, "");
+
+	int rc = getaddrinfo(
+			hostname,
+			NULL, // Service identifier
+			NULL, // Hints
+			&result
+	);
+	if (rc != 0) {
+		LOGD(" - not found! rc = %d", rc);
+		duk_push_null(ctx);
+	} else {
+
+
+		inet_ntop(
+			AF_INET,
+			&((struct sockaddr_in *)(result->ai_addr))->sin_addr,
+			retName, sizeof(retName));
+		duk_push_string(ctx, retName);
+		freeaddrinfo(result);
+	}
+	LOGD("<< js_os_getaddrinfo: IP=%s", retName);
+	return 1;
+} // js_os_getaddrinfo
+
+
+/*
+ * Retrieve the hostname for the address or null if not resolvable.
+ * [0] - hostname
+ *
+ * The return is the string representation of the IP address of the hostname.
  */
 static duk_ret_t js_os_gethostbyname(duk_context *ctx) {
 	LOGD(">> js_os_gethostbyname");
@@ -720,6 +763,38 @@ static duk_ret_t js_os_sha1(duk_context *ctx) {
 
 
 /**
+ * Shutdown the socket.
+ * [0] - Params object
+ * - sockfd: The socket to shutdown.
+ *
+ * There is no return code.
+ */
+static duk_ret_t js_os_shutdown(duk_context *ctx) {
+	LOGD(">> js_os_shutdown");
+
+	if (!duk_is_object(ctx, -1)) {
+		LOGE("js_os_shutdown: No parameters object found.");
+		return 0;
+	}
+	if (!duk_get_prop_string(ctx, -1, "sockfd")) {
+		LOGE("js_os_shutdown: No sockfd property found.");
+		return 0;
+	}
+	int sockfd = duk_get_int(ctx, -1);
+	duk_pop(ctx);
+
+	LOGD("About to shutdown fd=%d", sockfd);
+	int rc = shutdown(sockfd, SHUT_RDWR);
+	if (rc < 0) {
+		LOGE("Error with shutdown: %d: %d - %s", rc, errno, strerror(errno));
+	}
+
+	LOGD("<< js_os_shutdown");
+	return 0;
+} // js_os_shutdown
+
+
+/**
  * Create a new socket.
  * The is no input to this function.
  *
@@ -799,6 +874,15 @@ void ModuleOS(duk_context *ctx) {
 	// [2] - C Function - js_os_connect
 
 	duk_put_prop_string(ctx, idx, "connect"); // Add connect to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_getaddrinfo, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_getaddrinfo
+
+	duk_put_prop_string(ctx, idx, "getaddrinfo"); // Add getaddrinfo to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
 
@@ -892,6 +976,15 @@ void ModuleOS(duk_context *ctx) {
 	// [2] - C Function - js_os_sha1
 
 	duk_put_prop_string(ctx, idx, "sha1"); // Add sha1 to new OS
+	// [0] - Global object
+	// [1] - New object - OS object
+
+	duk_push_c_function(ctx, js_os_shutdown, 1);
+	// [0] - Global object
+	// [1] - New object - OS object
+	// [2] - C Function - js_os_shutdown
+
+	duk_put_prop_string(ctx, idx, "shutdown"); // Add shutdown to new OS
 	// [0] - Global object
 	// [1] - New object - OS object
 

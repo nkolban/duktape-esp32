@@ -75,7 +75,6 @@ var ssl = {
 		});
 		rawSocket.on("data", function(data) {
 			if (_onData !== null) {
-// We have received some raw data, now we must decode ... 
 				_onData(data);
 			}
 		});
@@ -121,6 +120,7 @@ var ssl = {
 // At this point we have a socket connection to the target ... now we want to perform the
 // SSL initialization.
 					dukf_ssl_context = internalSSL.create_dukf_ssl_context(options.address, rawSocket.getFD());
+					rawSocket.dukf_ssl_context = dukf_ssl_context;
 					if (callback) {
 						callback();
 					}

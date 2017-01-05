@@ -18,6 +18,7 @@ Built into the solution are a variety of Modules.
 * [PARTITIONS](#partitions)
 * [RMT](#rmt)
 * [Serial](#serial)
+* [Socket](#socket)
 * [Stream](#stream)
 * [StreamReader](#streamreader)
 * [StreamWriter](#streamwriter)
@@ -742,23 +743,22 @@ The `options` is an object that must contain:
 ```
 
 The `connectionListener` is a callback function that will be invoked when a a connections has been formed to
-our partner server socket.  The callback function will be passed the socket.
+our partner server socket.  The return from `connect` is the socket we are using.
 
 For example:
 
 ```
 var net = require("net");
-var socket = new net.Socket();
-function connectionListener(sock) {
+function connectionListener() {
    log("connectionListener: The connection has been formed!");
-   sock.on("data", function(data) {
-      log("connectionListener: Data received was: " + data);
-   });
-   sock.on("end", function() {
-      log("connectionListener: connection ended!");
-   });   
 }
-socket.connect({address: "127.0.0.1", port: 99}, connectionListener);
+var socket = connect({address: "127.0.0.1", port: 99}, connectionListener);
+socket.on("data", function(data) {
+   log("connectionListener: Data received was: " + data);
+});
+sock.on("end", function() {
+   log("connectionListener: connection ended!");
+});
 ```
 
 ###getByName
@@ -956,6 +956,16 @@ The `options` is an object that contains:
 }
 
 ```
+
+###getaddrinfo
+Return a string representation of an IP address given a hostname.
+
+Syntax:
+`getaddrinfo(hostname)`
+
+The return is a string representation of an IP address of the given hostname.  A name service
+lookup is performed.  If the input is already a dotted decimal IP address, that is the IP
+address that will be returned.
 
 ###gethostbyname
 ###gpioGetLevel
@@ -1214,6 +1224,60 @@ Syntax:
 
 The data is either a string or a buffer.
 
+##Socket
+Create a new socket.
+
+Syntax:
+`new net.Socket([options])`
+
+The optional `options` object can contain:
+```
+{
+   sockfd: <A socket numeric descriptor of an existing socket>
+}
+```
+
+The creation of a new object is an object with methods:
+
+###end
+Terminate the connection.
+
+Syntax:
+`end([data])`
+
+End the connection optionally sending some final data.
+
+###getFD
+Return the underlying file descriptor.
+
+Syntax:
+`getFD()`
+
+TCP/IP sockets have an underlying file descriptor.  The purpose of this class is to hide/mask
+as much of the low level details as possible but there are times when we want to get our hands
+on the file descriptor.
+
+###on
+Register an event handler.
+
+Syntax:
+`on(eventType, callback)`
+
+The event types are"
+* `close` - Called when the socket is closed.
+* `connect` - Called when a connection completes.
+* `data` - Called when data arrives.  Parameter is a Buffer of new data.
+* `end` - Called when all the data has been received.
+
+###write
+Write data down the socket.
+
+Syntax:
+`write(data)`
+
+Write data to a partner.
+
+
 ##Stream
 A stream is a pair of object where one acts as a stream writer and the other as a stream reader.  When
 data is writer into the stream writer it is available at the stream reader.  The stream can also
@@ -1414,6 +1478,9 @@ The options is an object that declares how we should connect to the access point
 
 The `password` is optional assuming that the access point doesn't require one.
 
+The callback function is supplied an error parameter.   If its value is `null`, then no error was
+detected and we are connected.  If its value is not `null`, then we failed in our connection.
+
 For example:
 
 ```
@@ -1425,8 +1492,10 @@ WIFI.connect({
 		gw: "192.168.1.1",
 		netmask: "255.255.255.0"
 	}
-}, function() {
-	log("### We are now connected!");
+}, function(errCode) {
+    if (errCode === null) {
+	   log("### We are now connected!");
+	}
 });
 ```
 
