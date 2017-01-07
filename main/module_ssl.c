@@ -209,14 +209,28 @@ static duk_ret_t js_ssl_read(duk_context *ctx) {
 
 /*
  * [0] - dukf_ssl_context_t - pointer
- * [1] - data to write - buffer
+ * [1] - data to write - buffer or string
  */
 static duk_ret_t js_ssl_write(duk_context *ctx) {
 	char errortext[256];
 	LOGD(">> js_ssl_write");
 	dukf_ssl_context_t *dukf_ssl_context = duk_get_pointer(ctx, -2);
 	size_t len;
-	uint8_t *buf = duk_get_buffer_data(ctx, -1, &len);
+	uint8_t *buf;
+
+	// If the data is a string, then the string is the data to transmit else it
+	// is a buffer and the content of the buffer is the data to transmit,
+	if (duk_is_string(ctx, -1)) {
+		buf = (void *)duk_get_string(ctx, -1);
+		len = strlen((char *)buf);
+	} else {
+		buf = duk_get_buffer_data(ctx, -1, &len);
+		if (len == 0) {
+			LOGE("js_ssl_write: The data buffer is zero length.");
+			return 0;
+		}
+	}
+
 	LOGD("About to send data over SSL: %.*s", len, buf);
 	int rc = mbedtls_ssl_write(&dukf_ssl_context->ssl, buf, len);
 	if (rc < 0) {

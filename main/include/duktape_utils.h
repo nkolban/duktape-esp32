@@ -30,4 +30,11 @@ uint32_t    esp32_duktape_stash_object(duk_context *ctx);
 size_t      esp32_duktape_unstash_array(duk_context *ctx, uint32_t key);
 void        esp32_duktape_unstash_object(duk_context *ctx, uint32_t key);
 
+#define ADD_FUNCTION(FUNCTION_NAME_STRING, FUNCTION_NAME, PARAM_COUNT) \
+		duk_push_c_function(ctx, FUNCTION_NAME, PARAM_COUNT); \
+		duk_put_prop_string(ctx, -2, FUNCTION_NAME_STRING)
+
+#define ADD_INT(INT_NAME_STRING, INT_NAME) \
+		duk_push_int(ctx, INT_NAME); \
+		duk_put_prop_string(ctx, -2, INT_NAME_STRING)
 #endif /* MAIN_DUKTAPE_UTILS_H_ */

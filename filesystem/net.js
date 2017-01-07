@@ -8,6 +8,16 @@
  * * none
  * 
  */
+var moduleSSL = ESP32.getNativeFunction("ModuleSSL");
+if (moduleSSL === null) {
+	log("Unable to find ModuleSSL");
+	module.exports = null;
+	return;
+}
+
+var internalSSL = {};
+moduleSSL(internalSSL);
+
 var net = {
 	//
 	// net.Socket(options)
@@ -42,15 +52,21 @@ var net = {
 			remoteAddress: null,
 			remotePort: null,
 			localPort: null,
+			
 			//
-			// write - Write data down the socket.
+			// write - Write data down the socket.  If we are using SSL, then write using the
+			// SSL routines otherwise write using the OS send API.
 			//
 			write: function(data) {
-				var sendRc = OS.send({sockfd: sockfd, data: data});
-				if (sendRc < 0) {
-					throw new Error("Underlying send() failed");
+				if (this.hasOwnProperty("dukf_ssl_context")) {
+					return internalSSL.write(this.dukf_ssl_context, data);
+				} else {
+					var sendRc = OS.send({sockfd: sockfd, data: data});
+					if (sendRc < 0) {
+						throw new Error("Underlying send() failed");
+					}
+					return sendRc;
 				}
-				return sendRc;
 			},
 			//
 			// on - Register events.
@@ -73,15 +89,13 @@ var net = {
 					return;
 				}
 			}, // on
-			/**
-			 * connect: Connect to a partner socket
-			 * options contains:
-			 * port
-			 * host
-			 * localAddress
-			 * localPort
-			 * family
-			 */
+/**
+ * connect: Connect to a partner socket
+ * options contains:
+ * * port
+ * * host
+ * * useSSL
+ */
 			//
 			// connect
 			//
@@ -96,9 +110,15 @@ var net = {
 				if (connectRc < 0) {
 					throw new Error("Underlying connect() failed");
 				}
-				this._remotePort = options.port;
-				this._remoteAddress = options.address;
+				this.remotePort = options.port;
+				this.remoteAddress = options.address;
+				
+				// If we are using SSL then create the SSL structures ...
+				if (options.useSSL === true) {
+					this.dukf_ssl_context = internalSSL.create_dukf_ssl_context(options.address, sockfd);
+				}
 			}, // connect
+			
 			//
 			// close
 			//

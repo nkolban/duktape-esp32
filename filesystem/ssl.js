@@ -104,7 +104,8 @@ var ssl = {
 			},
 			write: function(data) {
 				// Convert the data to encrypted data and then send it.
-				return internalSSL.write(dukf_ssl_context, data);
+				return rawSocket.write(data);
+				//return internalSSL.write(dukf_ssl_context, data);
 			},
 			end: function(data) {
 				return rawSocket.end(data);

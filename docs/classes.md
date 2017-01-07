@@ -1239,6 +1239,17 @@ The optional `options` object can contain:
 
 The creation of a new object is an object with methods:
 
+###connect
+Perform a connection on the socket.
+
+Syntax:
+`connect(options, callback)`
+
+The options object contains:
+* `host` - string - The hostname or IP address of the target.
+* `port` - number - The port number at the target to which we wish to connect.
+* `useSSL` - boolean - optional ... if true, then we are going to use SSL for encryption.
+
 ###end
 Terminate the connection.
 

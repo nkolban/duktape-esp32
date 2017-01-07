@@ -37,6 +37,7 @@ var http = {
 		var path = options.path;
 		var port = options.port;
 		var host = options.host;
+		var useSSL = options.useSSL === true;
 		var method = options.method;
 		
 		// validate inputs and set defaults for unset properties.
@@ -91,11 +92,16 @@ var http = {
 
 		// Send a connect request and register the function to be invoked when the connect
 		// succeeds.  That registered function is responsible for sending the HTTP request to the partner.
-		sock.connect({address: host, path: path, port: port}, function() {
+		sock.connect({
+			address: host,
+			path: path,
+			port: port,
+			useSSL: useSSL
+		}, function() {
 			// We are now connected ... send the HTTP message
 			// Build the message to send.
 
-			var requestMessage = "GET " + path + " HTTP/1.1\r\n" +
+			var requestMessage = method +" " + path + " HTTP/1.1\r\n" +
 				"Host: " + host + ":" + port + "\r\n";
 			sock.write(requestMessage); // Send the message to the HTTP server.
 			if (options.headers != undefined) {
