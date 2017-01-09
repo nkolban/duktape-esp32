@@ -27,3 +27,9 @@ Holds the state of all the active timers in the environment.  A timer is created
 
 ##_sockets
 To be written.
+
+# Non Volatile Storage
+This project also uses some Non Volatile Storage areas:
+
+* esp32duktape -> start - string - Name of program to load at start.
+* esp32duktape -> useSerial - uint8_t - 1 if we are going to use serial processor (uart_processor.js).

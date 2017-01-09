@@ -1,16 +1,25 @@
+var moduleNVS = ESP32.getNativeFunction("ModuleNVS");
+if (moduleNVS === null) {
+	log("Unable to find ModuleNVS");
+	module.exports = null;
+	return;
+}
+
+var internalNVS = {};
+moduleNVS(internalNVS);
 /*
  * The Non Volatile Storage Module
  */
 var nvs = {
 	open: function(namespace, mode) {
-		var handle = _NVS.open(namespace, mode);
+		var handle = internalNVS.open(namespace, mode);
 		var dirty = false;
 		return {
 			//
 			// close
 			//
 			close: function() {
-				_NVS.close(handle);
+				internalNVS.close(handle);
 				if (dirty) {
 					log("We closed an NVS handle without a previous commit and data was dirty");
 				}
@@ -21,7 +30,7 @@ var nvs = {
 			// commit
 			//
 			commit: function() {
-				_NVS.commit(handle);
+				internalNVS.commit(handle);
 				dirty = false;
 				return;
 			}, // commit
@@ -30,7 +39,7 @@ var nvs = {
 			// erase
 			//
 			erase: function(key) {
-				_NVS.erase(handle, key);
+				internalNVS.erase(handle, key);
 				dirty = true;
 				return;
 			}, // erase
@@ -39,7 +48,7 @@ var nvs = {
 			// eraseAll
 			//
 			eraseAll: function() {
-				_NVS.eraseAll(handle);
+				internalNVS.eraseAll(handle);
 				dirty = true;
 				return;
 			}, // eraseAll
@@ -48,14 +57,14 @@ var nvs = {
 			// get
 			//
 			get: function(key, type) {
-				return _NVS.get(handle, key, type);
+				return internalNVS.get(handle, key, type);
 			}, // get
 			
 			//
 			// set
 			//
 			set: function(key, value, type) {
-				_NVS.set(handle, key, value, type);
+				internalNVS.set(handle, key, value, type);
 				dirty = true;
 				return;
 			} // set

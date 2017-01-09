@@ -9,6 +9,6 @@
 #define MAIN_ESP32_DUKTAPE_MODULE_FS_H_
 #include <duktape.h>
 
-void ModuleFS(duk_context *ctx);
+duk_ret_t ModuleFS(duk_context *ctx);
 
 #endif /* MAIN_ESP32_DUKTAPE_MODULE_FS_H_ */

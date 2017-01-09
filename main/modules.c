@@ -20,6 +20,7 @@
 #include "duktape_utils.h"
 #include "logging.h"
 #include "modules.h"
+#include "module_adc.h"
 #include "module_bluetooth.h"
 #include "module_dukf.h"
 #include "module_fs.h"
@@ -81,11 +82,14 @@ typedef struct {
  */
 functionTableEntry_t functionTable[] = {
 #if defined(ESP_PLATFORM)
+	{ "ModuleADC",        ModuleADC,        1},
 #if defined(ESP32_DUKTAPE_USE_BLUETOOTH)
 	{ "ModuleBluetooth",  ModuleBluetooth,  1},
 #endif
+	{ "ModuleFS",         ModuleFS,         1},
 	{ "ModuleI2C",        ModuleI2C,        1},
 	{ "ModuleLEDC",       ModuleLEDC,       1},
+	{ "ModuleNVS",        ModuleNVS,        1},
 	{ "ModulePartitions", ModulePartitions, 1},
 	{ "ModuleRMT",        ModuleRMT,        1},
 	{ "ModuleRTOS",       ModuleRTOS,       1},
@@ -93,7 +97,7 @@ functionTableEntry_t functionTable[] = {
 	{ "ModuleSSL",        ModuleSSL,        1},
 #endif // ESP_PLATFORM
 	// Must be last entry
-	{NULL, NULL, 0 }
+	{NULL, NULL, 0 } // *** DO NOT DELETE *** - MUST BE LAST ENTRY.
 };
 
 
@@ -141,13 +145,13 @@ typedef struct {
 	esp_log_level_t level;
 } level_t;
 static level_t levels[] = {
-		{"none", ESP_LOG_NONE},
-		{"error", ESP_LOG_ERROR},
-		{"warn", ESP_LOG_WARN},
-		{"info", ESP_LOG_INFO},
-		{"debug", ESP_LOG_DEBUG},
-		{"verbose", ESP_LOG_VERBOSE},
-		{NULL, 0}
+	{"none",    ESP_LOG_NONE},
+	{"error",   ESP_LOG_ERROR},
+	{"warn",    ESP_LOG_WARN},
+	{"info",    ESP_LOG_INFO},
+	{"debug",   ESP_LOG_DEBUG},
+	{"verbose", ESP_LOG_VERBOSE},
+	{NULL, 0} // *** DO NOT DELETE *** - Must be last entry.
 };
 /**
  * Set the debug log level.
@@ -499,15 +503,13 @@ static void ModuleESP32(duk_context *ctx) {
  * bein the global address space/scope.
  */
 void registerModules(duk_context *ctx) {
+	LOGD(">> registerModules");
 #if defined(ESP_PLATFORM)
 	espFsInit((void *)0x360000, 4 * 64 * 1024);
 #endif // ESP_PLATFORM
 
 	duk_idx_t top = duk_get_top(ctx);
 	ModuleConsole(ctx);
-	assert(top == duk_get_top(ctx));
-
-	ModuleFS(ctx);
 	assert(top == duk_get_top(ctx));
 
 	ModuleOS(ctx);
@@ -523,11 +525,8 @@ void registerModules(duk_context *ctx) {
 	ModuleWIFI(ctx); // Load the WiFi module
 	assert(top == duk_get_top(ctx));
 
-	ModuleNVS(ctx); // Load the Non Volatile Storage module
-	assert(top == duk_get_top(ctx));
-
 	//ModuleTIMERS(ctx);
 	//assert(top == duk_get_top(ctx));
 #endif /* ESP_PLATFORM */
-
+	LOGD("<< registerModules");
 } // End of registerModules

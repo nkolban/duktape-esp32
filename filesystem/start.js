@@ -1,3 +1,6 @@
+(function() {
+	
+var STOP_PIN = 13; 
 /*
  *  Master start for Web IDE.   Here we run the bootwifi script to boot up the WiFi
  *  environment.  Then we load the ide_webserver and we are off and running.
@@ -10,6 +13,36 @@ function startIDE() {
 };
 
 
+/*
+ * Determine if we should run a start program, what it should be and then
+ * actually run it if needed.
+ */
+function runStart() {
+	var GPIO = require("gpio");
+	var stopPin = new GPIO(STOP_PIN);
+	stopPin.setDirection(GPIO.INPUT);
+	if (stopPin.getLevel()) {
+		log("Start program bypassed by user.");
+		return;
+	}
+	
+	var esp32duktapeNS = NVS.open("esp32duktape", "readwrite");
+	var startProgram = esp32duktapeNS.get("start", "string");
+	esp32duktapeNS.close();
+	if (startProgram !== null) {
+		var script = ESP32.loadFile("/spiffs" + startProgram);
+		if (script !== null) {
+			try {
+				eval(script);
+			}
+			catch (e) {
+				log("Caught exception: " + e.stack);
+			}
+		} // We loaded the script
+	} // We have a program
+} // runStart
+
+
 // Boot WiFi and, when done, start the IDE WebServer.
 if (DUKF.OS == "ESP32") {
 	// Check to see if we are booting serial ...
@@ -19,6 +52,7 @@ if (DUKF.OS == "ESP32") {
 	esp32duktapeNS.close();
 	if (useSerial === 1) {
 		require("uart_processor");
+		runStart();
 	} else {
 		var bootwifi = require("bootwifi.js");
 		bootwifi(startIDE);
@@ -26,3 +60,5 @@ if (DUKF.OS == "ESP32") {
 } else {
 	startIDE();
 }
+
+})();

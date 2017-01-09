@@ -403,98 +403,17 @@ static duk_ret_t js_fs_spiffsDir(duk_context *ctx) {
 /**
  * Create the FS module in Global.
  */
-void ModuleFS(duk_context *ctx) {
-	duk_push_global_object(ctx);
-	// [0] - Global
+duk_ret_t ModuleFS(duk_context *ctx) {
 
-	duk_push_object(ctx); // Create new FS object
-	// [0] - Global
-	// [1] - FS Object
+	ADD_FUNCTION("closeSync", js_fs_closeSync, 1);
+	ADD_FUNCTION("dump",      js_fs_dump,      0);
+	ADD_FUNCTION("fstatSync", js_fs_fstatSync, 1);
+	ADD_FUNCTION("openSync",  js_fs_openSync,  3);
+	ADD_FUNCTION("readSync",  js_fs_readSync,  5);
+	ADD_FUNCTION("spiffsDir", js_fs_spiffsDir, 0);
+	ADD_FUNCTION("statSync",  js_fs_statSync,  1);
+	ADD_FUNCTION("unlink",    js_fs_unlink,    1);
+	ADD_FUNCTION("writeSync", js_fs_writeSync, 4);
 
-	duk_push_c_function(ctx, js_fs_openSync, 3);
-	// [0] - Global
-	// [1] - FS Object
-	// [2] - C Func - js_fs_openSync
-
-	duk_put_prop_string(ctx, -2, "openSync"); // Add openSync to new FS
-	// [0] - Global
-	// [1] - FS Object
-
-	duk_push_c_function(ctx, js_fs_closeSync, 1);
-	// [0] - Global
-	// [1] - FS Object
-	// [2] - C Func - js_fs_closeSync
-
-	duk_put_prop_string(ctx, -2, "closeSync"); // Add closeSync to new FS
-	// [0] - Global
-	// [1] - FS Object
-
-	duk_push_c_function(ctx, js_fs_readSync, 5);
-	// [0] - Global
-	// [1] - FS Object
-	// [2] - C Func - js_fs_readSync
-
-	duk_put_prop_string(ctx, -2, "readSync"); // Add readSync to new FS
-	// [0] - Global
-	// [1] - FS Object
-
-	duk_push_c_function(ctx, js_fs_writeSync, 4);
-	// [0] - Global
-	// [1] - FS Object
-	// [2] - C Func - js_fs_writeSync
-
-	duk_put_prop_string(ctx, -2, "writeSync"); // Add writeSync to new FS
-	// [0] - Global
-	// [1] - FS Object
-
-	duk_push_c_function(ctx, js_fs_statSync, 1);
-	// [0] - Global
-	// [1] - FS Object
-	// [2] - C Func - js_fs_statSync
-
-	duk_put_prop_string(ctx, -2, "statSync"); // Add statSync to new FS
-	// [0] - Global
-	// [1] - FS Object
-
-	duk_push_c_function(ctx, js_fs_fstatSync, 1);
-	// [0] - Global
-	// [1] - FS Object
-	// [2] - C Func - js_fs_fstatSync
-
-	duk_put_prop_string(ctx, -2, "fstatSync"); // Add fstatSync to new FS
-	// [0] - Global
-	// [1] - FS Object
-
-	duk_push_c_function(ctx, js_fs_unlink, 1);
-	// [0] - Global
-	// [1] - FS Object
-	// [2] - C Func - js_fs_unlink
-
-	duk_put_prop_string(ctx, -2, "unlink"); // Add unlink to new FS
-	// [0] - Global
-	// [1] - FS Object
-
-	duk_push_c_function(ctx, js_fs_dump, 0);
-	// [0] - Global
-	// [1] - FS Object
-	// [2] - C Func - js_fs_dump
-
-	duk_put_prop_string(ctx, -2, "dump"); // Add dump to new FS
-	// [0] - Global
-	// [1] - FS Object
-
-	duk_push_c_function(ctx, js_fs_spiffsDir, 0);
-	// [0] - Global
-	// [1] - FS Object
-	// [2] - C Func - js_fs_spiffsDir
-
-	duk_put_prop_string(ctx, -2, "spiffsDir"); // Add spiffsDir to new FS
-	// [0] - Global
-	// [1] - FS Object
-
-	duk_put_prop_string(ctx, -2, "FS"); // Add FS to global
-	// [0] - Global
-
-	duk_pop(ctx);
-	// <empty stack>
+	return 0;
 } // ModuleFS

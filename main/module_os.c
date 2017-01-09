@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include "duktape.h"
+#include "duktape_utils.h"
 #include "module_os.h"
 #include "logging.h"
 
@@ -828,174 +829,33 @@ void ModuleOS(duk_context *ctx) {
 	duk_push_global_object(ctx);
 	// [0] - Global object
 
-	duk_idx_t idx = duk_push_object(ctx); // Create new OS object
+  duk_push_object(ctx); // Create new OS object
 	// [0] - Global object
 	// [1] - New object - OS object
 
-	duk_push_c_function(ctx, js_os_accept, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_accept
-
-	duk_put_prop_string(ctx, idx, "accept"); // Add accept to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_bind, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_bind
-
-	duk_put_prop_string(ctx, idx, "bind"); // Add bind to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_close, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_close
-
-	duk_put_prop_string(ctx, idx, "close"); // Add close to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_closesocket, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_closesocket
-
-	duk_put_prop_string(ctx, idx, "closesocket"); // Add closesocket to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_connect, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_connect
-
-	duk_put_prop_string(ctx, idx, "connect"); // Add connect to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_getaddrinfo, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_getaddrinfo
-
-	duk_put_prop_string(ctx, idx, "getaddrinfo"); // Add getaddrinfo to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_gethostbyname, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_gethostbyname
-
-	duk_put_prop_string(ctx, idx, "gethostbyname"); // Add gethostbyname to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
+	ADD_FUNCTION("accept",        js_os_accept,        1);
+	ADD_FUNCTION("bind",          js_os_bind,          1);
+	ADD_FUNCTION("close",         js_os_close,         1);
+	ADD_FUNCTION("closesocket",   js_os_closesocket,   1);
+	ADD_FUNCTION("connect",       js_os_connect,       1);
+	ADD_FUNCTION("getaddrinfo",   js_os_getaddrinfo,   1);
+	ADD_FUNCTION("gethostbyname", js_os_gethostbyname, 1);
 
 
 #if defined(ESP_PLATFORM)
-	duk_push_c_function(ctx, js_os_gpioGetLevel, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_gpioGetLevel
-
-	duk_put_prop_string(ctx, idx, "gpioGetLevel"); // Add gpioGetLevel to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_gpioInit, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_gpioInit
-
-	duk_put_prop_string(ctx, idx, "gpioInit"); // Add js_os_gpioInit to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_gpioSetDirection, 2);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_setDirection
-
-	duk_put_prop_string(ctx, idx, "gpioSetDirection"); // Add gpioSetDirection to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_gpioSetLevel, 2);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_gpioSetLevel
-
-	duk_put_prop_string(ctx, idx, "gpioSetLevel"); // Add gpioSetLevel to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
+	ADD_FUNCTION("gpioGetLevel",     js_os_gpioGetLevel,     1);
+	ADD_FUNCTION("gpioInit",         js_os_gpioInit,         1);
+	ADD_FUNCTION("gpioSetDirection", js_os_gpioSetDirection, 2);
+	ADD_FUNCTION("gpioSetLevel",     js_os_gpioSetLevel,     2);
 #endif // ESP_PLATFORM
 
-	duk_push_c_function(ctx, js_os_listen, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_listen
-
-	duk_put_prop_string(ctx, idx, "listen"); // Add listen to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_recv, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_recv
-
-	duk_put_prop_string(ctx, idx, "recv"); // Add recv to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_select, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_select
-
-	duk_put_prop_string(ctx, idx, "select"); // Add select to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_send, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_send
-
-	duk_put_prop_string(ctx, idx, "send"); // Add send to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_sha1, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_sha1
-
-	duk_put_prop_string(ctx, idx, "sha1"); // Add sha1 to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_shutdown, 1);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_shutdown
-
-	duk_put_prop_string(ctx, idx, "shutdown"); // Add shutdown to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
-
-	duk_push_c_function(ctx, js_os_socket, 0);
-	// [0] - Global object
-	// [1] - New object - OS object
-	// [2] - C Function - js_os_socket
-
-	duk_put_prop_string(ctx, idx, "socket"); // Add socket to new OS
-	// [0] - Global object
-	// [1] - New object - OS object
+	ADD_FUNCTION("listen",   js_os_listen,   1);
+	ADD_FUNCTION("recv",     js_os_recv,     1);
+	ADD_FUNCTION("select",   js_os_select,   1);
+	ADD_FUNCTION("send",     js_os_send,     1);
+	ADD_FUNCTION("sha1",     js_os_sha1,     1);
+	ADD_FUNCTION("shutdown", js_os_shutdown, 1);
+	ADD_FUNCTION("socket",   js_os_socket,   0);
 
 
 	duk_put_prop_string(ctx, 0, "OS"); // Add OS to global

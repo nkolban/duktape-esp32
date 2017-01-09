@@ -37,19 +37,35 @@ and honoring those commands.  So what might a command be?  Possibilities include
 * Scripts for execution.
 * Requests to report on diagnostics.
 
-An initial design though it to think of the serial input as an HTTP protocol response.  Imagine that
-(logically), the ESP32-Duktape environment had issue an HTTP request that might have looked like:
+The current design is to think as the end point of the UART as an HTTP server to which we can send HTTP
+requests (over serial).
+
+The commands available so far are:
+
+* run a script - X-Command: RUN
+* get a list of files: X-Command: LIST
+* save a file - X-Command: SAVE, X-Filename: <filename>
+
 
 ```
-GET /command
-```
-
-The response to this would have been an HTTP response that might have been:
-
-```
-HTTP/1.1 200 OK <CRLF>
+POST /run HTTP/1.1<CRLF>
 Content-Length: <length><CRLF>
-X-Command: <command><CRLF>
+X-Command: RUN<CRLF>
+<CRLF>
+<payload data>
+```
+
+```
+GET /list HTTP/1.1<CRLF>
+Content-Length: <length><CRLF>
+X-Command: LIST<CRLF>
+<CRLF>
+```
+
+```
+POST /save HTTP/1.1<CRLF>
+Content-Length: <length><CRLF>
+X-Command: SAVE<CRLF>
 <CRLF>
 <payload data>
 ```

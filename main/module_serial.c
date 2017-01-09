@@ -3,6 +3,7 @@
 
 #include "duktape_utils.h"
 #include "esp32_specific.h"
+#include "duktape_utils.h"
 #include "logging.h"
 #include "module_serial.h"
 
@@ -191,30 +192,9 @@ static duk_ret_t js_serial_write(duk_context *ctx) {
  */
 duk_ret_t ModuleSerial(duk_context *ctx) {
 
-	int idx = -2;
-	duk_push_c_function(ctx, js_serial_configure, 2);
-	// [0] - Serial object
-	// [1] - C Function - js_serial_configure
+	ADD_FUNCTION("configure", js_serial_configure, 2);
+	ADD_FUNCTION("read",      js_serial_read,      2);
+	ADD_FUNCTION("write",     js_serial_write,     2);
 
-	duk_put_prop_string(ctx, idx, "configure"); // Add configure to Serial
-	// [0] - Serial object
-
-	duk_push_c_function(ctx, js_serial_read, 2);
-	// [0] - Serial object
-	// [1] - C Function - js_serial_read
-
-	duk_put_prop_string(ctx, idx, "read"); // Add read to Serial
-	// [0] - Serial object
-
-	duk_push_c_function(ctx, js_serial_write, 2);
-	// [0] - Serial object
-	// [1] - C Function - js_serial_write
-
-	duk_put_prop_string(ctx, idx, "write"); // Add write to Serial
-	// [0] - Serial object
-
-
-	duk_pop(ctx);
-	// <Empty Stack>
 	return 0;
 } // ModuleSerial

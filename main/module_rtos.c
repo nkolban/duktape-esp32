@@ -1,6 +1,8 @@
 #include <duktape.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+
+#include "duktape_utils.h"
 #include "logging.h"
 
 LOG_TAG("module_rtos");
@@ -42,15 +44,7 @@ static duk_ret_t js_rtos_systemState(duk_context *ctx) {
  */
 duk_ret_t ModuleRTOS(duk_context *ctx) {
 
-	duk_push_c_function(ctx, js_rtos_systemState, 0);
-	// [0] - RTOS object
-	// [1] - c-func - js_rtos_systemState
-
-
-	duk_put_prop_string(ctx, -2, "systemState"); // Add systemState to new RTOS
-	// [0] - RTOS object
-
-	duk_pop(ctx);
+	ADD_FUNCTION("systemState", js_rtos_systemState, 0);
 
 	return 0;
 } // ModuleRTOS

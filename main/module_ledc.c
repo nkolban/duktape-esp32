@@ -10,6 +10,7 @@
 #include <driver/ledc.h>
 
 #include "esp32_specific.h"
+#include "duktape_utils.h"
 #include "logging.h"
 #include "module_ledc.h"
 
@@ -140,23 +141,9 @@ static duk_ret_t js_ledc_timer_config(duk_context *ctx) {
  * [0] - LEDC Object
  */
 duk_ret_t ModuleLEDC(duk_context *ctx) {
-	int idx = -2;
 
-	duk_push_c_function(ctx, js_ledc_channel_config, 1);
-	// [0] - LEDC object
-	// [1] - C Function - js_ledc_init
+	ADD_FUNCTION("configureChannel", js_ledc_channel_config, 1);
+	ADD_FUNCTION("configureTimer",   js_ledc_timer_config,   1);
 
-	duk_put_prop_string(ctx, idx, "configureChannel"); // Add configureChannel to LEDC
-	// [0] - LEDC object
-
-	duk_push_c_function(ctx, js_ledc_timer_config, 1);
-	// [0] - LEDC object
-	// [1] - C Function - js_ledc_init
-
-	duk_put_prop_string(ctx, idx, "configureTimer"); // Add configureTimer to LEDC
-	// [0] - LEDC object
-
-	duk_pop(ctx);
-	// <Empty Stack>
 	return 0;
 } // ModuleLEDC

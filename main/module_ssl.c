@@ -11,7 +11,7 @@
 #include <mbedtls/ssl.h>
 #include <string.h>
 
-
+#include "duktape_utils.h"
 #include "logging.h"
 #include "module_ssl.h"
 
@@ -250,44 +250,12 @@ static duk_ret_t js_ssl_write(duk_context *ctx) {
  * [0] - SSL Object
  */
 duk_ret_t ModuleSSL(duk_context *ctx) {
-	int idx = -2;
 
-	duk_push_c_function(ctx, js_ssl_create_dukf_ssl_context, 2);
-	// [0] - SSL object
-	// [1] - C Function - js_ssl_create_dukf_ssl_context
+	ADD_FUNCTION("create_dukf_ssl_context", js_ssl_create_dukf_ssl_context, 2);
+	ADD_FUNCTION("debugThreshold",          js_ssl_debug_set_threshold,     1);
+	ADD_FUNCTION("free_dukf_ssl_context",   js_ssl_free_dukf_ssl_context,   1);
+	ADD_FUNCTION("read",                    js_ssl_read,                    2);
+	ADD_FUNCTION("write",                   js_ssl_write,                   2);
 
-	duk_put_prop_string(ctx, idx, "create_dukf_ssl_context"); // Add create_dukf_ssl_context to SSL
-	// [0] - SSL object
-
-	duk_push_c_function(ctx, js_ssl_debug_set_threshold, 1);
-	// [0] - SSL object
-	// [1] - C Function - js_ssl_debug_set_threshold
-
-	duk_put_prop_string(ctx, idx, "debugThreshold"); // Add debugThreshold to SSL
-	// [0] - SSL object
-
-	duk_push_c_function(ctx, js_ssl_free_dukf_ssl_context, 1);
-	// [0] - SSL object
-	// [1] - C Function - js_ssl_free
-
-	duk_put_prop_string(ctx, idx, "free_dukf_ssl_context"); // Add free to SSL
-	// [0] - SSL object
-
-	duk_push_c_function(ctx, js_ssl_read, 2);
-	// [0] - SSL object
-	// [1] - C Function - js_ssl_read
-
-	duk_put_prop_string(ctx, idx, "read"); // Add read to SSL
-	// [0] - SSL object
-
-	duk_push_c_function(ctx, js_ssl_write, 2);
-	// [0] - SSL object
-	// [1] - C Function - js_ssl_write
-
-	duk_put_prop_string(ctx, idx, "write"); // Add write to SSL
-	// [0] - SSL object
-
-	duk_pop(ctx);
-	// <Empty Stack>
 	return 0;
 } // ModuleSSL

@@ -83,18 +83,16 @@ void duktape_init_environment() {
 
 	esp32_duktape_stash_init(esp32_duk_context); // Initialize the stash environment.
 
-
-
 	registerModules(esp32_duk_context); // Register the built-in modules
 	dukf_log_heap("Heap after duk register modules");
 
-
 	esp32_duktape_set_reset(0); // Flag the environment as having been reset.
 
-	// Load and run the script called "init.js"
+	dukf_runFile(esp32_duk_context, "/init.js");	// Load and run the script called "init.js"
+	/*
 	LOGD("Running \"init.js\"");
 	size_t fileSize;
-	const char *data = dukf_loadFile("init.js", &fileSize);
+	const char *data = dukf_loadFileFromESPFS("init.js", &fileSize);
 	assert(data != NULL);
 
 	duk_push_lstring(esp32_duk_context, data, fileSize);
@@ -103,6 +101,7 @@ void duktape_init_environment() {
 		esp32_duktape_log_error(esp32_duk_context);
 	}
 	duk_pop(esp32_duk_context);
+	*/
 
 	dukf_log_heap("Heap after init.js");
 

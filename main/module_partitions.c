@@ -2,6 +2,7 @@
 #include <esp_partition.h>
 
 #include "duktape.h"
+#include "duktape_utils.h"
 #include "logging.h"
 #include "module_partitions.h"
 #include "sdkconfig.h"
@@ -196,15 +197,7 @@ static duk_ret_t js_partitions_list(duk_context *ctx) {
  */
 duk_ret_t ModulePartitions(duk_context *ctx) {
 
-	duk_push_c_function(ctx, js_partitions_list, 1);
-	// [0] - Partitions object
-	// [1] - c-func - js_partitions_list
-
-	duk_put_prop_string(ctx, -2, "list"); // Add list to new PARTITIONS
-	// [0] - Partitions object
-
-	duk_pop(ctx);
-	// <Empty Stack>
+	ADD_FUNCTION("list", js_partitions_list, 1);
 
 	return 0;
 } // module_partitions;

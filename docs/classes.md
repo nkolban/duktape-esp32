@@ -6,6 +6,7 @@ Built into the solution are a variety of Modules.
 * [DUKF](#dukf)
 * [ESP32](#esp32)
 * [FS](#fs)
+* [GPIO](#gpio)
 * [HTTP](#http)
 * [HTTPClientResponse](#httpclientresponse)
 * [HTTPServerRequest](#httpserverrequest)
@@ -146,6 +147,12 @@ Run a script loaded from the named file.
 Syntax:
 `runFile(path)`
 
+
+###setStartFile
+Set the file that is to be flagged as the one to be run at startup.
+
+`setStartFile(fileName)`
+
 ##ESP32
 
 
@@ -237,6 +244,7 @@ ESP32.setLogLevel("*", "verbose");
 
 Example:
 ```
+var FS = require("fs");
 var fd = FS.openSync("/spiffs/a");
 console.log("fd = " + fd);
 var buf = new Buffer(500);
@@ -250,6 +258,15 @@ Closes a previously opened file.
 
 Syntax:
 `closeSync(fileDescriptor)`
+
+###createWithContent
+Create a file with supplied content.
+
+Syntax:
+`createWithContent(path, content)`
+
+Create the named file and populate it with the supplied content which may be
+either a string or a buffer.
 
 ###dump
 Dumps a listing of the file system to debug.
@@ -367,11 +384,12 @@ The `path` is the file path to the file to be removed.
 Write data into a file.
 
 Syntax:
-`writeSync(fd, buffer, [offset [, length]])`
+`writeSync(fd, data, [offset [, length]])`
 
-Write the buffer into the file specified by the file descriptor.  If an `offset` is supplied, then
+Write the data into the file specified by the file descriptor.  The data can be either a string or a buffer.
+If a buffer and if an `offset` is supplied, then
 write starting at the offset within the buffer.  If `length` is specified, then write the specified number
-of bytes into the file.
+of bytes of the buffer into the file.
 
 
 ##GPIO
@@ -381,12 +399,17 @@ and state of a GPIO pin.  For example:
 ```
 var GPIO = require("gpio");
 var pin12 = new GPIO(12);
-pin12.setDirection(pin12.OUTPUT);
-pin12.setLevel(pin12.HIGH);
+pin12.setDirection(GPIO.OUTPUT);
+pin12.setLevel(GPIO.HIGH);
 ```
 
 ###getLevel
 Read the signal level present as input on the pin. 
+
+Syntax:
+`getLevel()`
+
+Return the signal level of the GPIO.
 
 ###HIGH
 A constant property that defines the signal level of `high`.
@@ -403,7 +426,7 @@ A constant property that defines the direction as OUTPUT of a GPIO as used by th
 `setDirection()` function. 
 
 ###setDirection
-Set the direction of the pin.  Either DIRECTION_INPUT or DIRECTION_OUTPUT.
+Set the direction of the pin.  Either `DIRECTION_INPUT` or `DIRECTION_OUTPUT`.
 
 Syntax:
 `setDirection(direction)`
@@ -1072,7 +1095,7 @@ Retrieve the details of a partition table type.
 Syntax:
 `list(type)`
 
-The `type` is the type of partition table set to return.  The choices are "app" and "data".  The return value
+The `type` is the type of partition table set to return.  The choices are "`app`" and "`data`".  The return value
 is an array of object where each object contains:
 
 ```
@@ -1113,11 +1136,11 @@ Syntax:
 An object is returned which contains the state of the channel as understood by the ESP32:
 ```
 {
-   channel: <number> - The channel id.
+   channel:     <number> - The channel id.
    loopEnabled: <boolean> - Whether or not the TX loop is enabled.
-   clockDiv: <number> - The clock divisor.
-   memBlocks: <number> - The memory blocks being used.
-   idleLevel: <number> - The idle level.
+   clockDiv:    <number> - The clock divisor.
+   memBlocks:   <number> - The memory blocks being used.
+   idleLevel:   <number> - The idle level.
    memoryOwner: <String> - The memory owner "TX" or "RX"
 }
 ```
@@ -1129,16 +1152,28 @@ Syntax:
 
 `txConfig(channel, options)`
 
-The options is an object with the following properties:
+The `options` is an object with the following properties:
 
 ```
 {
-   gpio: <number> - GPIO pin to use.
+   gpio:      <number> - GPIO pin to use.
    memBlocks: <number> - Memory blocks to use. [Default=1]
    idleLevel: <boolean> - Idle value to use. [Default=false]
-   clockDiv: <number> - Clock divider. [Default=1]
+   clockDiv:  <number> - Clock divider. [Default=1]
  }
  ```
+ 
+ Each channel has access to 128 data items for a buffer.  Since each data item is 16 bits (2 bytes) in length, this means
+ 512 bytes.  In the architecture, data items are read in 32 bit units ... meaning 2 data items are read at 
+ a time.  As such, there are really 64 records of 2 data items each associated with each channel.   
+ Each array of 512 bytes is called a memory block.  When we configure a channel, we can instruct the RMT
+ environment to use adjacent memory blocks to increase the number of data items available to a channel.  The `memBlocks`
+ property defines how many memory blocks to use.
+ For example, if we say that the number of memory blocks available to a channel is 2 then we have doubled the
+ number of data items for that channel.  This means that the subsequent channel can't be used because it now has
+ no data blocks.
+ 
+ The maximum we can use would be to set channel 0 to have all 8 data blocks.  This would be 1024 (8 x 128) data items.
  
 ###write
 Write items into the output stream.  We wait until the output has completed.
@@ -1147,10 +1182,10 @@ Syntax:
  
 `write(channel, arrayOfItems)`
  
-The arrayOfItems is an array of item objects where each item object contains
+The `arrayOfItems` is an array of item objects where each item object contains
 ```
 {
-   level: <boolean> - The output signal level.
+   level:    <boolean> - The output signal level.
    duration: <number> - The duration of this signal.
 }
 ```

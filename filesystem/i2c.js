@@ -20,7 +20,6 @@ if (moduleI2C === null) {
 
 var internalI2C = {};
 moduleI2C(internalI2C);
-log(JSON.stringify(internalI2C));
 
 var i2c_func = function(options) {
 	log("options: " + JSON.stringify(options));

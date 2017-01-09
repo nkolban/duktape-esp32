@@ -2,6 +2,7 @@
 #include <nvs.h>
 
 #include "esp32_specific.h"
+#include "duktape_utils.h"
 #include "logging.h"
 #include "module_nvs.h"
 
@@ -41,6 +42,14 @@ static duk_ret_t js_nvs_commit(duk_context *ctx) {
  * [1] - key
  */
 static duk_ret_t js_nvs_erase(duk_context *ctx) {
+	if (!duk_is_string(ctx, -1)) {
+		LOGE(">> js_nvs_erase: No key supplied");
+		return 0;
+	}
+	if (!duk_is_number(ctx, -2)) {
+		LOGE(">> js_nvs_erase: Invalid handle supplied");
+		return 0;
+	}
 	const char *key = duk_get_string(ctx, -1);
 	nvs_handle handle = duk_get_int(ctx, -2);
 	esp_err_t rc = nvs_erase_key(handle, key);
@@ -160,6 +169,7 @@ static duk_ret_t js_nvs_get(duk_context *ctx) {
 		if (rc != ESP_OK) {
 			duk_error(ctx, 1, "nvs_get_str rc=%s", esp32_errToString(rc));
 		}
+		LOGD("Getting NVS for %s = %s", key, data);
 		duk_push_string(ctx, data);
 		free(data);
 	}
@@ -190,6 +200,7 @@ static duk_ret_t js_nvs_open(duk_context *ctx) {
 	const char *nameSpace      = duk_get_string(ctx, -2);
 	const char *openModeString = duk_get_string(ctx, -1);
 	nvs_open_mode openMode;
+
 	if (strcmp(openModeString, "readwrite") == 0) {
 		openMode = NVS_READWRITE;
 	} else if (strcmp(openModeString, "readonly") == 0) {
@@ -221,7 +232,6 @@ static duk_ret_t js_nvs_open(duk_context *ctx) {
  *  * blob
  *  * int
  *  * uint8
-
  */
 static duk_ret_t js_nvs_set(duk_context *ctx) {
 	nvs_handle handle = duk_get_int(ctx, -4);
@@ -286,80 +296,15 @@ static duk_ret_t js_nvs_set(duk_context *ctx) {
 /**
  * Create the NVS module in Global.
  */
-void ModuleNVS(duk_context *ctx) {
-	duk_push_global_object(ctx);
-	// [0] - Global object
+duk_ret_t ModuleNVS(duk_context *ctx) {
 
-	duk_idx_t idx = duk_push_object(ctx); // Create new NVS object
-	// [0] - Global object
-	// [1] - New object - NVS object
+	ADD_FUNCTION("close",    js_nvs_close,    1);
+	ADD_FUNCTION("commit",   js_nvs_commit,   1);
+	ADD_FUNCTION("erase",    js_nvs_erase,    2);
+	ADD_FUNCTION("eraseAll", js_nvs_eraseAll, 1);
+	ADD_FUNCTION("get",      js_nvs_get,      3);
+	ADD_FUNCTION("open",     js_nvs_open,     2);
+	ADD_FUNCTION("set",      js_nvs_set,      4);
 
-	duk_push_c_function(ctx, js_nvs_close, 1);
-	// [0] - Global object
-	// [1] - New object - NVS object
-	// [2] - C Function - js_nvs_close
-
-	duk_put_prop_string(ctx, idx, "close"); // Add close to new NVS
-	// [0] - Global object
-	// [1] - New object - NVS object
-
-	duk_push_c_function(ctx, js_nvs_commit, 1);
-	// [0] - Global object
-	// [1] - New object - NVS object
-	// [2] - C Function - js_nvs_commit
-
-	duk_put_prop_string(ctx, idx, "commit"); // Add commit to new NVS
-	// [0] - Global object
-	// [1] - New object - NVS object
-
-	duk_push_c_function(ctx, js_nvs_erase, 1);
-	// [0] - Global object
-	// [1] - New object - NVS object
-	// [2] - C Function - js_nvs_erase
-
-	duk_put_prop_string(ctx, idx, "erase"); // Add erase to new NVS
-	// [0] - Global object
-	// [1] - New object - NVS object
-
-	duk_push_c_function(ctx, js_nvs_eraseAll, 1);
-	// [0] - Global object
-	// [1] - New object - NVS object
-	// [2] - C Function - js_nvs_eraseAll
-
-	duk_put_prop_string(ctx, idx, "eraseAll"); // Add eraseAll to new NVS
-	// [0] - Global object
-	// [1] - New object - NVS object
-
-	duk_push_c_function(ctx, js_nvs_get, 3);
-	// [0] - Global object
-	// [1] - New object - NVS object
-	// [2] - C Function - js_nvs_get
-
-	duk_put_prop_string(ctx, idx, "get"); // Add get to new NVS
-	// [0] - Global object
-	// [1] - New object - NVS object
-
-	duk_push_c_function(ctx, js_nvs_open, 2);
-	// [0] - Global object
-	// [1] - New object - NVS object
-	// [2] - C Function - js_nvs_get
-
-	duk_put_prop_string(ctx, idx, "open"); // Add open to new NVS
-	// [0] - Global object
-	// [1] - New object - NVS object
-
-	duk_push_c_function(ctx, js_nvs_set, 4);
-	// [0] - Global object
-	// [1] - New object - NVS object
-	// [2] - C Function - js_nvs_set
-
-	duk_put_prop_string(ctx, idx, "set"); // Add set to new NVS
-	// [0] - Global object
-	// [1] - New object - NVS object
-
-	duk_put_prop_string(ctx, 0, "_NVS"); // Add _NVS to global
-	// [0] - Global object
-
-	duk_pop(ctx);
-	// <Empty Stack>
+	return 0;
 } // ModuleNVS

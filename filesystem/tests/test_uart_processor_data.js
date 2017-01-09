@@ -11,8 +11,10 @@ var esp32duktape_ns = NVS.open("esp32duktape", "readwrite");
 
 // Retrieve any saved NVS values.
 var useSerial = esp32duktape_ns.get("useSerial", "uint8");
+var startProgram = esp32duktape_ns.get("start", "string");
 log("esp32duktape settings");
 log("useSerial: " + useSerial);
+log("startProgram: " + startProgram);
 
 
 var setValues = false;

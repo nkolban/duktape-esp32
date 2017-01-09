@@ -24,30 +24,33 @@ function gpio(pinNumber) {
 		setDirection: function(direction) {
 			currentDirection = direction;
 			OS.gpioSetDirection(pinNumber, direction);
-		},
+		}, // setDirection
+		
 		//
 		// setLevel
 		// Set the signal level of the GPIO to be HIGH or LOW.
 		//
 		setLevel: function(level) {
 			OS.gpioSetLevel(pinNumber, level);
-		},
+		}, // setLevel
+		
 		//
 		// getLevel
 		// Get the current signal level of the GPIO.
 		//
-		getLevel: function(level) {
+		getLevel: function() {
 			return OS.gpioGetLevel(pinNumber);
-		},
-	};
+		}, // getLevel
+	}; // End ret
 	ret.setDirection(gpio.INPUT); // Set the initial pin direction as Input
 	return ret;
 } // gpio
 
 
 // Set constants on the function.
-gpio.INPUT = 0;   // Set direction to INPUT
-gpio.OUTPUT = 1;  // Set direction to OUTPUT
-gpio.HIGH = true; // HIGH signal
-gpio.LOW = false; // LOW signal
+gpio.INPUT  = 0;     // Set direction to INPUT
+gpio.OUTPUT = 1;     // Set direction to OUTPUT
+gpio.HIGH   = true;  // HIGH signal
+gpio.LOW    = false; // LOW signal
+
 module.exports = gpio;

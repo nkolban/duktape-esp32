@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include "duktape_utils.h"
+#include "esp32_specific.h"
 #include "logging.h"
 #include "sdkconfig.h"
 
@@ -60,76 +61,16 @@ static duk_ret_t js_rmt_getState(duk_context *ctx) {
 	rmt_get_status(channel, &status);
 	rmt_get_source_clk(channel, &srcClk);
 
-
-	duk_idx_t idx = duk_push_object(ctx);
+	duk_push_object(ctx);
 	// [0] - Channel
 	// [1] - New object
 
-
-	duk_push_int(ctx, channel);
-	// [0] - Channel
-	// [1] - New object
-	// [2] - Channel
-
-
-	duk_put_prop_string(ctx, idx, "channel");
-	// [0] - Channel
-	// [1] - New object
-
-
-	duk_push_boolean(ctx, loop_en);
-	// [0] - Channel
-	// [1] - New object
-	// [2] - loopEnabled
-
-
-	duk_put_prop_string(ctx, idx, "loopEnabled");
-	// [0] - Channel
-	// [1] - New object
-
-
-	duk_push_int(ctx, div_cnt);
-	// [0] - Channel
-	// [1] - New object
-	// [2] - clockDiv
-
-
-	duk_put_prop_string(ctx, idx, "clockDiv");
-	// [0] - Channel
-	// [1] - New object
-
-
-	duk_push_int(ctx, memNum);
-	// [0] - Channel
-	// [1] - New object
-	// [2] - memBlocks
-
-
-	duk_put_prop_string(ctx, idx, "memBlocks");
-	// [0] - Channel
-	// [1] - New object
-
-
-	duk_push_int(ctx, 0); // FIX
-	// [0] - Channel
-	// [1] - New object
-	// [2] - idleLevel
-
-
-	duk_put_prop_string(ctx, idx, "idleLevel");
-	// [0] - Channel
-	// [1] - New object
-
-
-	duk_push_string(ctx, owner==RMT_MEM_OWNER_TX?"TX":"RX");
-	// [0] - Channel
-	// [1] - New object
-	// [2] - memoryOwner
-
-
-	duk_put_prop_string(ctx, idx, "memoryOwner");
-	// [0] - Channel
-	// [1] - New object
+	ADD_INT("channel", channel);
+	ADD_BOOLEAN("loopEnabled", loop_en);
+	ADD_INT("clockDiv", div_cnt);
+	ADD_INT("memBlocks", memNum);
+	ADD_INT("idleLevel", 0); // FIX
+	ADD_STRING("memoryOwner", owner==RMT_MEM_OWNER_TX?"TX":"RX");
 
 	return 1;
 } // js_rmt_getState
@@ -143,6 +84,7 @@ static void setRMTItem(
 		uint16_t duration,
 		int item,
 		rmt_item32_t *itemArray) {
+	LOGD("setRMTItem: item: %2d, duration: %d, level: %d", item, duration, level);
 	rmt_item32_t *ptr = &itemArray[item/2];
 	if (item%2 == 0) {
 		ptr->duration0 = duration;
@@ -165,35 +107,36 @@ static void setRMTItem(
  * }
  */
 static duk_ret_t js_rmt_write(duk_context *ctx) {
+	LOGD(">> js_rmt_write");
 	rmt_channel_t channel;
-	duk_size_t length;
+	duk_size_t dataItemCount;
 	duk_uarridx_t i;
 	bool waitForWrite = 1;
 
 	if (!duk_is_number(ctx, -2)) {
-		LOGD("jms_rmt_write - param 1 is not a number")
+		LOGE("<< js_rmt_write: param 1 is not a number")
 		return 0;
 	}
 	channel = duk_get_int(ctx, -2); // Get the channel number from parameter 0.
 	if (channel <0 || channel >= RMT_CHANNEL_MAX) {
-		LOGD("jms_rmt_write - channel is out of range")
+		LOGE("<< jms_rmt_write - channel is out of range")
 		return 0;
 	}
 
 	if (!duk_is_array(ctx, -1)) {
-		LOGD("jms_rmt_write - param 2 is not an array")
+		LOGE("<< jms_rmt_write - param 2 is not an array")
 		return 0;
 	}
-	length = duk_get_length(ctx, -1);
+	dataItemCount = duk_get_length(ctx, -1);
 	/*
 	duk_get_prop_string(ctx, 1, "length");
 	length = duk_get_int(ctx, -1);
 	duk_pop(ctx); // Pop the level
 	*/
 
-	LOGD("Length of RMT item array is %d", length);
-	if (length == 0) {
-		LOGD("jms_rmt_write - length of items is 0")
+	LOGD("Length of RMT data item array is %d", dataItemCount);
+	if (dataItemCount == 0) {
+		LOGD("<< jms_rmt_write - length of items is 0")
 		return 0;
 	}
 
@@ -211,15 +154,34 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
 	// The number of items we need is length + 1
 	// If 1 array -> 2 items [0, 1*]
 	// If 2 array -> 3 items [0, 1], [2*, ?]
-	// if 3 array -> 3 items [0, 1], [2, 3*]
-	// if 4 array -> 4 items [0, 1], [2, 3], [4*, ?]
-	// #of items array elements = (length div 2) + 2
+	// if 3 array -> 4 items [0, 1], [2, 3*]
+	// if 4 array -> 5 items [0, 1], [2, 3], [4*, ?]
+	//
+	// Now let us think of the rmt_item32_t.  This is a 32 bit value that holds TWO data items.
+	// | Number of data items | number of rmt_item32_t |
+	// +----------------------+------------------------+
+	// | 2                    | 1                      |
+	// | 3                    | 2                      |
+	// | 4                    | 2                      |
+	// | 5                    | 3                      |
+	//
+	// Proposition:
+	// The number of rmt_item32_t elements to host n data items is
+	// (n+1) div 2
+	// n -> value
+	// 2 -> 1
+	// 3 -> 2
+	// 4 -> 2
+	// 5 -> 3
 
-	int itemArraySize = length / 2 + 2;
+	dataItemCount++; // Add 1 for the null terminator.
+
+	int itemArraySize = (dataItemCount + 1) / 2;
 
 	rmt_item32_t *itemArray = calloc(sizeof(rmt_item32_t), itemArraySize);
+	bzero(itemArray, sizeof(rmt_item32_t) * itemArraySize);
 
-	for (i=0; i<length; i++) {
+	for (i=0; i<dataItemCount-1; i++) {
 		// Get each of the items and work with it.
 		duk_get_prop_index(ctx, -1, i);
 
@@ -235,20 +197,15 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
 
 		setRMTItem(level, duration, i, itemArray);
 
-		LOGD("item: %d - level=%d, duration=%d", i, level, duration);
+		//LOGD("item: %2d - level=%d, duration=%d", i, level, duration);
 	}
 
-	setRMTItem(0, 0, length, itemArray); // Set the trailer / terminator.
+	setRMTItem(0, 0, dataItemCount-1, itemArray); // Set the trailer / terminator.
 
-	ESP_ERROR_CHECK(rmt_driver_install(
-		channel, // Channel
-		0, // RX ring buffer size
-		19 // Interrupt number
-	));
 	ESP_ERROR_CHECK(rmt_write_items(channel, itemArray, itemArraySize, waitForWrite));
-	ESP_ERROR_CHECK(rmt_driver_uninstall(channel));
 
 	free(itemArray);
+	LOGD("<< js_rmt_write");
 	return 0;
 } // js_rmt_write
 
@@ -271,7 +228,7 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
  *    gpio:
  *    memBlocks: [Optional]
  *    idleLevel: [Optional]
- *    clockDiv: [Optional]
+ *    clockDiv:  [Optional]
  * }
  *
  */
@@ -299,8 +256,8 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 
 	if (duk_get_prop_string(ctx, 1, "memBlocks")) {
 		memBlocks = duk_get_int(ctx, -1);
-		if (memBlocks == 0) {
-			LOGE("memBlocks must be >= 1");
+		if (memBlocks < 1 || memBlocks > 8) {
+			LOGE("memBlocks must be >= 1 and <=8");
 			return 0;
 		}
 	}
@@ -331,19 +288,41 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 	config.rmt_mode = RMT_MODE_TX;
 	config.tx_config.carrier_duty_percent = 50;
 	config.tx_config.carrier_en = 0;
-	config.tx_config.carrier_freq_hz = 1000;
-	config.tx_config.carrier_level = RMT_CARRIER_LEVEL_LOW;
+	config.tx_config.carrier_freq_hz = 10000;
+	config.tx_config.carrier_level = RMT_CARRIER_LEVEL_HIGH;
 	config.tx_config.idle_output_en = 1;
 	config.tx_config.idle_level = idleLevel;
 	config.tx_config.loop_en = 0;
 
-	ESP_ERROR_CHECK(rmt_config(&config));
+/*
+	rmt_config_t config;
+	config.rmt_mode = RMT_MODE_TX;
+	config.channel = channel;
+	config.gpio_num = gpio;
+	config.mem_block_num = 1;
+	config.tx_config.loop_en = 0;
+	config.tx_config.carrier_en = 0;
+	config.tx_config.idle_output_en = 1;
+	config.tx_config.idle_level = (rmt_idle_level_t)0;
+	config.tx_config.carrier_duty_percent = 50;
+	config.tx_config.carrier_freq_hz = 10000;
+	config.tx_config.carrier_level = (rmt_carrier_level_t)1;
+	config.clk_div = 8;
+	*/
 
+	ESP_ERROR_CHECK(rmt_config(&config));
+	esp_err_t errCode = rmt_driver_install(
+		channel, // Channel
+		0, // RX ring buffer size
+		0 // Interrupt flags
+	);
+	if (errCode != ESP_OK) {
+		LOGE("rmt_driver_install: %s", esp32_errToString(errCode));
+	}
 
 	LOGD("<< js_rmt_txConfig");
   return 0;
 } // js_fs_openSync
-
 
 
 /**
@@ -352,31 +331,9 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
  */
 duk_ret_t ModuleRMT(duk_context *ctx) {
 
-	int idx = -2;
-	duk_push_c_function(ctx, js_rmt_getState, 1);
-	// [0] - RMT object
-	// [1] - C Function - js_rmt_getState
+	ADD_FUNCTION("getState", js_rmt_getState, 1);
+	ADD_FUNCTION("txConfig", js_rmt_txConfig, 2);
+	ADD_FUNCTION("write",    js_rmt_write,    2);
 
-	duk_put_prop_string(ctx, idx, "getState"); // Add getState to RMT
-	// [0] - RMT object
-
-
-	duk_push_c_function(ctx, js_rmt_txConfig, 2);
-	// [0] - RMT object
-	// [1] - C Function - js_rmt_txConfig
-
-	duk_put_prop_string(ctx, idx, "txConfig"); // Add txConfig to RMT
-	// [0] - RMT object
-
-
-	duk_push_c_function(ctx, js_rmt_write, 2);
-	// [0] - RMT object
-	// [1] - C Function - js_rmt_write
-
-	duk_put_prop_string(ctx, idx, "write"); // Add write to RMT
-	// [0] - RMT object
-
-	duk_pop(ctx);
-	// <Empty Stack>
 	return 0;
 } // ModuleRMT

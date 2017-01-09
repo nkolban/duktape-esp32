@@ -6,11 +6,15 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "duktape_utils.h"
 #include "logging.h"
 #include "module_bluetooth.h"
 
 LOG_TAG("module_bluetooth");
-static void gap_event_handler(uint32_t event, void *param) {
+static void gap_event_handler(
+	esp_gap_ble_cb_event_t event,
+	esp_ble_gap_cb_param_t *param
+) {
 	LOGD(">> gap_event_handler");
 	LOGD("<< gap_event_handler");
 } // gap_event_handler
@@ -19,9 +23,9 @@ static void gap_event_handler(uint32_t event, void *param) {
 static duk_ret_t js_bluetooth_init(duk_context *ctx) {
 	LOGD(">> init_bluetooth");
 	int errRc;
-	bt_controller_init();
-	esp_init_bluetooth();
-	esp_enable_bluetooth();
+	esp_bt_controller_init();
+	esp_bluedroid_init();
+	esp_bluedroid_enable();
 	errRc = esp_ble_gap_register_callback(gap_event_handler);
 	if (errRc != ESP_OK) {
 		LOGE("esp_ble_gap_register_callback: rc=%d", errRc);
@@ -36,15 +40,6 @@ static duk_ret_t js_bluetooth_init(duk_context *ctx) {
  * [0] - Bluetooth Object
  */
 duk_ret_t ModuleBluetooth(duk_context *ctx) {
-	int idx = -2;
-	duk_push_c_function(ctx, js_bluetooth_init, 0);
-	// [0] - Bluetooth object
-	// [1] - C Function - js_bluetooth_init
-
-	duk_put_prop_string(ctx, idx, "init"); // Add init to Bluetooth
-	// [0] - Bluetooth object
-
-	duk_pop(ctx);
-	// <Empty Stack>
+	ADD_FUNCTION("init", js_bluetooth_init, 0);
 	return 0;
 } // ModuleBluetooth

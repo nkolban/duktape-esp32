@@ -33,3 +33,14 @@ This project is way too new to have standards.  At this time they will only slow
 if you submit contributions don't be surprised if someone else comes along and "tidys" your code.
 It doesn't mean that they are claiming "authorship" ... rather they are merely providing the project a service
 in making it consistent and tidy for the future.
+
+## Use of JS-Hint
+For want of a better tool, we are using JS-Hint to validate that any JavaScript we write conforms to 
+basic qualities.  The web site at:  http://jshint.com/ can be used as the target of a copy/paste of
+source to parse the code.  For variables that are globals, we need to add a comment to our source
+to indicate to JS-Hint that they are not undeclared but are instead defined elsewhere.  The format
+of the comment is:
+
+```
+/* globals <name>, <name>, ..., <name> */
+```

@@ -34,7 +34,15 @@ void        esp32_duktape_unstash_object(duk_context *ctx, uint32_t key);
 		duk_push_c_function(ctx, FUNCTION_NAME, PARAM_COUNT); \
 		duk_put_prop_string(ctx, -2, FUNCTION_NAME_STRING)
 
-#define ADD_INT(INT_NAME_STRING, INT_NAME) \
-		duk_push_int(ctx, INT_NAME); \
-		duk_put_prop_string(ctx, -2, INT_NAME_STRING)
+#define ADD_INT(INT_NAME, INT_VALUE) \
+		duk_push_int(ctx, INT_VALUE); \
+		duk_put_prop_string(ctx, -2, INT_NAME)
+
+#define ADD_STRING(STRING_NAME, STRING_VALUE) \
+		duk_push_string(ctx, STRING_VALUE); \
+		duk_put_prop_string(ctx, -2, STRING_NAME)
+
+#define ADD_BOOLEAN(BOOLEAN_NAME, BOOLEAN_VALUE) \
+		duk_push_boolean(ctx, BOOLEAN_VALUE); \
+		duk_put_prop_string(ctx, -2, BOOLEAN_NAME)
 #endif /* MAIN_DUKTAPE_UTILS_H_ */

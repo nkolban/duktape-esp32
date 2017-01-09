@@ -1,9 +1,12 @@
 #if defined(ESP_PLATFORM)
 #include <esp_log.h>
+#include <nvs.h>
 #include "sdkconfig.h"
 #endif // ESP_PLATFORM
 
 #include <duktape.h>
+
+#include "duktape_utils.h"
 #include "logging.h"
 #include "dukf_utils.h"
 #include "duk_trans_socket.h"
@@ -54,7 +57,7 @@ static duk_ret_t js_dukf_loadFile(duk_context *ctx) {
 	//dukf_log_heap("js_dukf_loadFile");
 	size_t fileSize;
 	char *fileName = (char *)duk_get_string(ctx, -1);
-	const char *data = dukf_loadFile(fileName, &fileSize);
+	const char *data = dukf_loadFileFromESPFS(fileName, &fileSize);
 	if (data == NULL) {
 		duk_push_null(ctx);
 	} else {
@@ -87,6 +90,24 @@ static duk_ret_t js_dukf_runFile(duk_context *ctx) {
 } // js_dukf_runFile
 
 
+/*
+ * Set the named file as the start file.  In our logic, after initialization, we
+ * check the value of the NVS esp32duktape->start for existence and for a string
+ * file name.  If this key has a value then we try and run that script.
+ *
+ * [0] - string - fileName to try and run at startup.
+ */
+static duk_ret_t js_dukf_setStartFile(duk_context *ctx) {
+	const char *fileName = duk_get_string(ctx, -1);
+	nvs_handle handle;
+	nvs_open("esp32duktape", NVS_READWRITE, &handle);
+	nvs_set_str(handle, "start", fileName);
+	nvs_commit(handle);
+	nvs_close(handle);
+	return 0;
+} // js_dukf_setStartFile
+
+
 void ModuleDUKF(duk_context *ctx) {
 	duk_push_global_object(ctx);
 	// [0] - Global object
@@ -95,59 +116,14 @@ void ModuleDUKF(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object - DUKF Object
 
-	duk_push_c_function(ctx, js_dukf_debug, 1);
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-	// [2] - C Function - js_dukf_debug
+	ADD_FUNCTION("debug",        js_dukf_debug,         1);
+	ADD_FUNCTION("gc",           js_dukf_gc,            1);
+	ADD_FUNCTION("global",       js_dukf_global,        0);
+	ADD_FUNCTION("loadFile",     js_dukf_loadFile,      1);
+	ADD_FUNCTION("logHeap",      js_dukf_logHeap,       1);
+	ADD_FUNCTION("runFile",      js_dukf_runFile,       1);
+	ADD_FUNCTION("setStartFile", js_dukf_setStartFile,  1);
 
-	duk_put_prop_string(ctx, -2, "debug"); // Add debug to new DUKF
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-
-	duk_push_c_function(ctx, js_dukf_gc, 1);
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-	// [2] - C Function - js_dukf_gc
-
-	duk_put_prop_string(ctx, -2, "gc"); // Add gc to new DUKF
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-
-	duk_push_c_function(ctx, js_dukf_global, 0);
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-	// [2] - C Function - js_dukf_global
-
-	duk_put_prop_string(ctx, -2, "global"); // Add global to new DUKF
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-
-	duk_push_c_function(ctx, js_dukf_loadFile, 1);
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-	// [2] - C Function - js_dukf_loadFile
-
-	duk_put_prop_string(ctx, -2, "loadFile"); // Add loadFile to new DUKF
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-
-	duk_push_c_function(ctx, js_dukf_logHeap, 1);
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-	// [2] - C Function - js_dukf_logHeap
-
-	duk_put_prop_string(ctx, -2, "logHeap"); // Add logHeap to new DUKF
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-
-	duk_push_c_function(ctx, js_dukf_runFile, 1);
-	// [0] - Global object
-	// [1] - New object - DUKF Object
-	// [2] - C Function - js_dukf_runFile
-
-	duk_put_prop_string(ctx, -2, "runFile"); // Add runFile to new DUKF
-	// [0] - Global object
-	// [1] - New object - DUKF Object
 
 #if defined(ESP_PLATFORM)
 	duk_push_string(ctx, "/spiffs");

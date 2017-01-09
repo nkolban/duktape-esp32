@@ -9,6 +9,6 @@
 #define MAIN_MODULE_NVS_H_
 #include <duktape.h>
 
-void ModuleNVS(duk_context *ctx);
+duk_ret_t ModuleNVS(duk_context *ctx);
 
 #endif /* MAIN_MODULE_NVS_H_ */
