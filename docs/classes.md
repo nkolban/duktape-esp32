@@ -12,6 +12,7 @@ Built into the solution are a variety of Modules.
 * [HTTPServerRequest](#httpserverrequest)
 * [HTTPServerResponse](#httpserverresponse)
 * [HTTPParser](#httpparser)
+* [I2C](#i2c)
 * [LEDC](#ledc)
 * [net](#net)
 * [NVS](#nvs)
@@ -20,6 +21,8 @@ Built into the solution are a variety of Modules.
 * [RMT](#rmt)
 * [Serial](#serial)
 * [Socket](#socket)
+* [SPI](#spi)
+* [SPIDevice](#spidevice)
 * [Stream](#stream)
 * [StreamReader](#streamreader)
 * [StreamWriter](#streamwriter)
@@ -186,6 +189,7 @@ This returns an object which contains:
 {
    heapSize - The size of the free heap.
    sdkVersion - The version of the ESP32 SDK we are running upon.
+   flashSize: The amount of storage declared to be available on the flash device.
 }
 ```
 
@@ -671,6 +675,34 @@ var parserStreamWriter = new HTTPParser(HTTPParser.REQUEST, function(parserStrea
    // We now have a parser stream reader which includes on("data") and on("end").
 });
 ```
+
+##I2C
+```
+var I2C = require("i2c");
+var i2cDevice = new I2C({
+});
+i2cDevice.beginTransaction();
+i2cDevice.write();
+i2cDevice.endTransaction();
+```
+
+##I2CDevice
+This object is not created directly but is instead the return from a new I2C() object.
+
+###beginTransaction
+
+Syntax:
+`beginTransaction(address)`
+
+###endTransaction
+
+Syntax:
+`endTransaction()`
+
+###write
+
+Syntax:
+`write(data)`
 
 ##LEDC
 The LEDC/PWM class provides access to the PWM functions of the ESP32.  To use this class one must
@@ -1323,6 +1355,86 @@ Syntax:
 
 Write data to a partner.
 
+##SPI
+SPI is a bus based protocol for communicating with external devices.  To use we would perform:
+```
+var SPI = require("spi");
+SPI.initialize({
+   mosi: 12,
+   miso: 13,
+   clk: 14
+});
+var device = SPI.addDevice();
+var data = Buffer(2);
+data[0] = 0x12;
+data[1] = 0x34;
+device.transmit(data);
+SPI.free();
+```
+
+###addDevice
+Define a device and get back an SPIDevice object.
+Syntax:
+`addDevice(options)`
+
+The `options` object contains the following:
+```
+{
+   host: <optional host. Default: HSPI_HOST>
+   mode: <optional mode.  Default: 0>
+   clock_speed: <optional clock speed in Hz.  Default 10000 (10KHz)>
+}
+```
+
+###free
+Release a bus.
+
+Syntax:
+`free(host)`
+
+###initialize
+Initialize our SPI environment.
+
+Syntax:
+`initialize(options)`
+
+The `options` object contains the following:
+```
+{
+   mosi: <the pin used for MOSI>,
+   miso: <the pin used for MISO>,
+   clk:  <the pin used for CLK>,
+   host: <the SPI host>
+}
+```
+The `mosi` and `miso` properties are optional but at least one must be supplied.  There is no meaning
+for interaction with a bus which has neither inputs nor outputs.  The `clk` is mandatory as we must
+always have a clock signal.  The `host` can be one of `SPI_HOST`,  `HSPI_HOST` or `VSPI_HOST`
+and defaults to `HSPI_HOST`.
+
+##SPIDevice
+This object is not created directly but is instead returned from a call to `addDevice()`.  This
+object encapsulates access to the desired SPI device.
+
+###remove
+Remove the device releasing resources.
+
+Syntax:
+`remove()`
+
+This call can be made to release knowledge of the SPI device and free up any resources allocated
+against it.  No further calls to `transmit()` should be made after this call.
+
+
+###transmit
+Transmit and receive data with the external device.
+
+Syntax:
+`transmit(data)`
+
+The `data` is a Buffer of data to be transmitted and received.  On return, the data will have been
+overwritten with the corresponding response data.
+
 
 ##Stream
 A stream is a pair of object where one acts as a stream writer and the other as a stream reader.  When
@@ -1341,6 +1453,7 @@ looks like:
    writer: <A writer object>
 }
 ```
+
 
 ##StreamReader
 This object can not be manually created but is instead created as a result of creating a new

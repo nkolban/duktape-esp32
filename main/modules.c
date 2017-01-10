@@ -1,4 +1,5 @@
 #if defined(ESP_PLATFORM)
+#include <esp_spi_flash.h>
 #include <esp_system.h>
 #include <espfs.h>
 
@@ -32,6 +33,7 @@
 #include "module_rmt.h"
 #include "module_rtos.h"
 #include "module_serial.h"
+#include "module_spi.h"
 #include "module_ssl.h"
 #include "module_timers.h"
 #include "module_wifi.h"
@@ -94,6 +96,7 @@ functionTableEntry_t functionTable[] = {
 	{ "ModuleRMT",        ModuleRMT,        1},
 	{ "ModuleRTOS",       ModuleRTOS,       1},
 	{ "ModuleSerial",     ModuleSerial,     1},
+	{ "ModuleSPI",        ModuleSPI,        1},
 	{ "ModuleSSL",        ModuleSSL,        1},
 #endif // ESP_PLATFORM
 	// Must be last entry
@@ -333,25 +336,30 @@ static duk_ret_t js_esp32_reset(duk_context *ctx) {
 static duk_ret_t js_esp32_getState(duk_context *ctx) {
 
 #if defined(ESP_PLATFORM)
-	// [0] - New object
+
 	duk_push_object(ctx); // Create new getState object
-
 	// [0] - New object
-	// [1] - heap size
-	duk_push_number(ctx, (double)esp_get_free_heap_size());
 
-	// [0] - New object
+
+	duk_push_int(ctx, esp_get_free_heap_size());
 	duk_put_prop_string(ctx, -2, "heapSize"); // Add heapSize to new getState
+
+	duk_push_int(ctx, spi_flash_get_chip_size());
+	duk_put_prop_string(ctx, -2, "flashSize"); // Add flashSize to new getState
+
 #else /* ESP_PLATFORM */
-	// [0] - New object
-	duk_push_object(ctx); // Create new getState object
 
+	duk_push_object(ctx); // Create new getState object
+	// [0] - New object
+
+
+	duk_push_number(ctx, (double)999999);
 	// [0] - New object
 	// [1] - heap size
-	duk_push_number(ctx, (double)999999);
 
-	// [0] - New object
+
 	duk_put_prop_string(ctx, -2, "heapSize"); // Add heapSize to new getState
+	// [0] - New object
 #endif /* ESP_PLATFORM */
 	return 1;
 } // js_esp32_getState

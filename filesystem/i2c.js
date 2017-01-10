@@ -31,23 +31,24 @@ var i2c_func = function(options) {
 	
 	return {
 		//
-		// beginTransmission
+		// beginTransaction
 		//
-		beginTransmission: function(address) {
+		beginTransaction: function(address) {
 			cmd = internalI2C.cmd_link_create();
 			internalI2C.master_start(cmd);
 			internalI2C.master_write_byte(cmd, (address << 1) | internalI2C.I2C_MASTER_WRITE, true);
-		}, // beginTransmission
+		}, // beginTransaction
 		
 		//
-		// endTransmission
+		// endTransaction
 		//
-		endTransmission: function(stop) {
+		endTransaction: function() {
 			internalI2C.master_stop(cmd);
 			var rc = internalI2C.master_cmd_begin(options.port, cmd, 1000);
 			internalI2C.cmd_link_delete(cmd);
+			cmd = null;
 			return rc;
-		}, // endTransmission
+		}, // endTransaction
 		
 		//
 		// write

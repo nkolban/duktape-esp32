@@ -44,44 +44,68 @@ function ws2812(gpioNum, pixelCount, channel) {
 			// as:
 			// number of pixels * 2 signal changes per pixel * 24 bits of data per pixel
 			//
-			var rmtData = new Array(pixelCount * 24 * 2);
-			var rmtIndex = 0;
+			// var rmtData = new Array(pixelCount * 24 * 2);
+			//
+			// If we have "pixelCount" pixels, how many bytes do we need for an RMT buffer?
+			// Here is how we calculate this:
+			// First there are 24 bits per pixel.  In NeoPixels, we need a high period and 
+			// a low period for each bit.  Translating this to RMT data items, we need
+			// TWO data items per bit which means we need:
+			//
+			// pixelCount * 24 * 2 RMT data items.  As order of magnitude examples:
+			//
+			// 1 pixel    = 48 RMT data items
+			// 10 pixels  = 480 RMT data items
+			// 100 pixels = 4800 RMT data items
+			//
+			// Since an RMT data item is 16 bits (1 bit for level and 15 bits for duration)
+			// and 16 bits is 2 bytes ... the amount o bytes needed for our RMT data then becomes:
+			//
+			// pixelCount * 24 * 2 * 2 bytes.  As order of magnitude examples:
+			//
+			// 1 pixel    = 96 bytes
+			// 10 pixels  = 960 bytes
+			// 100 pixels = 9600 bytes
+			//
+			var rmtData = new Buffer(pixelCount * 24 * 2 * 2);
+			var offset = 0;
+			
+			function writeDataItem(level, duration) {
+				var value;
+				if (level) {
+					value = 0x8000;
+				} else {
+					value = 0x0000;
+				}
+				value = (duration & 0x7fff) | value;
+				rmtData.writeUInt16LE(value, offset);
+				offset += 2;
+			} // writeDataItem
 			
 			function setItem1() {
-				rmtData[rmtIndex] = {
-					level: true,
-					duration: 8
-				};
-				rmtIndex++;
-				rmtData[rmtIndex] = {
-					level: false,
-					duration: 6
-				};
-				rmtIndex++;
+				writeDataItem(true, 8);
+				writeDataItem(false, 6);
 			} // setItem0
 			
 			function setItem0() {
-				rmtData[rmtIndex] = {
-					level: true,
-					duration: 4
-				};
-				rmtIndex++;
-				rmtData[rmtIndex] = {
-					level: false,
-					duration: 7
-				};
-				rmtIndex++;
+				writeDataItem(true, 4);
+				writeDataItem(false, 7);
 			} // setItem1
 			
 			// Iterate over each pixel ...
 			for (i=0; i<pixelCount; i++) {
 				// prepare pixelData[i] for RMT
+				//log("Setting pixel: " + i + ": free heap = " + ESP32.getState().heapSize);
 				var currentPixel = pixelData[i];
 				for (var j=23; j>=0; j--) {
 					if ((currentPixel & (1<<j)) !== 0) {
-						setItem1();
+						//setItem1();
+						writeDataItem(true, 8);
+						writeDataItem(false, 6);
 					} else {
-						setItem0();
+						//setItem0();
+						writeDataItem(true, 4);
+						writeDataItem(false, 7);
 					}
 				} // For each bit in pixel
 			} // for each pixel
