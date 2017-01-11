@@ -80,7 +80,7 @@ duktape_configure:
 #
 flashdata: images
 	echo "Flashing both ESPFS and SPIFFS to ESP32"
-	$(ESPTOOLPY_WRITE_FLASH) --compress 0x360000 build/espfs.img 0x180000 build/spiffs.img
+	$(ESPTOOLPY_WRITE_FLASH) --compress 0x300000 build/espfs.img 0x180000 build/spiffs.img
 #
 #  Build all, flash app & flash both ESPFS and SPIFFS to ESP32
 #

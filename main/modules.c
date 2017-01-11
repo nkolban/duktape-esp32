@@ -513,7 +513,8 @@ static void ModuleESP32(duk_context *ctx) {
 void registerModules(duk_context *ctx) {
 	LOGD(">> registerModules");
 #if defined(ESP_PLATFORM)
-	espFsInit((void *)0x360000, 4 * 64 * 1024);
+	int flashSize = 1024*1024;
+	espFsInit((void *)0x300000, flashSize);
 #endif // ESP_PLATFORM
 
 	duk_idx_t top = duk_get_top(ctx);

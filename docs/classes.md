@@ -1356,7 +1356,16 @@ Syntax:
 Write data to a partner.
 
 ##SPI
-SPI is a bus based protocol for communicating with external devices.  To use we would perform:
+SPI is a bus based protocol for communicating with external devices.  It is assumed that you
+are familiar with the principles of SPI that can be found well documented elsewhere.
+
+At a high level, we invoke SPI.initialize() to identify the pins to be used for this
+bus.  Next, we declare the set of devices that are attached to the bus.  This act
+of declaration returns an `SPIDevice` object for each one that encapsulates the
+interaction with the device. 
+
+
+To use we would perform:
 ```
 var SPI = require("spi");
 SPI.initialize({
@@ -1382,7 +1391,8 @@ The `options` object contains the following:
 {
    host: <optional host. Default: HSPI_HOST>
    mode: <optional mode.  Default: 0>
-   clock_speed: <optional clock speed in Hz.  Default 10000 (10KHz)>
+   clock_speed: <optional clock speed in Hz.  Default: 10000 (10KHz)>
+   cs: <pin to use for CS.  Default: -1 (not used)>
 }
 ```
 
@@ -1391,6 +1401,8 @@ Release a bus.
 
 Syntax:
 `free(host)`
+
+This function releases any previously allocated resources associated with the bus.
 
 ###initialize
 Initialize our SPI environment.
@@ -1401,10 +1413,10 @@ Syntax:
 The `options` object contains the following:
 ```
 {
-   mosi: <the pin used for MOSI>,
-   miso: <the pin used for MISO>,
    clk:  <the pin used for CLK>,
-   host: <the SPI host>
+   mosi: <the pin used for MOSI.  Optional. Default: -1 ... not used.>,
+   miso: <the pin used for MISO. Optional. Default: -1 ... not used.>,
+   host: <the SPI host.  Optional.  Default: HSPI_HOST. >
 }
 ```
 The `mosi` and `miso` properties are optional but at least one must be supplied.  There is no meaning

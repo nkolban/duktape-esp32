@@ -30,6 +30,9 @@ Duktape.modSearch = function(id, require, exports, module) {
 	}
 	module.filename = name;
 	return DUKF.loadFile(name);
+	//var data = DUKF.loadFile(name);
+	//log(data);
+	//return data;
 }; // Duktape.modSearch
 
 

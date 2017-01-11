@@ -30,6 +30,12 @@ var ret = {
 	//
 	// addDevice
 	//
+	// {
+   //    host: <optional host. Default: HSPI_HOST>
+   //    mode: <optional mode.  Default: 0>
+   //    clock_speed: <optional clock speed in Hz.  Default: 10000 (10KHz)>
+   //    cs: <pin to use for CS.  Default: -1 (not used)>
+	// }
 	addDevice: function(options) {
 		var handle = internalSPI.add_device(options);
 		return {

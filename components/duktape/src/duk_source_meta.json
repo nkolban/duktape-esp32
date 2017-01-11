@@ -646,7 +646,7 @@
     ], 
     "duk_version": 20099, 
     "git_branch": "master", 
-    "git_commit": "ef44bceb97c2ef1e2a5c086923c6e50168501572", 
+    "git_commit": "6042ac67c7d243736331ab7ab3f5134c2d36be17", 
     "builtin_strings_info": [
         {
             "plain": "Undefined", 
@@ -1653,7 +1653,7 @@
         "c3RhdGlj", 
         "eWllbGQ="
     ], 
-    "git_describe": "ef44bce-dirty", 
+    "git_describe": "6042ac6-dirty", 
     "builtin_strings": [
         "Undefined", 
         "Null", 

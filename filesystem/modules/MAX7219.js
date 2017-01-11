@@ -10,7 +10,7 @@ var SPI = require("spi");
  * Please read the datasheet: https://www.adafruit.com/datasheets/MAX7219.pdf
  *
  * Example use:
- *  var disp = new MAX7219("/dev/spidev1.0");
+ *  var disp = new MAX7219(spi);
  *  disp.setDecodeNone();
  *  disp.setScanLimit(8);
  *  disp.startup();
@@ -20,7 +20,7 @@ var SPI = require("spi");
  *  disp.setDigitSegments(3, [0, 1, 1, 0, 0, 1, 1, 1]);
  *
  * Alternate use:
- *  var disp = new MAX7219("/dev/spidev1.0");
+ *  var disp = new MAX7219(spi);
  *  disp.setDecodeAll();
  *  disp.setScanLimit(8);
  *  disp.startup();
@@ -330,6 +330,20 @@ MAX7219.prototype = {
     }
     this._shiftOut(MAX7219._Registers.ScanLimit, limit - 1, callback);
   },
+  
+  setNumber: function(num) {
+		num = Math.floor(num) % 100000000;
+		var s = num.toString();
+		var d = s.length - 1;
+		var i;
+		for (i=0; i<8; i++) {
+			if (i >= s.length) {
+				this.setDigitSymbol(i, ' ');
+			} else {
+				this.setDigitSymbol(i, s.charAt(d-i));
+			}
+		}
+	},
 
   /**
    * Utility function. Returns a byte having the specified bits.
@@ -375,7 +389,10 @@ MAX7219.prototype = {
     this._buffer[offset] = firstByte;
     this._buffer[offset + 1] = secondByte;
 
-    this._spi.write(this._buffer, callback);
+    this._spi.transmit(this._buffer);
+    if (callback) {
+   	 callback();
+    }
   }
 };
 

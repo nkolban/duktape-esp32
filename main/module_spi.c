@@ -64,11 +64,17 @@ static duk_ret_t js_spi_bus_add_device(duk_context *ctx) {
 	}
 	duk_pop(ctx);
 
+	// cs
+	if (duk_get_prop_string(ctx, -1, "cs") == 1) {
+		dev_config.spics_io_num = duk_get_int(ctx, -1);
+	}
+	duk_pop(ctx);
+
 	handle = malloc(sizeof(spi_device_handle_t));
 	assert(handle != NULL);
 
-	LOGD(" - host: %d, mode: %d, clock_speed_hz: %d",
-		host, dev_config.mode, dev_config.clock_speed_hz);
+	LOGD(" - host: %d, mode: %d, spics_io_num:%d, clock_speed_hz: %d",
+		host, dev_config.mode, dev_config.spics_io_num, dev_config.clock_speed_hz);
 
 	esp_err_t errRc = spi_bus_add_device(
 		host,
