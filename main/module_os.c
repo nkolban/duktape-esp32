@@ -24,6 +24,7 @@
 
 #include <errno.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "duktape.h"
 #include "duktape_utils.h"
@@ -33,6 +34,13 @@
 extern int h_errno;
 
 LOG_TAG("module_os");
+/*
+ * GPIO ISR handler
+ */
+static void gpio_isr_handler(void *args) {
+
+}
+
 
 /**
  * Accept an incoming client request.
@@ -309,6 +317,57 @@ static duk_ret_t js_os_gethostbyname(duk_context *ctx) {
  * GPIO Functions
  */
 #if defined(ESP_PLATFORM)
+
+/*
+ * Get the GPIO level of the pin.
+ * [0] - Pin number
+ */
+static duk_ret_t js_os_gpioGetLevel(duk_context *ctx) {
+	gpio_num_t pinNum = duk_get_int(ctx, -1);
+	int level = gpio_get_level(pinNum);
+	if (level == 0) {
+		duk_push_false(ctx);
+	} else {
+		duk_push_true(ctx);
+	}
+	return 1;
+} // js_os_gpioGetLevel
+
+/*
+ * Initialize the GPIO pin.
+ * [0] - Pin number
+ */
+static duk_ret_t js_os_gpioInit(duk_context *ctx) {
+	gpio_num_t pinNum = duk_get_int(ctx, -2);
+	gpio_pad_select_gpio(pinNum);
+	return 0;
+} // js_os_gpioInit
+
+
+/*
+ * [0] - Int - flags
+ */
+static duk_ret_t js_os_gpioInstallISRService(duk_context *ctx) {
+	int flags = duk_get_int(ctx, -1);
+	esp_err_t errRc = gpio_install_isr_service(flags);
+	if (errRc != ESP_OK) {
+		LOGE("gpio_install_isr_service: %s", esp32_errToString(errRc));
+	}
+	return 0;
+} // js_os_gpioInstallISRService
+
+
+// [0] - pin
+static duk_ret_t js_os_gpioISRHandlerAdd(duk_context *ctx) {
+	int pin = duk_get_int(ctx, -1);
+	esp_err_t errRc = gpio_isr_handler_add(pin, gpio_isr_handler, (void *)pin);
+	if (errRc != ESP_OK) {
+		LOGE("gpio_isr_handler_add: %s", esp32_errToString(errRc));
+	}
+	return 0;
+} // js_os_gpioISRHandlerAdd
+
+
 /*
  * Set the GPIO direction of the pin.
  * [0] - Pin number
@@ -331,16 +390,19 @@ static duk_ret_t js_os_gpioSetDirection(duk_context *ctx) {
 	return 0;
 } // js_os_gpioSetDirection
 
-
 /*
- * Initialize the GPIO pin.
- * [0] - Pin number
+ * [0] - pin
+ * [1] - Interrupt type
  */
-static duk_ret_t js_os_gpioInit(duk_context *ctx) {
-	gpio_num_t pinNum = duk_get_int(ctx, -2);
-	gpio_pad_select_gpio(pinNum);
+static duk_ret_t js_os_gpioSetIntrType(duk_context *ctx) {
+	gpio_num_t pin = (gpio_num_t)duk_get_int(ctx, -2);
+	gpio_int_type_t type = (gpio_int_type_t)duk_get_int(ctx, -1);
+	esp_err_t errRc = gpio_set_intr_type(pin, type);
+	if (errRc != 0) {
+		LOGE("gpio_set_intr_type: %s", esp32_errToString(errRc));
+	}
 	return 0;
-} // js_os_gpioInit
+} // js_os_gpioSetIntrType
 
 
 /*
@@ -365,23 +427,6 @@ static duk_ret_t js_os_gpioSetLevel(duk_context *ctx) {
 } // js_os_gpioSetLevel
 
 
-
-
-
-/*
- * Get the GPIO level of the pin.
- * [0] - Pin number
- */
-static duk_ret_t js_os_gpioGetLevel(duk_context *ctx) {
-	gpio_num_t pinNum = duk_get_int(ctx, -1);
-	int level = gpio_get_level(pinNum);
-	if (level == 0) {
-		duk_push_false(ctx);
-	} else {
-		duk_push_true(ctx);
-	}
-	return 1;
-} // js_os_gpioGetLevel
 #endif // ESP_PLATFORM
 
 
@@ -820,7 +865,6 @@ static duk_ret_t js_os_socket(duk_context *ctx) {
 } // js_os_socket
 
 
-
 /**
  * Create the OS module in Global.
  */
@@ -843,10 +887,13 @@ void ModuleOS(duk_context *ctx) {
 
 
 #if defined(ESP_PLATFORM)
-	ADD_FUNCTION("gpioGetLevel",     js_os_gpioGetLevel,     1);
-	ADD_FUNCTION("gpioInit",         js_os_gpioInit,         1);
-	ADD_FUNCTION("gpioSetDirection", js_os_gpioSetDirection, 2);
-	ADD_FUNCTION("gpioSetLevel",     js_os_gpioSetLevel,     2);
+	ADD_FUNCTION("gpioGetLevel",          js_os_gpioGetLevel,          1);
+	ADD_FUNCTION("gpioISRHandlerAdd",     js_os_gpioISRHandlerAdd,     1);
+	ADD_FUNCTION("gpioInit",              js_os_gpioInit,              1);
+	ADD_FUNCTION("gpioInstallISRService", js_os_gpioInstallISRService, 1);
+	ADD_FUNCTION("gpioSetDirection",      js_os_gpioSetDirection,      2);
+	ADD_FUNCTION("gpioSetIntrType",       js_os_gpioSetIntrType,       2);
+	ADD_FUNCTION("gpioSetLevel",          js_os_gpioSetLevel,          2);
 #endif // ESP_PLATFORM
 
 	ADD_FUNCTION("listen",   js_os_listen,   1);
@@ -857,6 +904,10 @@ void ModuleOS(duk_context *ctx) {
 	ADD_FUNCTION("shutdown", js_os_shutdown, 1);
 	ADD_FUNCTION("socket",   js_os_socket,   0);
 
+	ADD_INT("INTR_ANYEDGE",  GPIO_INTR_ANYEDGE);
+	ADD_INT("INTR_DISABLE",  GPIO_INTR_DISABLE);
+	ADD_INT("INTR_NEGEDGE",  GPIO_INTR_NEGEDGE);
+	ADD_INT("INTR_POSEDGE",  GPIO_INTR_POSEDGE);
 
 	duk_put_prop_string(ctx, 0, "OS"); // Add OS to global
 	// [0] - Global object

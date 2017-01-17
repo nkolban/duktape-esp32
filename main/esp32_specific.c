@@ -362,8 +362,8 @@ char *esp32_errToString(esp_err_t value) {
 		return "ESP_ERR_NVS_INVALID_LENGTH";
 	case ESP_ERR_WIFI_NOT_INIT:
 		return "ESP_ERR_WIFI_NOT_INIT";
-	case ESP_ERR_WIFI_NOT_START:
-		return "ESP_ERR_WIFI_NOT_START";
+	case ESP_ERR_WIFI_NOT_STARTED:
+		return "ESP_ERR_WIFI_NOT_STARTED";
 	case ESP_ERR_WIFI_IF:
 		return "ESP_ERR_WIFI_IF";
 	case ESP_ERR_WIFI_MODE:

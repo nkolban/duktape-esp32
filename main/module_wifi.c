@@ -779,92 +779,19 @@ void ModuleWIFI(duk_context *ctx) {
 	duk_push_global_object(ctx);
 	// [0] - Global object
 
-	duk_idx_t idx = duk_push_object(ctx); // Create new WIFI object
+	duk_push_object(ctx); // Create new WIFI object
 	// [0] - Global object
 	// [1] - New object
 
-	duk_push_c_function(ctx, js_wifi_connect, 2);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_connect
-
-	duk_put_prop_string(ctx, idx, "connect"); // Add connect to new WIFI
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_wifi_disconnect, 0);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_disconnect
-
-	duk_put_prop_string(ctx, idx, "disconnect"); // Add connect to new WIFI
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_wifi_getDNS, 0);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_getDNS
-
-	duk_put_prop_string(ctx, idx, "getDNS"); // Add getDNS to new WIFI
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_wifi_getState, 0);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_getState
-
-	duk_put_prop_string(ctx, idx, "getState"); // Add getState to new WIFI
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_wifi_listen, 2);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_listen
-
-	duk_put_prop_string(ctx, idx, "listen"); // Add listen to new WIFI
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_wifi_scan, 1);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_scan
-
-	duk_put_prop_string(ctx, idx, "scan"); // Add scan to new WIFI
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_wifi_setDNS, 1);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_setDNS
-
-	duk_put_prop_string(ctx, idx, "setDNS"); // Add setDNS to new WIFI
-	// [0] - Global object
-	// [1] - New object
-
-	duk_push_c_function(ctx, js_wifi_start, 0);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_start
-
-	duk_put_prop_string(ctx, idx, "start"); // Add start to new WIFI
-	// [0] - Global object
-	// [1] - New object
-
-
-	duk_push_c_function(ctx, js_wifi_stop, 0);
-	// [0] - Global object
-	// [1] - New object
-	// [2] - c-func - js_wifi_stop
-
-	duk_put_prop_string(ctx, idx, "stop"); // Add stop to new WIFI
-	// [0] - Global object
-	// [1] - New object
-
+	ADD_FUNCTION("connect",    js_wifi_connect,    0);
+	ADD_FUNCTION("disconnect", js_wifi_disconnect, 0);
+	ADD_FUNCTION("getDNS",     js_wifi_getDNS,     0);
+	ADD_FUNCTION("getState",   js_wifi_getState,   0);
+	ADD_FUNCTION("listen",     js_wifi_listen,     2);
+	ADD_FUNCTION("scan",       js_wifi_scan,       1);
+	ADD_FUNCTION("setDNS",     js_wifi_setDNS,     1);
+	ADD_FUNCTION("start",      js_wifi_start,      0);
+	ADD_FUNCTION("stop",       js_wifi_stop,       0);
 
 	duk_put_prop_string(ctx, 0, "WIFI"); // Add WIFI to global
 	// [0] - Global object

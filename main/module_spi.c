@@ -127,11 +127,11 @@ static duk_ret_t js_spi_bus_initialize(duk_context *ctx) {
 	spi_bus_config_t bus_config;
 	int dma_chan;
 
-	bus_config.spid_io_num   = -1; // MOSI
-	bus_config.spiq_io_num   = -1; // MISO
-	bus_config.spiclk_io_num = -1; // CLK
-	bus_config.spiwp_io_num  = -1;
-	bus_config.spihd_io_num  = -1;
+	bus_config.mosi_io_num   = -1; // MOSI
+	bus_config.miso_io_num   = -1; // MISO
+	bus_config.sclk_io_num = -1; // CLK
+	bus_config.quadwp_io_num  = -1;
+	bus_config.quadhd_io_num  = -1;
 	dma_chan = 1;
 
 	if (!duk_is_object(ctx, -1)) {
@@ -141,19 +141,19 @@ static duk_ret_t js_spi_bus_initialize(duk_context *ctx) {
 
 	// mosi
 	if (duk_get_prop_string(ctx, -1, "mosi") == 1) {
-		bus_config.spid_io_num = duk_get_int(ctx, -1);
+		bus_config.mosi_io_num = duk_get_int(ctx, -1);
 	}
 	duk_pop(ctx);
 
 	// miso
 	if (duk_get_prop_string(ctx, -1, "miso") == 1) {
-		bus_config.spiq_io_num = duk_get_int(ctx, -1);
+		bus_config.miso_io_num = duk_get_int(ctx, -1);
 	}
 	duk_pop(ctx);
 
 	// clk
 	if (duk_get_prop_string(ctx, -1, "clk") == 1) {
-		bus_config.spiclk_io_num = duk_get_int(ctx, -1);
+		bus_config.sclk_io_num = duk_get_int(ctx, -1);
 	}
 	duk_pop(ctx);
 
@@ -163,20 +163,20 @@ static duk_ret_t js_spi_bus_initialize(duk_context *ctx) {
 	}
 	duk_pop(ctx);
 
-	if (bus_config.spiclk_io_num == -1) {
+	if (bus_config.sclk_io_num == -1) {
 		LOGE("<< js_spi_bus_initialize: No clk pin supplied");
 		return 0;
 	}
 
-	if (bus_config.spid_io_num == -1 && bus_config.spiq_io_num == -1) {
+	if (bus_config.mosi_io_num == -1 && bus_config.miso_io_num == -1) {
 		LOGE("<< js_spi_bus_initialize: Neither mosi nor miso pins supplied");
 		return 0;
 	}
 
 	LOGD("- mosi=%d, miso=%d, clk=%d, host=%d",
-		bus_config.spid_io_num,
-		bus_config.spiq_io_num,
-		bus_config.spiclk_io_num,
+		bus_config.mosi_io_num,
+		bus_config.miso_io_num,
+		bus_config.sclk_io_num,
 		host);
 
 	esp_err_t errRc = spi_bus_initialize(host, &bus_config, dma_chan);

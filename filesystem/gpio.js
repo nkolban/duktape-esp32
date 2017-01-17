@@ -41,6 +41,10 @@ function gpio(pinNumber) {
 		getLevel: function() {
 			return OS.gpioGetLevel(pinNumber);
 		}, // getLevel
+		
+		setInterruptHandler: function(callback) {
+			OS.gpioISRHandlerAdd(pinNumber);
+		} // setInterruptHandler
 	}; // End ret
 	ret.setDirection(gpio.INPUT); // Set the initial pin direction as Input
 	return ret;
@@ -53,4 +57,5 @@ gpio.OUTPUT = 1;     // Set direction to OUTPUT
 gpio.HIGH   = true;  // HIGH signal
 gpio.LOW    = false; // LOW signal
 
+OS.gpioInstallISRService(0);
 module.exports = gpio;
