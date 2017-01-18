@@ -9,6 +9,19 @@ Here is a list and quick description of each one.
 ##_dukf_callbackStash
 To be written.
 
+##_isr_gpio
+An object that contains callbacks to be invoked when an ISR is detected on a GPIO.  This object
+is keyed by pin number each value is of the form:
+```
+{
+   callback: function(pin) {...}
+}
+```
+
+##_sockets
+To be written.
+
+
 ##_timers
 Holds the state of all the active timers in the environment.  A timer is created with calls to
 `setInterval()` or `setTimeout()`.  The structure of the object is:
@@ -25,8 +38,6 @@ Holds the state of all the active timers in the environment.  A timer is created
 }
 ```
 
-##_sockets
-To be written.
 
 # Non Volatile Storage
 This project also uses some Non Volatile Storage areas:

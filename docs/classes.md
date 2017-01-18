@@ -435,6 +435,35 @@ Set the direction of the pin.  Either `DIRECTION_INPUT` or `DIRECTION_OUTPUT`.
 Syntax:
 `setDirection(direction)`
 
+###setInterruptHandler
+Set an interrupt handler on the pin.
+Syntax:
+`setInterrupHandler(interruptType, callback)`
+
+The `interruptType` will be one of:
+
+* `GPIO.INTR_ANYEDGE`
+* `GPIO.INTR_DISABLE`
+* `GPIO.INTR_NEGEDGE`
+* `GPIO.INTR_POSEDGE`
+
+The `callback` is a function with the following signature:
+
+`function(pin)`
+
+where `pin` is the identity of the pin generating the interrupt.
+
+Here is an example:
+
+```
+var GPIO = require("gpio.js");
+var pin = new GPIO(25);
+pin.setPullMode(GPIO.PULLDOWN_ONLY);
+pin.setInterruptHandler(GPIO.INTR_POSEDGE, function(pin) {
+	log("The pin went high!: " + pin);
+});
+```
+
 ###setLevel
 Set the signal level present as output on the pin.  The choices should be either
 `HIGH` or `LOW`.
@@ -442,6 +471,17 @@ Set the signal level present as output on the pin.  The choices should be either
 Syntax:
 `setLevel(level)` 
 
+###setPullMode
+Set the pull-up/pull-down characteristics of the pin.
+
+Syntax:
+`setPullMode(mode)`
+
+The mode may be one of:
+* `GPIO.PULLUP_ONLY`
+* `GPIO.PULLDOWN_ONLY`
+* `GPIO.PULLUP_PULLDOWN`
+* `GPIO.FLOATING`
 
 ##HTTP
 This class provides the HTTP module.

@@ -20,7 +20,8 @@ enum {
 };
 
 enum {
-	ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION=1
+	ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION     = 1,
+	ESP32_DUKTAPE_CALLBACK_TYPE_ISR_FUNCTION = 2
 };
 
 /*
@@ -67,6 +68,7 @@ typedef union {
 	} callbackRequested;
 } esp32_duktape_event_t;
 
+void  event_newISREvent(int isrType, void *data);
 void  esp32_duktape_freeEvent(duk_context *ctx, esp32_duktape_event_t *pEvent);
 void  esp32_duktape_initEvents();
 int   esp32_duktape_waitForEvent();
@@ -77,9 +79,9 @@ void  event_newCallbackRequestedEvent(
 	esp32_duktape_callback_dataprovider dataProvider,
 	void *contextData);
 void  event_newCommandLineEvent(char *commandData, size_t commandLength, int fromKeyboard);
-void  event_newHTTPServerRequestEvent(char *uri, char *method);
-void  event_newTimerAddedEvent(unsigned long);
-void  event_newTimerClearedEvent(unsigned long id);
-void  event_newTimerFiredEvent(unsigned long id);
+//void  event_newHTTPServerRequestEvent(char *uri, char *method);
+//void  event_newTimerAddedEvent(unsigned long);
+//void  event_newTimerClearedEvent(unsigned long id);
+//void  event_newTimerFiredEvent(unsigned long id);
 
 #endif /* MAIN_ESP32_DUKTAPE_DUKTAPE_EVENT_H_ */

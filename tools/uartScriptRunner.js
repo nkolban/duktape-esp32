@@ -5,6 +5,10 @@ var SerialPort = require("serialport");
 var argv = require("minimist")(process.argv.slice(2), {
 	string: "f"
 });
+if (argv.hasOwnProperty("h")) {
+	console.log("Usage: -f <script file>");
+	return;
+}
 if (!argv.hasOwnProperty("f")) {
 	console.log("No file supplied");
 	return;

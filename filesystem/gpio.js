@@ -1,6 +1,13 @@
 /*
  * Module: gpio
  * 
+ * Exposed functions:
+ * * getLevel
+ * * setDirection
+ * * setInterruptHandler
+ * * setLevel
+ * * setPullMode
+ * 
  * Load with:
  * 
  * require("gpio.js")
@@ -13,38 +20,77 @@
  * pin1.setLevel(GPIO.HIGH);
  * ----
  */
+
+var moduleGPIO = ESP32.getNativeFunction("ModuleGPIO");
+if (moduleGPIO === null) {
+	log("Unable to find ModuleGPIO");
+	module.exports = null;
+	return;
+}
+
+var internalGpio = {};
+moduleGPIO(internalGpio);
+
 function gpio(pinNumber) {
-	OS.gpioInit(pinNumber);
+	internalGpio.gpioInit(pinNumber);
 	var currentDirection;
 	var ret = {
+		//
+		// getLevel
+		// Get the current signal level of the GPIO.
+		//
+		getLevel: function() {
+			return internalGpio.gpioGetLevel(pinNumber);
+		}, // getLevel
+		
 		//
 		// setDirection
 		// Set the direction of the GPIO pin to either INPUT or OUTPUT.
 		//
 		setDirection: function(direction) {
 			currentDirection = direction;
-			OS.gpioSetDirection(pinNumber, direction);
+			internalGpio.gpioSetDirection(pinNumber, direction);
 		}, // setDirection
+		
+		//
+		// setInterruptHandler
+		// Set the interrupt handler for this GPIO.
+		// intrType - One of:
+		//  - INTR_ANYEDGE		
+		//  - INTR_DISABLE
+		//  - INTR_NEGEDGE		
+		//  - INTR_POSEDGE
+		// 
+		setInterruptHandler: function(intrType, callback) {
+			this.setDirection(gpio.INPUT);
+			internalGpio.gpioISRHandlerRemove(pinNumber);
+			internalGpio.gpioSetIntrType(pinNumber, intrType);
+			if (intrType == gpio.INTR_DISABLE) {
+				delete _isr_gpio[pinNumber];
+			} else {
+				_isr_gpio[pinNumber] = {
+					callback: callback
+				};
+				internalGpio.gpioISRHandlerAdd(pinNumber);
+			}
+		}, // setInterruptHandler
 		
 		//
 		// setLevel
 		// Set the signal level of the GPIO to be HIGH or LOW.
 		//
 		setLevel: function(level) {
-			OS.gpioSetLevel(pinNumber, level);
+			internalGpio.gpioSetLevel(pinNumber, level);
 		}, // setLevel
 		
 		//
-		// getLevel
-		// Get the current signal level of the GPIO.
+		// setPullMode
 		//
-		getLevel: function() {
-			return OS.gpioGetLevel(pinNumber);
-		}, // getLevel
+		setPullMode: function(mode) {
+			return internalGpio.gpioSetPullMode(pinNumber, mode);
+		}, // setPullMode
 		
-		setInterruptHandler: function(callback) {
-			OS.gpioISRHandlerAdd(pinNumber);
-		} // setInterruptHandler
+
 	}; // End ret
 	ret.setDirection(gpio.INPUT); // Set the initial pin direction as Input
 	return ret;
@@ -56,6 +102,20 @@ gpio.INPUT  = 0;     // Set direction to INPUT
 gpio.OUTPUT = 1;     // Set direction to OUTPUT
 gpio.HIGH   = true;  // HIGH signal
 gpio.LOW    = false; // LOW signal
+gpio.INTR_ANYEDGE = internalGpio.INTR_ANYEDGE;
+gpio.INTR_DISABLE = internalGpio.INTR_DISABLE;
+gpio.INTR_NEGEDGE = internalGpio.INTR_NEGEDGE;
+gpio.INTR_POSEDGE = internalGpio.INTR_POSEDGE;
 
-OS.gpioInstallISRService(0);
+gpio.PULLUP_ONLY     = internalGpio.PULLUP_ONLY;
+gpio.PULLDOWN_ONLY   = internalGpio.PULLDOWN_ONLY;
+gpio.PULLUP_PULLDOWN = internalGpio.PULLUP_PULLDOWN;
+gpio.FLOATING        = internalGpio.FLOATING;
+
+
+internalGpio.gpioInstallISRService(0, function(pin) {
+	if (_isr_gpio.hasOwnProperty(pin)) {
+		_isr_gpio[pin].callback(pin);
+	}
+});
 module.exports = gpio;

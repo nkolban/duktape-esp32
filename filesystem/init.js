@@ -38,6 +38,9 @@ Duktape.modSearch = function(id, require, exports, module) {
 
 //ESP32.setLogLevel("*", "debug");
 
+// Create the globals
+var _isr_gpio = {};
+
 var _sockets= {};
 
 var _timers = {

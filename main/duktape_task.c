@@ -28,7 +28,6 @@
 #include "duktape_event.h"
 #include "logging.h"
 #include "modules.h"
-#include "module_timers.h"
 //#include "telnet.h"
 
 LOG_TAG("duktape_task");
@@ -116,7 +115,7 @@ void duktape_init_environment() {
  * For example, we might have a network or file operation that takes time and
  * when complete, invokes a callback to say "we are done".  However, in a serial
  * world, we must not interrupt what we are currently doing.  Hence we introduce the
- * notion of events and queues of events.  We postualte the existence of an event
+ * notion of events and queues of events.  We postulate the existence of an event
  * queue which holds events (that happened externally) and are ready for processing.
  * Since this is also a queue, we have a notion of first in, first out.  When our
  * JavaScript program is "idle", we can take the next item from the event queue (or
@@ -127,12 +126,7 @@ void duktape_init_environment() {
  * have defined so far are:
  *
  * * ESP32_DUKTAPE_EVENT_COMMAND_LINE - A new user entered text line for processing.
- * * ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST - A new browser request has arrived for
- *   us while we are being a web server.
- * * ESP32_DUKTAPE_EVENT_TIMER_ADDED - A timer has been added.
- * * ESP32_DUKTAPE_EVENT_TIMER_CLEARED - A timer has been cleared.
- * * ESP32_DUKTAPE_EVENT_TIMER_FIRED - A timer has been fired.
- * * ESP32_DUKTAPE_EVENT_WIFI_SCAN_COMPLETED - A WiFi scan has completed.
+ * * ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED - A request to run a callback has been received.
  */
 
 void processEvent(esp32_duktape_event_t *pEvent) {
@@ -162,74 +156,20 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 			break;
 		}
 
-		/*
-		// Handle a new externally initiated browser request arriving at us.
-		case ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST: {
-			LOGD("Process a webserver (inbound) request event ... uri: %s, method: %s",
-					pEvent->httpServerRequest.uri,
-					pEvent->httpServerRequest.method);
-			// Find the global function called _httpServerRequestReceivedCallback and
-			// invoke it.  We pass in any necessary parameters.
-
-			// Push the global object onto the stack
-			// Retrieve the _httpServerRequestReceivedCallback function
-			duk_bool_t rcB = duk_get_global_string(esp32_duk_context, "_httpServerRequestReceivedCallback");
-			// [0] - _httpServerRequestReceivedCallback
-			if (rcB) {
-				duk_push_string(esp32_duk_context, pEvent->httpServerRequest.uri);
-				// [0] - _httpServerRequestReceivedCallback
-				// [1] - uri
-
-				duk_push_string(esp32_duk_context, pEvent->httpServerRequest.method);
-				// [0] - _httpServerRequestReceivedCallback
-				// [1] - uri
-				// [2] - method
-
-				duk_call(esp32_duk_context, 2);
-				// [0] - Return val
-
-				duk_pop(esp32_duk_context);
-				// Empty stack
-			} else {
-				duk_pop(esp32_duk_context);
-				// Empty stack
-			}
-
-			break;
-		}
-
-		case ESP32_DUKTAPE_EVENT_TIMER_ADDED: {
-			LOGD("Process a timer added event");
-			break;
-		}
-
-		case ESP32_DUKTAPE_EVENT_TIMER_FIRED: {
-			LOGV("Process a timer fired event: %lu", pEvent->timerFired.id);
-#ifdef ESP_PLATFORM
-			timers_runTimer(esp32_duk_context, pEvent->timerFired.id);
-#endif
-			break;
-		}
-
-		case ESP32_DUKTAPE_EVENT_TIMER_CLEARED: {
-			LOGD("Process a timer cleared event");
-			break;
-		}
-
-		*/
-
 		case ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED: {
 
 			// The event contains 4 properties:
 			// * callbackType - int
-			// * stashKey     - int
+			// * stashKey     - int - A key to an array stash that contains a function and parameters.
 			// * context      - void * - a Duktape heapptr
-			// * dataProvuder - A function to be called that will add parameters to the stack.
+			// * dataProvider - A function to be called that will add parameters to the stack.  If NULL, then
+			//                  no data provider function is present.
 			LOGD("Process a callback requested event: callbackType=%d, stashKey=%d",
 				pEvent->callbackRequested.callbackType,
 				pEvent->callbackRequested.stashKey
 			);
-			if (pEvent->callbackRequested.callbackType == ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION) {
+			if (pEvent->callbackRequested.callbackType == ESP32_DUKTAPE_CALLBACK_TYPE_FUNCTION ||
+					pEvent->callbackRequested.callbackType == ESP32_DUKTAPE_CALLBACK_TYPE_ISR_FUNCTION) {
 
 				int topStart = duk_get_top(esp32_duk_context);
 
@@ -261,71 +201,9 @@ void processEvent(esp32_duktape_event_t *pEvent) {
 				duk_pop(esp32_duk_context);
 				// <empty stack>
 			}
-			// Now that we have a callback request, we pass control back into JS by calling a JS
-			// function.  The JS function we call is a global called "eventCallback".  This function
-			// has the following signature:
-			//
-			// eventCallback(type, context, data)
-			//
-			// type - a Numeric identifying the type of callback
-			// context - an object providing the context of the callback
-			// data - specific data for the callback
-			//
-			/*
-			duk_push_global_object(esp32_duk_context);
-			// [0] - Global object
-
-			if (duk_get_prop_string(esp32_duk_context, -1, "eventCallback")) {
-				// [0] - Global object <object>
-				// [1] - eventCallback <function>
-
-				duk_push_int(esp32_duk_context, pEvent->callbackRequested.callbackType);
-				// [0] - Global object <object>
-				// [1] - eventCallback <function>
-				// [2] - callbackType <number>
-
-				duk_push_heapptr(esp32_duk_context, pEvent->callbackRequested.context);
-				// [0] - Global object <object>
-				// [1] - eventCallback <function>
-				// [2] - callbackType <number>
-				// [3] - context <object>
-
-				duk_push_string(esp32_duk_context, (char *)pEvent->callbackRequested.data);
-				// [0] - Global object <object>
-				// [1] - eventCallback <function>
-				// [2] - callbackType <number>
-				// [3] - context <object>
-				// [4] - data <String>
-
-				duk_json_decode(esp32_duk_context, -1);
-				// [0] - Global object <object>
-				// [1] - eventCallback <function>
-				// [2] - callbackType <number>
-				// [3] - context <object>
-				// [4] - data <Object>
-
-				callRc = duk_pcall(esp32_duk_context,
-					3); // Number of params
-				// [0] - Global object <object>
-				// [1] - result
-				if (callRc != 0) {
-					esp32_duktape_log_error(esp32_duk_context);
-				}
-			} else {
-				ESP_LOGE(tag, "Unable to find global function called eventCallback");
-
-				duk_pop(esp32_duk_context);
-				// [0] - Global object
-				// [1] - undefined
-			}
-			duk_pop_2(esp32_duk_context);
-			*/
-			// Empty Stack
 
 			break;
 		} // End of ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED
-
-
 
 		default:
 			LOGD("Unknown event type seen: %d", pEvent->type);
@@ -401,8 +279,6 @@ void duktape_task(void *ignore) {
 			processEvent(&esp32_duktape_event);
 			esp32_duktape_freeEvent(esp32_duk_context, &esp32_duktape_event);
 		}
-
-
 
 		// If we have been requested to reset the environment
 		// then do that now.

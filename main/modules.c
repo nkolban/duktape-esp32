@@ -24,6 +24,7 @@
 #include "module_adc.h"
 #include "module_bluetooth.h"
 #include "module_dukf.h"
+#include "module_gpio.h"
 #include "module_fs.h"
 #include "module_i2c.h"
 #include "module_ledc.h"
@@ -35,7 +36,6 @@
 #include "module_serial.h"
 #include "module_spi.h"
 #include "module_ssl.h"
-#include "module_timers.h"
 #include "module_wifi.h"
 
 LOG_TAG("modules");
@@ -89,6 +89,7 @@ functionTableEntry_t functionTable[] = {
 	{ "ModuleBluetooth",  ModuleBluetooth,  1},
 #endif
 	{ "ModuleFS",         ModuleFS,         1},
+	{ "ModuleGPIO",       ModuleGPIO,       1},
 	{ "ModuleI2C",        ModuleI2C,        1},
 	{ "ModuleLEDC",       ModuleLEDC,       1},
 	{ "ModuleNVS",        ModuleNVS,        1},

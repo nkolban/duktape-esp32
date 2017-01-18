@@ -1,3 +1,6 @@
+#include "sdkconfig.h"
+#if defined(CONFIG_BT_ENABLED)
+
 #include <bt.h>
 #include <duktape.h>
 #include <esp_bt_main.h>
@@ -43,3 +46,4 @@ duk_ret_t ModuleBluetooth(duk_context *ctx) {
 	ADD_FUNCTION("init", js_bluetooth_init, 0);
 	return 0;
 } // ModuleBluetooth
+#endif
