@@ -138,7 +138,7 @@ function bootwifi(bootedCallback) {
 	}
 	
 	log("Going to try and connect to AP named \"" +  ssid + "\"");
-	log("Network info is: ip=%s, gw=%s, netmask=%s", ip, gw, netmask);
+	log("Network info is: ip=" + ip + ", gw=" + gw + ", netmask=" + netmask);
 	log("ESP32 Heap: " + ESP32.getState().heapSize);
 	
 	WIFI.connect({

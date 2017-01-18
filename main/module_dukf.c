@@ -51,7 +51,7 @@ static duk_ret_t js_dukf_global(duk_context *ctx) {
 
 
 /**
- * Load a file.  The result is pushed onto the stack.
+ * Load a file.  The result is pushed onto the stack as a string.
  */
 static duk_ret_t js_dukf_loadFile(duk_context *ctx) {
 	//dukf_log_heap("js_dukf_loadFile");

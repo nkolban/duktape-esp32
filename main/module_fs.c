@@ -201,6 +201,10 @@ static duk_ret_t js_fs_closeSync(duk_context *ctx) {
 } // js_fs_closeSync
 
 
+/*
+ * Determine details on an open file.
+ * [0] - fd
+ */
 static duk_ret_t js_fs_fstatSync(duk_context *ctx) {
 	struct stat statBuf;
 	int fd = duk_require_int(ctx, 0);
@@ -223,14 +227,16 @@ static duk_ret_t js_fs_fstatSync(duk_context *ctx) {
 static duk_ret_t js_fs_statSync(duk_context *ctx) {
 	struct stat statBuf;
 	const char *path = duk_require_string(ctx, 0);
+	LOGD(">> js_fs_statSync: %s", path);
 	int rc = stat(path, &statBuf);
 	if (rc == -1) {
-		LOGD("Error from stat of file %s: %d %s", path, errno, strerror(errno));
+		LOGD("<< js_fs_statSync: Error from stat of file %s: %d %s", path, errno, strerror(errno));
 		return DUK_RET_ERROR;
 	}
 	duk_push_object(ctx);
 	duk_push_int(ctx, statBuf.st_size);
 	duk_put_prop_string(ctx, -2, "size");
+	LOGD("<< js_fs_statSync: %s - size: %ld", path, statBuf.st_size);
 	return 1;
 } // js_fs_fstatSync
 

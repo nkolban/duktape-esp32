@@ -307,7 +307,7 @@ Syntax:
   * `a` - Appending.  File is created if it does not exist.
   * `a+` - Reading and writing.  File is created if it does not exist.
   
-The return is a file descriptor.
+The return is a file descriptor.  An exception is thrown on error.
 
 For example:
 

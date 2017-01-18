@@ -70,4 +70,27 @@ X-Command: SAVE<CRLF>
 <payload data>
 ```
 
+```
+POST /disablestart HTTP/1.1<CRLF>
+Content-Length: <length><CRLF>
+X-Command: DISABLESTART<CRLF>
+<CRLF>
+```
+
 and if ESP32-Duktape can parse this, we have input.
+
+To enable serial access, we need to set a flag in Non Volatile Storage.  The flag can be found at
+`esp32duktape.useSerial` and is an integer.  If set to `1` then at boot time, the ESP32 will be processing serial
+commands received on UART1.  A set of tools can be found in the tools folder for working with the serial interface.
+
+##uartDisableStart
+Disable an application that was previously flagged as bootable at ESP32 startup from starting.
+
+##uartFileList
+List the files that are contained on the file system inside the ESP32.
+
+##uartFileSave
+Read a file from the PC file system and save it as a file inside the ESP32 file system.
+
+##uartScriptRinner
+Read a file containing JavaScript from the PC file system and send it to the ESP32 for execution.

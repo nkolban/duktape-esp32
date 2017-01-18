@@ -1,7 +1,20 @@
+/*
+ * Encapsulate the ESP32 GPIO functions.  The functions exposed
+ * are:
+ * gpioGetLevel
+ * gpioISRHandlerAdd
+ * gpioISRHandlerRemove
+ * gpioInit
+ * gpioInstallISRService
+ * gpioSetDirection
+ * gpioSetIntrType
+ * gpioSetLevel
+ * gpioSetPullMode
+ */
+
 #include <driver/gpio.h>
 #include <duktape.h>
 #include <esp_log.h>
-
 
 #include "duktape_event.h"
 #include "duktape_utils.h"
@@ -39,6 +52,10 @@ static void gpio_isr_handler(void *args) {
  */
 static duk_ret_t js_os_gpioGetLevel(duk_context *ctx) {
 	gpio_num_t pinNum = duk_get_int(ctx, -1);
+	if (pinNum < 0 || pinNum >= GPIO_NUM_MAX) {
+		LOGE("js_os_gpioGetLevel: Pin %d out of range", pinNum);
+		return 0;
+	}
 	int level = gpio_get_level(pinNum);
 	if (level == 0) {
 		duk_push_false(ctx);
@@ -53,7 +70,11 @@ static duk_ret_t js_os_gpioGetLevel(duk_context *ctx) {
  * [0] - Pin number
  */
 static duk_ret_t js_os_gpioInit(duk_context *ctx) {
-	gpio_num_t pinNum = duk_get_int(ctx, -2);
+	gpio_num_t pinNum = duk_get_int(ctx, -1);
+	if (pinNum < 0 || pinNum >= GPIO_NUM_MAX) {
+		LOGE("js_os_gpioInit: Pin %d out of range", pinNum);
+		return 0;
+	}
 	gpio_pad_select_gpio(pinNum);
 	return 0;
 } // js_os_gpioInit
@@ -82,8 +103,12 @@ static duk_ret_t js_os_gpioInstallISRService(duk_context *ctx) {
 
 // [0] - pin
 static duk_ret_t js_os_gpioISRHandlerAdd(duk_context *ctx) {
-	int pin = duk_get_int(ctx, -1);
-	esp_err_t errRc = gpio_isr_handler_add(pin, gpio_isr_handler, (void *)pin);
+	int pinNum = duk_get_int(ctx, -1);
+	if (pinNum < 0 || pinNum >= GPIO_NUM_MAX) {
+		LOGE("js_os_gpioISRHandlerAdd: Pin %d out of range", pinNum);
+		return 0;
+	}
+	esp_err_t errRc = gpio_isr_handler_add(pinNum, gpio_isr_handler, (void *)pinNum);
 	if (errRc != ESP_OK) {
 		LOGE("gpio_isr_handler_add: %s", esp32_errToString(errRc));
 	}
@@ -110,7 +135,10 @@ static duk_ret_t js_os_gpioISRHandlerRemove(duk_context *ctx) {
 static duk_ret_t js_os_gpioSetDirection(duk_context *ctx) {
 	gpio_mode_t mode;
 	gpio_num_t pinNum = duk_get_int(ctx, -2);
-
+	if (pinNum < 0 || pinNum >= GPIO_NUM_MAX) {
+		LOGE("js_os_gpioSetDirection: Pin %d out of range", pinNum);
+		return 0;
+	}
 	int modeVal = duk_get_int(ctx, -1);
 	if (modeVal == 1) {
 		mode = GPIO_MODE_OUTPUT;
@@ -135,16 +163,18 @@ static duk_ret_t js_os_gpioSetDirection(duk_context *ctx) {
  *  - GPIO_INTR_POSEDGE
  */
 static duk_ret_t js_os_gpioSetIntrType(duk_context *ctx) {
-	gpio_num_t pin = (gpio_num_t)duk_get_int(ctx, -2);
+	gpio_num_t pinNum = (gpio_num_t)duk_get_int(ctx, -2);
+	if (pinNum < 0 || pinNum >= GPIO_NUM_MAX) {
+		LOGE("js_os_gpioSetIntrType: Pin %d out of range", pinNum);
+		return 0;
+	}
 	gpio_int_type_t type = (gpio_int_type_t)duk_get_int(ctx, -1);
-
-	// Validate that type is a valid type.
 	if (type < 0 || type >= GPIO_INTR_MAX) {
-		LOGE("js_os_gpioSetIntrType: Invalid interrupt type: %d", type);
+		LOGE("js_os_gpioSetIntrType: Interrupt type %d out of range", type);
 		return 0;
 	}
 
-	esp_err_t errRc = gpio_set_intr_type(pin, type);
+	esp_err_t errRc = gpio_set_intr_type(pinNum, type);
 	if (errRc != 0) {
 		LOGE("gpio_set_intr_type: %s", esp32_errToString(errRc));
 	}
@@ -160,6 +190,10 @@ static duk_ret_t js_os_gpioSetIntrType(duk_context *ctx) {
 static duk_ret_t js_os_gpioSetLevel(duk_context *ctx) {
 	uint32_t level;
 	gpio_num_t pinNum = duk_get_int(ctx, -2);
+	if (pinNum < 0 || pinNum >= GPIO_NUM_MAX) {
+		LOGE("js_os_gpioSetLevel: Pin %d out of range", pinNum);
+		return 0;
+	}
 	duk_bool_t levelBool = duk_get_boolean(ctx, -1);
 	if (levelBool == 0) {
 		level = 0;
@@ -185,6 +219,10 @@ static duk_ret_t js_os_gpioSetLevel(duk_context *ctx) {
  */
 static duk_ret_t js_os_gpioSetPullMode(duk_context *ctx) {
 	gpio_num_t pinNum = duk_get_int(ctx, -2);
+	if (pinNum < 0 || pinNum >= GPIO_NUM_MAX) {
+		LOGE("js_os_gpioSetPullMode: Pin %d out of range", pinNum);
+		return 0;
+	}
 	gpio_pull_mode_t pullMode = duk_get_int(ctx, -1);
 	esp_err_t errRc = gpio_set_pull_mode(pinNum, pullMode);
 	if (errRc != ESP_OK) {
@@ -192,6 +230,7 @@ static duk_ret_t js_os_gpioSetPullMode(duk_context *ctx) {
 	}
 	return 0;
 } // js_os_gpioSetPullMode
+
 
 /**
  * Add native methods to the GPIO object.

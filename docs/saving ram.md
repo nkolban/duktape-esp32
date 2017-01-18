@@ -16,3 +16,11 @@ function or less optimal run-time implementations in favor of reduced RAM.  Some
 include:
 
 * `DUK_USE_VERBOSE_ERRORS` - Quality of error reporting at the JS level.
+* `DUK_USE_TRACEBACKS`
+* `DUK_USE_AUGMENT_ERROR_CREATE`
+* `DUK_USE_FUNC_FILENAME_PROPERTY`
+* `DUK_USE_PC2LINE`
+
+To enable or disable these settings, edit the file called `./data/duktape/ESP32-Duktape.yaml` and change settings from
+`true` to `false` or from `false` to `true`.  Once done, we have to tell Duktape to use the new settings by running
+`make duktape_configure` and then rebuilding ESP32-Duktape.

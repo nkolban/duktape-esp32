@@ -12,9 +12,11 @@
  */
 /* globals require, FS, Buffer, log, DUKF, module*/
 
-var http = require("http.js");
-var URL = require("url.js");
-var ws = require("ws.js");
+var http = require("http");
+var URL = require("url");
+//var ws = require("ws");
+var ws = null;
+var FS = require("fs");
 
 
 /**
@@ -24,7 +26,9 @@ var ws = require("ws.js");
  * @returns 0 on ok, non 0 on an error.
  */
 function streamFile(fileName, response) {
+	log("FS.openSync1");
 	var fd = FS.openSync(fileName, "r");
+	log("FS.openSync2");
    var buffer = new Buffer(128);
    while(1) {
    	var sizeRead = FS.readSync(fd, buffer, 0, buffer.length, null);
@@ -63,11 +67,16 @@ function requestHandler(request, response) {
    request.on("end", function() {
    	function sendFile(fileToSend) {
 	      try {
+
+	      	log("#A");
 	      	fileName = DUKF.FILE_SYSTEM_ROOT + fileToSend;
+	      	log("File to read: " + fileName);
+	      	FS.statSync(fileName); // Will throw an error if file is not present
+	      	log("Loading file: " + fileName);
 	         response.writeHead(200);
 	         streamFile(fileName, response);
 	      } catch(e) {
-	      	log("We got an exception: " + e);
+	      	log("(A1) We got an exception: " + e);
 	         response.writeHead(404);
 	      }
    	} // sendFile
@@ -145,30 +154,31 @@ function startIde() {
    DUKF.logHeap("#C");
 
 
-	var webSocketServer = ws.Server();
-
-	webSocketServer.on("connection", function(wsConnection) {
-	   DUKF.logHeap("#D");
-		log("We have received a new WebSocket connection.  The path is \"" + wsConnection.path + "\"");
-		wsConnection.on("message", function(data) {
-			log("We have received an incoming message: " + data);
-			wsConnection.close();
+   if (ws !== null) {
+		var webSocketServer = ws.Server();
+	
+		webSocketServer.on("connection", function(wsConnection) {
+			log("We have received a new WebSocket connection.  The path is \"" + wsConnection.path + "\"");
+			wsConnection.on("message", function(data) {
+				log("We have received an incoming message: " + data);
+				wsConnection.close();
+			});
+			
+			wsConnection.on("close", function() {
+				log("Web Socket connection closed, ending handler!");
+				console.handler = null;
+			});
+			
+			// Register a console.log() handler that will send the logged message to
+			// the WebSocket.
+			console.handler = function(message) {
+				log("Sending to WS");
+				wsConnection.send(message);
+			};
 		});
-		
-		wsConnection.on("close", function() {
-			log("Web Socket connection closed, ending handler!");
-			console.handler = null;
-		});
-		
-		// Register a console.log() handler that will send the logged message to
-		// the WebSocket.
-		console.handler = function(message) {
-			log("Sending to WS");
-			wsConnection.send(message);
-		};
-	});
-	webSocketServer.listen(WEBSOCKET_PORT);
-	log("Being a WebSocket server on port " + WEBSOCKET_PORT);
+		webSocketServer.listen(WEBSOCKET_PORT);
+		log("Being a WebSocket server on port " + WEBSOCKET_PORT);
+   }
 } // startIde
 
 module.exports = startIde;
