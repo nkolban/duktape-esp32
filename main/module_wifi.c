@@ -244,9 +244,11 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 		const char *netmaskString = duk_get_string(ctx, -1);
 		duk_pop(ctx);
 
+		/*
 		ipString = "192.168.1.99";
 		gwString = "192.168.1.1";
 		netmaskString = "255.255.255.0";
+		*/
 
 		// We now try and get network IP information but check that it is good first
 	  if (inet_pton(AF_INET, ipString, &ipInfo.ip) == 1 &&
