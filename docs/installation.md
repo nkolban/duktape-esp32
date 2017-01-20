@@ -1,6 +1,13 @@
 #ESP32-Duktape installation
 This guide assumes that you have obtained (or built) the binary files ready to flash
-into your ESP32.  The end goal will be to have ESP32 running JavaScript and
+into your ESP32.
+
+An archive file containing the current available ESP32-Duktape can be download at:
+
+[http://www.neilkolban.com/esp32/downloads/esp32-duktape-2017-01-20.tar.gz](http://www.neilkolban.com/esp32/downloads/esp32-duktape-2017-01-20.tar.gz)
+
+
+The end goal will be to have ESP32 running JavaScript and
 with a built in development environment.
 
 We will use the `esptool.py` to load the binaries into the ESP32 flash memory.

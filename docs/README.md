@@ -6,27 +6,7 @@ The project was started in November 2016 and hence is still extremely new.  Expe
 it is very light.  Any comments should be emailed to kolban1@kolban.com.
 
 ##Binary install
-A flashable binary is available for the ESP32.  We assume you have experience in using the ESP32 environment.  To
-flash ESP32-Duktape, run the following command:
-
-```
-esptool.py --chip esp32 --port "/dev/ttyUSB0" --baud 115200  write_flash -z \
-  --flash_mode "dio" --flash_freq "40m"  --flash_size "2MB" \
-  0x1000 bootloader.bin 0x10000 app-template.bin 0x8000 partitions_singleapp.bin
-```
-
-The binary is supplied as a tar/gzip of three distinct files:
-
-* `bootloader.bin`
-* `esp32-duktape.bin`
-* `partitions-singleapp.bin`
-* `spiffs.img`
-* `espfs.img`
-
-The file can be download at:
-
-[http://www.neilkolban.com/esp32/downloads/esp32-duktape-2017-01-20.tar.gz](http://www.neilkolban.com/esp32/downloads/esp32-duktape-2017-01-20.tar.gz)
-
+Instructions for downloading and installing a binary version of ESP23-Duktape can be found [here](docs/installation.md).
 
 ##Running ESP32-Duktape
 After flashing your ESP32 with the images, reboot the device.  At this point the device will start and
