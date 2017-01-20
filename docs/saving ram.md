@@ -24,3 +24,17 @@ include:
 To enable or disable these settings, edit the file called `./data/duktape/ESP32-Duktape.yaml` and change settings from
 `true` to `false` or from `false` to `true`.  Once done, we have to tell Duktape to use the new settings by running
 `make duktape_configure` and then rebuilding ESP32-Duktape.
+
+
+##Running Duktape from flash
+One of the possibilities for RAM improvements is the ability to run compiled Duktape applications
+from flash memory.
+
+Steps:
+
+* Enable some options including
+ * DUK_USE_ROM_STRINGS
+ * DUK_USE_ROM_OBJECTS
+ * DUK_USE_GLOBAL_INHERIT
+
+When building Duktape, we need to add "--rom-support" and "--rom-auto-lightfunc".

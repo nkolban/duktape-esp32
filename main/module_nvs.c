@@ -290,7 +290,7 @@ static duk_ret_t js_nvs_set(duk_context *ctx) {
 		return 0;
 	}
 	return 0;
-}
+} //js_nvs_set
 
 
 /**

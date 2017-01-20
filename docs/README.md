@@ -15,15 +15,17 @@ esptool.py --chip esp32 --port "/dev/ttyUSB0" --baud 115200  write_flash -z \
   0x1000 bootloader.bin 0x10000 app-template.bin 0x8000 partitions_singleapp.bin
 ```
 
-The binary is supplied as a ZIP of three distinct files:
+The binary is supplied as a tar/gzip of three distinct files:
 
 * `bootloader.bin`
-* `app-template.bin`
+* `esp32-duktape.bin`
 * `partitions-singleapp.bin`
+* `spiffs.img`
+* `espfs.img`
 
 The file can be download at:
 
-[http://www.neilkolban.com/esp32/downloads/esp32-duktape-2016-11-30.zip](http://www.neilkolban.com/esp32/downloads/esp32-duktape-2016-11-30.zip)
+[http://www.neilkolban.com/esp32/downloads/esp32-duktape-2017-01-20.tar.gz](http://www.neilkolban.com/esp32/downloads/esp32-duktape-2017-01-20.tar.gz)
 
 
 ##Running ESP32-Duktape
@@ -33,7 +35,7 @@ to your WiFi environment.  Because network connection is required to attach a te
 setup required.  Because ESP32-Duktape has determined it doesn't know how to connect to your WiFi, it becomes
 an access point ready for configuration.  Take your smart phone and look for available WiFi networks.  You
 will find one called "ESP32 Duktape".  Connect your phone to that network.  Now you should launch a browser
-on your phone and visit "http://<The IP Address of the ESP32>".  You will now be presented with a page
+on your phone and visit "http://192.168.4.1" (Note: Your own access point number may differ).  You will now be presented with a page
 into which you can enter your local WiFi network name (SSID) and connection password.  Once submitted,
 reboot your ESP32 again and this time it will connect to the network using the information you supplied.
 Now your ESP32 is addressable.  You can test this with a ping command:
@@ -53,4 +55,4 @@ connections of your ESP32 as that is where diagnostics are written.
 ### Network connection
 * If your ESP32 is configured to connect to a specific access point and it is no longer available, the device will go
 back to being an access point for reconfiguration.
-* You can force your ESP32 to become an access point for recofiguration by holding GPIO25 high (3.3V) at boot.
+* You can force your ESP32 to become an access point for reconfiguration by holding GPIO25 high (3.3V) at boot.

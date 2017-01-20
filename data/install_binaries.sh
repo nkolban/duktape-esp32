@@ -31,5 +31,5 @@ python $ESPTOOL  \
  0x8000   partitions_singleapp.bin \
  0x10000  esp32-duktape.bin \
  0x180000 spiffs.img \
- 0x360000 espfs.img
+ 0x300000 espfs.img
   

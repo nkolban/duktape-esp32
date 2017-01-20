@@ -42,11 +42,11 @@ images:
 	echo "+--------------------+"
 	echo "| Building espfs.img |"
 	echo "+--------------------+"
-	cd filesystem; find . -print | mkespfsimage -c 0 > ../build/espfs.img
+	cd filesystem; find . -print | ../bin/mkespfsimage -c 0 > ../build/espfs.img
 	echo "+---------------------+"
 	echo "| Building spiffs.img |"
 	echo "+---------------------+"
-	mkspiffs -c filesystem -b 65536 -p 256 -s 524288 build/spiffs.img
+	./bin/mkspiffs -c filesystem -b 65536 -p 256 -s 524288 build/spiffs.img
 	
 #
 #  Perform a clean install of duktape.
@@ -65,6 +65,10 @@ duktape_install:
 #
 #  The properties for the configuration are the "low_memory" profile with overrides
 #  supplied in data/duktape/ESP32-Duktape.yaml.
+#
+# Remove the following:
+#		--rom-support \
+#		--rom-auto-lightfunc \
 #
 duktape_configure:
 	python ./components/duktape/tools/configure.py \

@@ -12,6 +12,7 @@ The distribution consists of the following files:
 * `bootloader.bin` - The bootloader for the application.
 * `spiffs.img` - An image of JavaScript files in SPIFFS format.
 * `espfs.img` - An image of JavaScript files in ESPFS format.
+* `install_binaries.sh` - A script for flashing the ESP32.
 
 The load addresses are:
 
@@ -21,7 +22,7 @@ The load addresses are:
 |partitions_singleapp.bin |0x8000   |
 |esp32-duktape.bin        |0x10000  |
 |spiffs.img               |0x180000 |
-|espfs.img                |0x360000 |
+|espfs.img                |0x300000 |
 
 For example, on Linux with the ESP32 in flash mode, we can run the following:
 ```
@@ -32,7 +33,7 @@ $ python $IDF_PATH/components/esptool_py/esptool/esptool.py \
  0x8000   partitions_singleapp.bin \
  0x10000  esp32-duktape.bin \
  0x180000 spiffs.img \
- 0x360000 espfs.img
+ 0x300000 espfs.img
 ```
 
 When all is complete, the ESP32 can be rebooted and we are ready to go.

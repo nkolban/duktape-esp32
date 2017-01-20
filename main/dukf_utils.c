@@ -4,8 +4,9 @@
 #if defined(ESP_PLATFORM)
 
 #include <esp_log.h>
-#include <espfs.h>
 #include <esp_system.h>
+
+#include <espfs.h>
 
 #else // ESP_PLATFORM
 
@@ -16,6 +17,7 @@
 #include <duktape.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <nvs.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -23,6 +25,7 @@
 
 #include "dukf_utils.h"
 #include "duktape_utils.h"
+#include "esp32_specific.h"
 #include "logging.h"
 
 #define MAX_RUN_AT_START (5)
@@ -121,6 +124,32 @@ uint32_t dukf_get_free_heap_size() {
 }
 
 #if defined(ESP_PLATFORM)
+
+/*
+ * Initialize the default NVS values that are used by ESP32-Duktape.  These
+ * include:
+ * * useSerial - u32 - 1 = using serial processor
+ *
+ */
+void dukf_init_nvs_values() {
+	nvs_handle handle;
+	uint32_t u32Val;
+
+	esp_err_t errRc = nvs_open("esp32duktape", NVS_READWRITE, &handle);
+	if (errRc != ESP_OK) {
+		LOGE("nvs_open: %s", esp32_errToString(errRc));
+		return;
+	}
+	// See if we have a "useSerial" entry.
+	if (nvs_get_u32(handle, "useSerial", &u32Val) == ESP_ERR_NVS_NOT_FOUND) {
+		nvs_set_u32(handle, "useSerial", 0);
+	}
+	nvs_commit(handle); // Commit any changes we may have made.
+	nvs_close(handle);  // Close the NVS handle.
+} // dukf_init_nvs_values
+
+
+
 /**
  * Load the named file and return the data and the size of it.
  * We load the file from the DUKF file system based on ESPFS.

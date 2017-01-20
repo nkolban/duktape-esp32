@@ -15,6 +15,7 @@
 #include "duktape_spiffs.h"
 #include "esp32_specific.h"
 #include "sdkconfig.h"
+
 #endif // ESP_PLATFORM
 
 #include <assert.h>
@@ -66,16 +67,20 @@ static void showLogo() {
  * Initialize the duktape environment.
  */
 void duktape_init_environment() {
+
+
 	// If we currently have an existing environment release it because we are
 	// about to create a new one.
 	if (esp32_duk_context != NULL) {
 		duk_destroy_heap(esp32_duk_context);
 	}
 
+	LOGD("About to create heap");
 	esp32_duk_context = duk_create_heap_default();	// Create the Duktape context.
 	dukf_log_heap("Heap after duk create heap");
 
-	duk_eval_string_noresult(esp32_duk_context, "Duktape = Object.create(Duktape);");
+	//duk_eval_string_noresult(esp32_duk_context, "Duktape = Object.create(Duktape);");
+	duk_eval_string_noresult(esp32_duk_context, "new Function('return this')().Duktape = Object.create(Duktape);");
 
 	duk_module_duktape_init(esp32_duk_context); // Initialize the duktape module functions.
 	dukf_log_heap("Heap before after duk_module_duktape_init");
@@ -228,6 +233,8 @@ void duktape_task(void *ignore) {
 	LOGD(">> duktape_task");
 	dukf_log_heap("duktape_task");
 
+	dukf_init_nvs_values(); // Initialize any defaults for NVS data
+
 	// Define the scripts which are to run at boot time
 	dukf_addRunAtStart("start.js");
 	//dukf_addRunAtStart("bootwifi.js");
@@ -238,6 +245,7 @@ void duktape_task(void *ignore) {
 #if defined(ESP_PLATFORM)
 	esp32_duktape_spiffs_mount();
 #endif /* ESP_PLATFORM */
+
 
 	duktape_init_environment();
 	// From here on, we have a Duktape context ...
