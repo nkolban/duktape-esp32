@@ -6,7 +6,7 @@ The project was started in November 2016 and hence is still extremely new.  Expe
 it is very light.  Any comments should be emailed to kolban1@kolban.com.
 
 ##Binary install
-Instructions for downloading and installing a binary version of ESP23-Duktape can be found [here](docs/installation.md).
+Instructions for downloading and installing a binary version of ESP23-Duktape can be found [here](installation.md).
 
 ##Running ESP32-Duktape
 After flashing your ESP32 with the images, reboot the device.  At this point the device will start and
