@@ -244,7 +244,124 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
 
 
 /**
- * Configure a channel.
+ * Configure an RX channel.
+ * Two parameters
+ * 1) Channel id
+ * 2) Configuration:
+ * {
+ * 		gpio: <number> - GPIO pin to use.
+ * 		memBlocks: <number> - Memory blocks to use. Optional, default is 1.
+ * 		clockDiv: <number> - Clock divider.  Optional, default is 100.
+ * 		filterThreshold: <number> - Filter threshold. Optional, default is 100.
+ * 		idleThreshold: <number> - Idle threshold.  Optional, default is 16,000.
+ * 		ringBufferSize: <number> - Size of ring buffer in bytes. Optional, default 1000.
+ * }
+ *
+ * [0] - number - Channel
+ * [1] - object - Configuration
+ * {
+ *    gpio:
+ *    memBlocks: [Optional]
+ *    clockDiv:  [Optional]
+ *    idleThreshold: [Optional]
+ *    filterThreshold: [Optional]
+ *    ringBufferSize: [Optional]
+ * }
+ *
+ */
+static duk_ret_t js_rmt_rxConfig(duk_context *ctx) {
+	LOGD(">> js_rmt_txConfig");
+		rmt_channel_t channel;
+		gpio_num_t gpio;
+		uint8_t memBlocks       = 1;
+		uint8_t clockDiv        = 100;
+		bool filterEn           = true;
+		uint8_t filterThreshold = 100;
+		uint16_t idleThreshold  = 16000;
+		size_t ringBufferSize   = 1000;
+
+		channel = duk_get_int(ctx, 0);
+		if (channel >= RMT_CHANNEL_MAX) {
+			LOGE("Channel out of range");
+			return 0;
+		}
+
+		if (duk_get_prop_string(ctx, 1, "gpio")) {
+			gpio = duk_get_int(ctx, -1);
+		} else {
+			LOGE("No mandatory gpio supplied");
+			return 0;
+		}
+		duk_pop(ctx);
+
+		if (duk_get_prop_string(ctx, 1, "memBlocks")) {
+			memBlocks = duk_get_int(ctx, -1);
+			if (memBlocks < 1 || memBlocks > 8) {
+				LOGE("memBlocks must be >= 1 and <=8");
+				return 0;
+			}
+		}
+		duk_pop(ctx);
+
+		if (duk_get_prop_string(ctx, 1, "clockDiv")) {
+			clockDiv = duk_get_int(ctx, -1);
+			if (clockDiv == 0) {
+				LOGE("clockDiv must be >= 1");
+			}
+		}
+		duk_pop(ctx);
+
+		if (duk_get_prop_string(ctx, 1, "idleThreshold")) {
+			idleThreshold = duk_get_int(ctx, -1);
+			if (idleThreshold == 0) {
+				LOGE("idleThreshold must be >= 1");
+			}
+		}
+		duk_pop(ctx);
+
+		if (duk_get_prop_string(ctx, 1, "filterThreshold")) {
+			filterThreshold = duk_get_int(ctx, -1);
+			if (filterThreshold == 0) {
+				filterEn = false;
+			}
+		}
+		duk_pop(ctx);
+
+		if (duk_get_prop_string(ctx, 1, "ringBufferSize")) {
+			ringBufferSize = duk_get_int(ctx, -1);
+			if (ringBufferSize < 10) {
+				LOGE("ringBufferSize must be >= 10");
+			}
+		}
+		duk_pop(ctx);
+
+		rmt_config_t rxConfig;
+		rxConfig.channel = channel;
+		rxConfig.clk_div = clockDiv;
+		rxConfig.gpio_num = gpio;
+		rxConfig.mem_block_num = memBlocks;
+		rxConfig.rmt_mode = RMT_MODE_RX;
+		rxConfig.rx_config.filter_en = filterEn;
+		rxConfig.rx_config.filter_ticks_thresh = filterThreshold;
+		rxConfig.rx_config.idle_threshold = idleThreshold;
+
+		ESP_ERROR_CHECK(rmt_config(&rxConfig));
+		esp_err_t errCode = rmt_driver_install(
+			channel,        // Channel
+			ringBufferSize, // RX ring buffer size
+			0               // Interrupt flags
+		);
+		if (errCode != ESP_OK) {
+			LOGE("rmt_driver_install: %s", esp32_errToString(errCode));
+		}
+
+		LOGD("<< js_rmt_txConfig");
+	  return 0;
+} // js_rmt_rxConfig
+
+
+/**
+ * Configure a TX channel.
  * Two parameters
  * 1) Channel id
  * 2) Configuration:
@@ -365,6 +482,7 @@ static duk_ret_t js_rmt_txConfig(duk_context *ctx) {
 duk_ret_t ModuleRMT(duk_context *ctx) {
 
 	ADD_FUNCTION("getState", js_rmt_getState, 1);
+	ADD_FUNCTION("rxConfig", js_rmt_rxConfig, 2);
 	ADD_FUNCTION("txConfig", js_rmt_txConfig, 2);
 	ADD_FUNCTION("write",    js_rmt_write,    2);
 

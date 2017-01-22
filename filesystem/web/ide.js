@@ -277,10 +277,15 @@ $(document).ready(function() {
 					// Determine which file was selected in the list
 					var selectedFile = $("#loadSelect option:selected").val();
 
+					if (!(selectedFile.substr(0, "/".length) === "/")) {
+						selectedFile = "/" + selectedFile;
+					}
+					/*
 					// Ensure the selected file starts with "/
 					if (!selectedFile.startsWith("/")) {
 						selectedFile = "/" + selectedFile;
 					}
+					*/
 					
 					// Run the named file.
 					$.ajax({
@@ -296,11 +301,16 @@ $(document).ready(function() {
 				click: function() {
 					// Determine which file was selected in the list
 					var selectedFile = $("#loadSelect option:selected").val();
-					
 					// Ensure the selected file starts with "/
+					if (!(selectedFile.substr(0, "/".length) === "/")) {
+						selectedFile = "/" + selectedFile;
+					}
+
+					/*
 					if (!selectedFile.startsWith("/")) {
 						selectedFile = "/" + selectedFile;
 					}
+					*/
 					
 					// Retrieve the content of a file from ESP32 file store.
 					// the REST request format is:

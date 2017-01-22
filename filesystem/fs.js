@@ -29,7 +29,7 @@ var fs = {
 		this.writeSync(fd, content);
 		// close the file
 		this.closeSync(fd);
-	},
+	}, // createWithContent
 	writeSync: internalFS.writeSync
 };
 

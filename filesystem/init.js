@@ -1,6 +1,6 @@
 /* globals Duktape, log, DUKF, require */
 /* exported _sockets, cancelInterval, cancelTimeout, setInterval, setTimeout, _loop */
-
+/*
 if (!String.prototype.endsWith) {
   String.prototype.endsWith = function(searchString, position) {
       var subjectString = this.toString();
@@ -19,15 +19,35 @@ if (!String.prototype.startsWith) {
      return this.substr(position, searchString.length) === searchString;
  };
 }
+*/
 
+StringUtils = {
+	endsWith: function(subjectString, searchString, position) {
+      if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
+        position = subjectString.length;
+      }
+      position -= searchString.length;
+      var lastIndex = subjectString.lastIndexOf(searchString, position);
+      return lastIndex !== -1 && lastIndex === position;		
+	},
+	startsWith: function(subjectString, searchString, position) {
+		position = position || 0;
+		return subjectString.substr(position, searchString.length) === searchString;
+	}
+};
 
 Duktape.modSearch = function(id, require, exports, module) {
 	DUKF.gc();
 	log("Module: require(\"" + id + "\") loading \"" + id + "\"");
 	var name = id;
+	if (!StringUtils.endsWith(id, ".js")) {
+		name += ".js";
+	}
+	/*
 	if (!id.endsWith(".js")) {
 		name += ".js";
 	}
+	*/
 	module.filename = name;
 	return DUKF.loadFile(name);
 	//var data = DUKF.loadFile(name);

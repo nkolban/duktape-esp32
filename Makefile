@@ -72,6 +72,8 @@ duktape_install:
 #
 duktape_configure:
 	python ./components/duktape/tools/configure.py \
+		--rom-support \
+		--rom-auto-lightfunc \
 		--config-metadata components/duktape/config/ \
 		--source-directory components/duktape/src-input \
 		--option-file components/duktape/config/examples/low_memory.yaml \

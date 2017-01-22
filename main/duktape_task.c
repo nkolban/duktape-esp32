@@ -83,7 +83,7 @@ void duktape_init_environment() {
 	duk_eval_string_noresult(esp32_duk_context, "new Function('return this')().Duktape = Object.create(Duktape);");
 
 	duk_module_duktape_init(esp32_duk_context); // Initialize the duktape module functions.
-	dukf_log_heap("Heap before after duk_module_duktape_init");
+	dukf_log_heap("Heap after duk_module_duktape_init");
 
 	esp32_duktape_stash_init(esp32_duk_context); // Initialize the stash environment.
 

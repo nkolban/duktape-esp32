@@ -663,9 +663,9 @@ Syntax:
 Write the HTTP headers sent in the response.
 
 Syntax:
-`writeHead(statusCode [,statusMessage][,headers])`
+`writeHead(statusCode [,statusMessage] [,headers])`
 
-The status code is the HTTP code returned.
+The `statusCode` is the [HTTP code](http://www.restapitutorial.com/httpstatuscodes.html) returned.
 The `statusMessage` is an optional string that specifies the message sent back with the status code.
 The `headers` is an optional object where the name/value pairs will be used as the response headers.
 

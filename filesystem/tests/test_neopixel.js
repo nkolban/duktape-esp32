@@ -4,8 +4,7 @@
  */
 ESP32.setLogLevel("*", "error");
 log("Free heap: " + ESP32.getState().heapSize);
-var PIN = 25;
-//var PIN = 21;
+var PIN = 21;
 var MAX = 20;
 var PIXEL_COUNT = 20;
 
