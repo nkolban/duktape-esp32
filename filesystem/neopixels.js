@@ -121,7 +121,31 @@ function ws2812(gpioNum, pixelCount, channel) {
 		//
 		// setPixel
 		//
+		// Set the value of the pixel to the supplied red/green/blue
+		// components.  The signature of the function can be:
+		//
+		// setPixel(pixel, red, green, blue)
+		// setPixel(pixel, "#rrggbb")
+		//
 		setPixel: function(pixel, red, green, blue) {
+			if (typeof(red) == "number") {
+				
+			} else if (typeof(red) == "string") {
+				sValue = red;
+				// #RRGGBB
+				// 0123456
+				if (sValue.length != 7 || sValue[0] != '#') {
+					log("Unknown string value passed to setPixel");
+
+					return;
+				}
+				red   = parseInt(sValue.substring(1, 3), 16);
+				green = parseInt(sValue.substring(3, 5), 16);
+				blue  = parseInt(sValue.substring(5, 7), 16);
+			} else {
+				log("Unknown value passed to setPixel");
+				return;
+			}
 			if (pixel < 0 || pixel >= pixelCount) {
 				return;
 			}

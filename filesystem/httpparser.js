@@ -176,8 +176,17 @@ function httpparser(type, httpParserConsumer) {
 //
 					var splitData = line.line.split(" ");
 					httpStream.reader.method = splitData[0].toUpperCase();
-					httpStream.reader.path = splitData[1];
-					log("http Method: " + httpStream.reader.method + ", path: " + httpStream.reader.path);
+					
+// Set the path removing any optional query string.
+					var queryIndex = splitData[1].indexOf("?");
+					if (queryIndex == -1) {
+						httpStream.reader.path = splitData[1];
+					} else {
+						httpStream.reader.path = splitData[1].substring(0, queryIndex);
+						httpStream.reader.query = splitData[1].substring(queryIndex+1);
+					}
+
+					log("http Method: " + httpStream.reader.method + ", path: " + httpStream.reader.path + ", query: " + httpStream.reader.query);
 					// We have finished with the start line ...
 					state = STATE.HEADERS;
 				}

@@ -26,6 +26,7 @@ var http = {
 	//    host: <IP Address or DNS hostname of target of request>
 	//    port: <port number of target> [optional; default=80]
 	//    path: <Path within the url> [optional; default="/"]
+	//    data: <Payload data> [optional; default = null]
 	// }
 	//
 	// The high level algorithm is that we create a new socket and then issue a connect
@@ -39,6 +40,7 @@ var http = {
 		var host = options.host;
 		var useSSL = options.useSSL === true;
 		var method = options.method;
+		var payloadData = options.data;
 		
 		// validate inputs and set defaults for unset properties.
 		if (host === undefined) {
@@ -62,8 +64,6 @@ var http = {
 		if (port === undefined) {
 			port = 80;
 		}
-		
-
 		
 		var sock = new net.Socket();
 		var clientRequest = {
@@ -111,27 +111,27 @@ var http = {
 						continue;
 					}
 					
+					if (name === "Content-Length") {
+						continue;
+					}
+					
 					if (options.headers.hasOwnProperty(name)) {
 						log("Adding header " + name + ": " + options.headers[name]);
 						sock.write(name + ": " + options.headers[name] + "\r\n");
 					}
 				}
 			} // Add any headers
+			
+			if (payloadData) {
+				sock.write("Content-Length: " + payloadData.length);
+			}
+			
 			sock.write("\r\n");
-
-			/*
-			var requestMessage = "GET " + path + " HTTP/1.1\r\n";
-			if (options.headers != undefined) {
-				for (var name in options.headers) {
-					if (options.headers.hasOwnProperty(name)) {
-						log("Adding header " + name + ": " + options.headers[name]);
-						requestMessage += name + ": " + options.headers[name] + "\r\n";
-					}
-				}
-			} // Add any headers
-			requestMessage += "\r\n";
-			sock.write(requestMessage);
-			*/
+			
+			if (payloadData) {
+				sock.write(payloadData);
+				sock.write("\r\n");
+			}
 		}); // sock.connect connectionListener ...
 		
 		sock.on("data", function(data) {
@@ -247,6 +247,7 @@ var http = {
 				parserStreamReader.on("data", function(data) {
 					httpRequestStream.reader.method = parserStreamReader.method;
 					httpRequestStream.reader.path = parserStreamReader.path;
+					httpRequestStream.reader.query = parserStreamReader.query;
 					httpRequestStream.reader.headers = parserStreamReader.headers;
 					httpRequestStream.writer.write(data);
 				});
@@ -254,6 +255,7 @@ var http = {
 					httpRequestStream.reader.method = parserStreamReader.method;
 					httpRequestStream.reader.path = parserStreamReader.path;
 					httpRequestStream.reader.headers = parserStreamReader.headers;
+					httpRequestStream.reader.query = parserStreamReader.query;
 					httpRequestStream.writer.end();
 				});
 			});

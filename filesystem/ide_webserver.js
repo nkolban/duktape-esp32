@@ -13,7 +13,6 @@
 /* globals require, FS, Buffer, log, DUKF, module*/
 
 var http = require("http");
-var URL = require("url");
 //var ws = require("ws");
 var ws = null;
 var FS = require("fs");
@@ -67,8 +66,6 @@ function requestHandler(request, response) {
    request.on("end", function() {
    	function sendFile(fileToSend) {
 	      try {
-
-	      	log("#A");
 	      	fileName = DUKF.FILE_SYSTEM_ROOT + fileToSend;
 	      	log("File to read: " + fileName);
 	      	FS.statSync(fileName); // Will throw an error if file is not present
@@ -151,7 +148,6 @@ function startIde() {
 	var server = http.createServer(requestHandler);
 	server.listen(WEBSERVER_PORT);
 	log("IDE_WebServer listening on port " + WEBSERVER_PORT);
-   DUKF.logHeap("#C");
 
 
    if (ws !== null) {

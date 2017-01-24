@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!--
+This is a smple HTML file that can be used for testing delivery of such files
+through a web server.  This file can be assumed to be present in the file
+system thus saving you from having to create one yourself for testing
+purposes. 
+-->
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Simple Test File</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.js"></script>
+<script>
+$(document).ready(function() {
+	console.log("jQuery started");
+	$("#color").on("change", function() {
+		var currentColor = $("#color").val()
+		//currentColor = "Hello";
+		console.log("Color changed!: " + currentColor + " type: " + typeof currentColor);
+		$.ajax({
+			url: "http://192.168.1.99/setColor?color=" + encodeURIComponent(currentColor),
+			contentType: "text/plain",
+			method: "GET",
+			error: function() {
+				console.log("Transmission error");
+			}
+		});
+	});
+});
+</script>
+</head>
+<body>
+<h1>Heading 1</h1>
+<p>Hello from a simple test file.</p>
+<input id="color" type="color">
+</body>
+</html>

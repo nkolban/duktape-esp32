@@ -240,6 +240,7 @@ static duk_ret_t js_fs_statSync(duk_context *ctx) {
 	return 1;
 } // js_fs_fstatSync
 
+
 /**
  * Perform a stat on the file.  The return data includes:
  * * size - Number of bytes in the file.
@@ -341,6 +342,7 @@ static duk_ret_t js_fs_readSync(duk_context *ctx) {
 	LOGD("<< js_fs_readSync: sizeRead: %d", (int)sizeRead);
 	return 1;
 } // js_fs_readSync
+
 
 /**
  * Unlink the named file.

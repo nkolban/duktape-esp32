@@ -115,7 +115,7 @@ Syntax:
 `gc()`
 
 
-###gc
+###global
 Retrieve the global object
 
 Syntax:
@@ -291,6 +291,14 @@ The return is an object that contains details of the file:
 }
 ```
 
+###loadFile
+Load the complete contents of a named file and return a Buffer that contains that content.
+
+Syntax:
+`readFile(path)`
+
+The `path` is the posix path to the file to be read.  On return, a Buffer is returned that contains the
+content of the file.  If the file did not exist or could not be read, then `null` is returned.
 
 ###openSync
 Open a file for access.  The return is an integer file descriptor.
@@ -321,7 +329,7 @@ closeSync(fd);
 Read data from a file.
 
 Syntax:
-`readSync(fd, buffer, offset, length, position)`
+`readSync(fd, buffer, writeOffset, maxToRead, position)`
 
  * fd <Integer> - file descriptor
  * buffer <Buffer> - The buffer into which to read data
@@ -635,6 +643,17 @@ The eventType can be one of:
 
 ###path
 The Path part of the incoming request.
+
+###query
+The query part of the incoming request.  Remember that this may need to be decode from a
+URL string.  We can also use the URL package to parse the content.  For example:
+
+```
+var URL = require("url");
+...
+
+var data = URL.parseQuery(request.query);
+```
 
 ##HTTPServerResponse
 The HTTPResponse object is not created directly.  Instead it is passed as the second parameter
