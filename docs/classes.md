@@ -512,6 +512,8 @@ The options is an object controlling the request being made.  It contains:
 * `headers` - An object that contains name/value properties.  The name of a property
 will be used as an HTTP header name in the outgoing request while its value will
 be used as the value of the corresponding header.
+* `data` - A string that will be sent as the payload of a request.  We assume that the
+method will be `POST`.
  
 
 Example:
@@ -534,7 +536,6 @@ function http_test1() {
 		response.on("data", function(data) {
 			log("**************")
 			log("Response data:");
-			logHTTP(response);
 			log(data);
 			log("**************")
 
@@ -542,7 +543,6 @@ function http_test1() {
 		response.on("end", function() {
 			log("**********************")
 			log("*** Response complete");
-			logHTTP(response);
 			log("**********************")
 		})
 	});

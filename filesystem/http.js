@@ -123,7 +123,7 @@ var http = {
 			} // Add any headers
 			
 			if (payloadData) {
-				sock.write("Content-Length: " + payloadData.length);
+				sock.write("Content-Length: " + payloadData.length + "\r\n");
 			}
 			
 			sock.write("\r\n");
