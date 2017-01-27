@@ -1,3 +1,12 @@
+/*
+ * Handle the Analog To Digital conversion functions.
+ * The ESP32 has a number of analog to digital inputs which are exposed
+ * via the ESP-IDF.  This module exposes these functions through mapped
+ * JavaScript functions.  The three functions exposed are:
+ * * config_channel_atten
+ * * config_width
+ * * get_voltage
+ */
 #include <driver/adc.h>
 #include <duktape.h>
 
@@ -9,8 +18,8 @@
 LOG_TAG("module_adc");
 
 /*
- * [0] - ADC channel
- * [1] - Attenuation
+ * [0] - ADC channel - int
+ * [1] - Attenuation - int
  *
  * Return:
  * N/A

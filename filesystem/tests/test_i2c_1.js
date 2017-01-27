@@ -18,8 +18,8 @@ var port1 = new I2C({
 var i;
 
 for (i=3; i<0x78; i++) {
-	port1.beginTransmission(i);
-	var rc = port1.endTransmission();
+	port1.beginTransaction(i);
+	var rc = port1.endTransaction();
 	if (rc == 0) {
 		log("*** found one: " + i);
 	}

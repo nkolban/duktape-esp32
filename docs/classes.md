@@ -84,6 +84,41 @@ The `function` is a function which will be invoked after the delay interval.
 `setTimeout` returns an id which can used through a call to `cancelTimeout()` to cancel a timer before
 it has fired.
 
+##ADC
+The ADC is the analog to digital converter.
+
+###getValue
+Return the value found on the given ADC channel.
+
+Syntax:
+`getValue(channel)`
+
+###setAttenuation
+Research needed
+
+Syntax:
+`setAttenuation(channel, attenuation)`
+
+The attenuation may be one of:
+
+* `ATTEN_0DB`
+* `ATTEN_2_5DB`		
+* `ATTEN_6DB`		
+* `ATTEN_11DB`	
+
+###setResolution
+Set the resolution of the conversion.
+
+Syntax:
+`setResolution(resolution)`
+
+The resolution value may be one of:
+
+* `WIDTH_9BIT`
+* `WIDTH_10BIT`
+* `WIDTH_11BIT`
+* `WIDTH_12BIT`
+
 ##console
 ###handler
 This property (if set) should be a function with the signature:
@@ -507,6 +542,7 @@ The options is an object controlling the request being made.  It contains:
 `GET` is assumed.  Valid values are:
   * GET
   * POST
+  * PUT
 * `path` - The URL path.  This is optional.  If not supplied then `/` is assumed.
 * `port` - The port number.  This is optional.  If not supplied then `80` is assumed.
 * `headers` - An object that contains name/value properties.  The name of a property
@@ -514,6 +550,7 @@ will be used as an HTTP header name in the outgoing request while its value will
 be used as the value of the corresponding header.
 * `data` - A string that will be sent as the payload of a request.  We assume that the
 method will be `POST`.
+* `useSSL` - A boolean indicating whether we should use SSL or not.
  
 
 Example:

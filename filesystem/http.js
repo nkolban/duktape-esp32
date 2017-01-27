@@ -24,9 +24,10 @@ var http = {
 	// to be sent.
 	// {
 	//    host: <IP Address or DNS hostname of target of request>
-	//    port: <port number of target> [optional; default=80]
-	//    path: <Path within the url> [optional; default="/"]
+	//    port: <port number of target> [optional; default = 80]
+	//    path: <Path within the url> [optional; default = "/"]
 	//    data: <Payload data> [optional; default = null]
+	//    useSSL: <Should we use SSL> [optional; default = false]
 	// }
 	//
 	// The high level algorithm is that we create a new socket and then issue a connect
@@ -52,7 +53,7 @@ var http = {
 			method = "GET";
 		}
 		
-		if (method !== "GET" && method !== "POST") {
+		if (method !== "GET" && method !== "POST" && method != "PUT") {
 			log("http.request: Unknown method: " + method);
 			return;
 		}
