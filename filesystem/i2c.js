@@ -33,10 +33,13 @@ var i2c_func = function(options) {
 		//
 		// beginTransaction
 		//
-		beginTransaction: function(address) {
+		beginTransaction: function(address, isWrite) {
+			if (isWrite === undefined || isWrite === null) {
+				isWrite = true;
+			}
 			cmd = internalI2C.cmd_link_create();
 			internalI2C.master_start(cmd);
-			internalI2C.master_write_byte(cmd, (address << 1) | internalI2C.I2C_MASTER_WRITE, true);
+			internalI2C.master_write_byte(cmd, (address << 1) | (isWrite?internalI2C.I2C_MASTER_WRITE:internalI2C.I2C_MASTER_READ), true);
 		}, // beginTransaction
 		
 		//
@@ -51,10 +54,29 @@ var i2c_func = function(options) {
 		}, // endTransaction
 		
 		//
+		// read
+		//
+		read: function(data, ack) {
+			if (ack === null || ack === undefined) {
+				ack = true;
+			}
+			internalI2C.master_read(cmd, data, ack);
+		},
+		
+		//
 		// write
 		//
-		write: function(data) {
-			
+		// data - either a number or a buffer
+		// ack - Boolean or not defined.
+		write: function(data, ack) {
+			if (ack === null || ack === undefined) {
+				ack = true;
+			}
+			if (typeof data === "number") {
+				internalI2C.master_write_byte(cmd, data, ack);
+			} else {
+				internalI2C.master_write(cmd, data, ack);
+			}
 		} // write
 	}; // return
 }; // i2c_func

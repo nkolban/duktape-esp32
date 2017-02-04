@@ -37,7 +37,15 @@ var ledc = {
 			freq: options.freq,
 			timer: options.timer
 		});
-	} // configureTimer
+	}, // configureTimer
+	
+	//
+	// setDuty
+	//
+	setDuty: function(channel, value) {
+		internalLEDC.setDuty(channel, value);
+		internalLEDC.updateDuty(channel);
+	} // setDuty
 }; // ledc definition
 
 module.exports = ledc;

@@ -189,7 +189,17 @@ Syntax:
 ###setStartFile
 Set the file that is to be flagged as the one to be run at startup.
 
+Syntax:
 `setStartFile(fileName)`
+
+###sleep
+Sleep for the specified number of milliseconds.
+
+Syntax:
+`sleep(delay)`
+
+The `delay` is the number of milliseconds to sleep for.
+
 
 ##ESP32
 
@@ -776,6 +786,8 @@ var parserStreamWriter = new HTTPParser(HTTPParser.REQUEST, function(parserStrea
 ```
 var I2C = require("i2c");
 var i2cDevice = new I2C({
+   sda_pin: 21,
+   scl_pin: 22
 });
 i2cDevice.beginTransaction();
 i2cDevice.write();
@@ -783,22 +795,55 @@ i2cDevice.endTransaction();
 ```
 
 ##I2CDevice
-This object is not created directly but is instead the return from a new I2C() object.
+This object is not created directly but is instead the return from a new I2C() object.  The
+constructor takes as input an object with the following properties:
+
+```
+{
+   sda_pin: <int> - Pin number for SDA.
+   scl_pin: <int> - Pin number for SCL.
+   port_num: <I2C port, default - I2C_NUM_0>
+   mode: <I2C mode, default I2C_MODE_MASTER>
+   master_clk_speed: <Master clock speed, default 100KHz>
+}
+```
 
 ###beginTransaction
+Begin a transaction.
 
 Syntax:
-`beginTransaction(address)`
+`beginTransaction(address [,isWrite])`
+
+The `address` is the I2C slave address that we are going to communicate with.
+The `isWrite` is true if we are going to write to the slave and false otherwise.
+This is an optional parameter and defaults to `true` indicating a write request.
 
 ###endTransaction
+Complete the transaction and perform the queued I2C requests.
 
 Syntax:
 `endTransaction()`
 
-###write
+Following a call to this function, no further read or write requests should be attempted
+without first performing a `beginTransaction()` request.
 
+
+###read
+read data from the I2C device.
 Syntax:
-`write(data)`
+`read(data [, ack])`
+
+Read a sequence of bytes into the `data` buffer.  The size of the buffer defines
+how many bytes we should read.
+
+###write
+Write a sequence of bytes through I2C.
+Syntax:
+`write(data [, ack])`
+
+The `data` is either a number representing a byte value or a Buffer.
+The `ack` is whether or not we should expect an ACK after writing.
+This is an optional parameter defaulting to `true` to indicate that we do we wish an ack.
 
 ##LEDC
 The LEDC/PWM class provides access to the PWM functions of the ESP32.  To use this class one must
@@ -828,6 +873,14 @@ The `options` object contains the following:
 * `bitSize` - The number of bits in the granularity of the timer.  A value between 10 and 15.
 * `freq` - The frequency of the period in Hz.
 * `timer` - The timer being configured.  A value between 0 and 3.
+
+###setDuty
+Set the duty value of a channel.
+Syntax:
+`setDuty(channel, value)`
+
+The value of the duty cycle should be between 0 and 2^bitSize, where the bitSize was set
+when the channel was configured.
 
 ## net
 The net module owns the lowest level networking components.

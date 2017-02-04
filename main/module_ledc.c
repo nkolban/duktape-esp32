@@ -82,6 +82,30 @@ static duk_ret_t js_ledc_channel_config(duk_context *ctx) {
 
 
 /*
+ * Set the duty value of the PWM signal.
+ * [0] - channel
+ * [1] - duty
+ */
+static duk_ret_t js_ledc_set_duty(duk_context *ctx) {
+//	LOGD(">> js_ledc_set_duty");
+	esp_err_t errRc;
+	ledc_channel_t channel;
+	uint32_t duty;
+	channel = duk_get_int(ctx, -2);
+	if (channel < 0 || channel >= LEDC_CHANNEL_MAX) {
+		duk_error(ctx, 1, "invalid channel");
+	}
+	duty = duk_get_int(ctx, -1);
+	errRc = ledc_set_duty(LEDC_HIGH_SPEED_MODE, channel, duty);
+	if (errRc != ESP_OK) {
+		LOGE("ledc_set_duty: %s", esp32_errToString(errRc));
+	}
+//	LOGD("<< js_ledc_set_duty");
+	return 0;
+} // js_ledc_set_duty
+
+
+/*
  * [0] - options
  * * bitSize - int - granularity of timer (bit size from 10-15 bits)
  * * freq    - int - frequency in Hz
@@ -136,6 +160,26 @@ static duk_ret_t js_ledc_timer_config(duk_context *ctx) {
 } // js_ledc_timer_config
 
 
+/*
+ * [0] - Channel
+ */
+static duk_ret_t js_ledc_update_duty(duk_context *ctx) {
+	//LOGD(">> js_ledc_update_duty");
+	esp_err_t errRc;
+	ledc_channel_t channel;
+	channel = duk_get_int(ctx, -1);
+	if (channel < 0 || channel >= LEDC_CHANNEL_MAX) {
+		duk_error(ctx, 1, "invalid channel");
+	}
+	errRc = ledc_update_duty(LEDC_HIGH_SPEED_MODE, channel);
+	if (errRc != ESP_OK) {
+		LOGE("ledc_update_duty: %s", esp32_errToString(errRc));
+	}
+//	LOGD("<< js_ledc_update_duty");
+	return 0;
+}
+
+
 /**
  * Add native methods to the LEDC object.
  * [0] - LEDC Object
@@ -143,7 +187,9 @@ static duk_ret_t js_ledc_timer_config(duk_context *ctx) {
 duk_ret_t ModuleLEDC(duk_context *ctx) {
 
 	ADD_FUNCTION("configureChannel", js_ledc_channel_config, 1);
+	ADD_FUNCTION("setDuty",          js_ledc_set_duty,       2);
 	ADD_FUNCTION("configureTimer",   js_ledc_timer_config,   1);
+	ADD_FUNCTION("updateDuty",       js_ledc_update_duty,    1);
 
 	return 0;
 } // ModuleLEDC

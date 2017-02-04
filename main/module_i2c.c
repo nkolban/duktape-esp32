@@ -11,32 +11,34 @@ LOG_TAG("module_i2c");
 
 /*
  * [0] - options
- * o - port_num - The I2C port number we are using.  Either I2C_NUM_0 or I2C_NUM_1.
- * o - mode - The I2C mode.  Either I2C_MODE_MASTER or I2C_MODE_SLAVE.
+ * - port_num - The I2C port number we are using.  Either I2C_NUM_0 or I2C_NUM_1.
+ *   Defaults to I2C_NUM_0.
+ * - mode - The I2C mode.  Either I2C_MODE_MASTER or I2C_MODE_SLAVE.
+ *   Defaults to I2C_MODE_MASTER.
  */
 static duk_ret_t js_i2c_driver_install(duk_context *ctx) {
 	LOGD(">> js_i2c_driver_install");
 	i2c_mode_t mode;
 	i2c_port_t port;
 	if (duk_get_prop_string(ctx, -1, "port") != 1) {
-		LOGE("No port supplied");
-		return 0;
-	}
-	port = duk_get_int(ctx, -1);
-	if (port != I2C_NUM_0 && port != I2C_NUM_1) {
-		LOGE("Invalid port");
-		return 0;
+		port = I2C_NUM_0;
+	} else {
+		port = duk_get_int(ctx, -1);
+		if (port != I2C_NUM_0 && port != I2C_NUM_1) {
+			LOGE("Invalid port");
+			return 0;
+		}
 	}
 	duk_pop(ctx);
 
 	if (duk_get_prop_string(ctx, -1, "mode") != 1) {
-		LOGE("No mode supplied");
-		return 0;
-	}
-	mode = duk_get_int(ctx, -1);
-	if (mode != I2C_MODE_MASTER && mode != I2C_MODE_SLAVE) {
-		LOGE("Invalid mode");
-		return 0;
+		mode = I2C_MODE_MASTER;
+	} else {
+		mode = duk_get_int(ctx, -1);
+		if (mode != I2C_MODE_MASTER && mode != I2C_MODE_SLAVE) {
+			LOGE("Invalid mode");
+			return 0;
+		}
 	}
 	duk_pop(ctx);
 
@@ -67,7 +69,11 @@ static duk_ret_t js_i2c_cmd_link_create(duk_context *ctx) {
 
 
 /*
+ * Delete an I2C command handle.
  * [0] - cmd_handle
+ *
+ * Return:
+ * N/A
  */
 static duk_ret_t js_i2c_cmd_link_delete(duk_context *ctx) {
 	LOGD(">> js_i2c_cmd_link_delete");
@@ -79,6 +85,9 @@ static duk_ret_t js_i2c_cmd_link_delete(duk_context *ctx) {
 
 
 /*
+ * Execute the ESP-IDF function i2c_master_cmd_begin().  What this does
+ * is perform all the I2C commands that have been registered with the
+ * CMD handle.
  * [0] - i2c_num
  * [1] - cmd_handle
  * [2] - delay (msecs)
@@ -102,6 +111,33 @@ static duk_ret_t js_i2c_master_cmd_begin(duk_context *ctx) {
 
 /*
  * [0] - js pointer- cmd_handle
+ * [1] - Data buffer
+ * [2] - ack or no ack
+ *
+ * Return:
+ * N/A
+ */
+static duk_ret_t js_i2c_master_read(duk_context *ctx) {
+	i2c_cmd_handle_t cmd_handle = duk_get_pointer(ctx, -3);
+	duk_bool_t ack = duk_get_boolean(ctx, -1);
+	uint8_t *data;
+	size_t data_len;
+	data = duk_get_buffer_data(ctx, -2, &data_len);
+	LOGD(">> i2c_master_read: length=%d", data_len);
+// Note: This API does not ACTUALLY read the data from I2C ... it only
+// queues the request to subsequently read the data.  We can't use the data
+// until after the command has been executed with cmd_begin().
+	esp_err_t errRc = i2c_master_read(cmd_handle, data, data_len, ack);
+	if (errRc != ESP_OK) {
+		LOGE("i2c_master_read: %s", esp32_errToString(errRc));
+	}
+	LOGD("<< js_i2c_master_read");
+	return 0;
+} // js_i2c_master_read_byte
+
+
+/*
+ * [0] - js pointer- cmd_handle
  */
 static duk_ret_t js_i2c_master_start(duk_context *ctx) {
 	LOGD(">> js_i2c_master_start");
@@ -113,6 +149,7 @@ static duk_ret_t js_i2c_master_start(duk_context *ctx) {
 	LOGD("<< js_i2c_master_start");
 	return 0;
 } // js_i2c_master_start
+
 
 /*
  * [0] - js pointer- cmd_handle
@@ -135,13 +172,17 @@ static duk_ret_t js_i2c_master_stop(duk_context *ctx) {
  * [2] - boolean - look for an Ack
  */
 static duk_ret_t js_i2c_master_write(duk_context *ctx) {
-	LOGD(">> js_i2c_master_write");
+
 	size_t data_len;
 	uint8_t *data;
 	i2c_cmd_handle_t cmd_handle = duk_get_pointer(ctx, -3);
 	data = duk_get_buffer_data(ctx, -2, &data_len);
 	bool ack_en = duk_get_boolean(ctx, -1);
-
+	LOGD(">> js_i2c_master_write: length=%d, ack=%d", data_len, ack_en);
+	int i;
+	for (i=0; i<data_len; i++) {
+		LOGD("- wrote: 0x%.2x", data[i]);
+	}
 	esp_err_t errRc = i2c_master_write(cmd_handle, data, data_len, ack_en);
 	if (errRc != ESP_OK) {
 		LOGE("Error: i2c_master_write: esp_err_t=%s", esp32_errToString(errRc));
@@ -150,19 +191,17 @@ static duk_ret_t js_i2c_master_write(duk_context *ctx) {
 	return 0;
 } // js_i2c_master_write
 
+
 /*
  * [0] - js pointer- cmd_handle
  * [1] - number - byte to write
  * [2] - boolean - look for an Ack
  */
 static duk_ret_t js_i2c_master_write_byte(duk_context *ctx) {
-
-
-
 	i2c_cmd_handle_t cmd_handle = duk_get_pointer(ctx, -3);
 	uint8_t data = (uint8_t)duk_get_int(ctx, -2);
 	bool ack_en = duk_get_boolean(ctx, -1);
-	LOGD(">> js_i2c_master_write_byte: data=0x%2x, ack=%d", data, ack_en);
+	LOGD(">> js_i2c_master_write_byte: data=0x%.2x, ack=%d", data, ack_en);
 
 	if (!duk_is_pointer(ctx, -3) || !duk_is_number(ctx, -2) || !duk_is_boolean(ctx, -1)) {
 		LOGE("Invalid parameters");
@@ -180,11 +219,11 @@ static duk_ret_t js_i2c_master_write_byte(duk_context *ctx) {
 
 /*
  * [0] - options
- * o port_num
- * o mode
+ * o port_num - default - I2C_NUM_0
+ * o mode - default I2C_MODE_MASTER
  * o sda_pin
  * o scl_pin
- * o master_clk_speed
+ * o master_clk_speed - default 100KHz
  */
 static duk_ret_t js_i2c_param_config(duk_context *ctx) {
 
@@ -202,25 +241,25 @@ static duk_ret_t js_i2c_param_config(duk_context *ctx) {
 
 	// port
 	if (duk_get_prop_string(ctx, -1, "port") != 1) {
-		LOGE("No port");
-		return 0;
-	}
-	port = duk_get_int(ctx, -1);
-	if (port != I2C_NUM_0 && port != I2C_NUM_1) {
-		LOGE("Invalid port");
-		return 0;
+		port = I2C_NUM_0;
+	} else {
+		port = duk_get_int(ctx, -1);
+		if (port != I2C_NUM_0 && port != I2C_NUM_1) {
+			LOGE("Invalid port");
+			return 0;
+		}
 	}
 	duk_pop(ctx);
 
 	// mode
 	if (duk_get_prop_string(ctx, -1, "mode") != 1) {
-		LOGE("No mode");
-		return 0;
-	}
-	mode = duk_get_int(ctx, -1);
-	if (mode != I2C_MODE_MASTER && mode != I2C_MODE_SLAVE) {
-		LOGE("Invalid mode");
-		return 0;
+		mode = I2C_MODE_MASTER;
+	} else {
+		mode = duk_get_int(ctx, -1);
+		if (mode != I2C_MODE_MASTER && mode != I2C_MODE_SLAVE) {
+			LOGE("Invalid mode");
+			return 0;
+		}
 	}
 	duk_pop(ctx);
 
@@ -282,9 +321,11 @@ static duk_ret_t js_i2c_param_config(duk_context *ctx) {
  */
 duk_ret_t ModuleI2C(duk_context *ctx) {
 	ADD_FUNCTION("cmd_link_create",   js_i2c_cmd_link_create,   0);
-	ADD_FUNCTION("cmd_link_delete",   js_i2c_cmd_link_delete,   0);
+	ADD_FUNCTION("cmd_link_delete",   js_i2c_cmd_link_delete,   1);
 	ADD_FUNCTION("driver_install",    js_i2c_driver_install,    1);
 	ADD_FUNCTION("master_cmd_begin",  js_i2c_master_cmd_begin,  3);
+	ADD_FUNCTION("master_read",       js_i2c_master_read,       3);
+	ADD_FUNCTION("master_start",      js_i2c_master_start,      1);
 	ADD_FUNCTION("master_start",      js_i2c_master_start,      1);
 	ADD_FUNCTION("master_stop",       js_i2c_master_stop,       1);
 	ADD_FUNCTION("master_write",      js_i2c_master_write,      3);

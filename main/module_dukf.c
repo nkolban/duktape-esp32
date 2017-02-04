@@ -1,5 +1,7 @@
 #if defined(ESP_PLATFORM)
 #include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <nvs.h>
 #include "sdkconfig.h"
 #endif // ESP_PLATFORM
@@ -108,6 +110,17 @@ static duk_ret_t js_dukf_setStartFile(duk_context *ctx) {
 } // js_dukf_setStartFile
 
 
+/*
+ * Sleep for the specified number of milliseconds.
+ * [0] - int milliseconds
+ */
+static duk_ret_t js_dukf_sleep(duk_context *ctx) {
+	uint32_t delay = duk_get_int(ctx, -1);
+	vTaskDelay(delay/portTICK_PERIOD_MS);
+	return 0;
+} // js_dukf_sleep
+
+
 void ModuleDUKF(duk_context *ctx) {
 	duk_push_global_object(ctx);
 	// [0] - Global object
@@ -123,6 +136,7 @@ void ModuleDUKF(duk_context *ctx) {
 	ADD_FUNCTION("logHeap",      js_dukf_logHeap,       1);
 	ADD_FUNCTION("runFile",      js_dukf_runFile,       1);
 	ADD_FUNCTION("setStartFile", js_dukf_setStartFile,  1);
+	ADD_FUNCTION("sleep",        js_dukf_sleep,         1);
 
 
 #if defined(ESP_PLATFORM)
