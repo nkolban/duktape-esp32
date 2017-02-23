@@ -1915,6 +1915,15 @@ Syntax:
 
 The `servers` is an array of IP address strings.
 
+###setTimeServer
+Set the SNTP time server to use.
+
+Syntax:
+`setTimeServer(serverIPAddress)`
+
+The `serverIPAddress` is an IP address representing the location of a network time server.  Calling
+this function instructs the environment to use that time server as the source of network based time.
+
 ###start
 Perform a start of the WiFi subsystem.
 

@@ -11,6 +11,7 @@
  * of the DNS servers that we may know about.
  */
 
+#include <apps/sntp/sntp.h>
 #include <duktape.h>
 #include <esp_err.h>
 #include <esp_event_loop.h>
@@ -685,6 +686,21 @@ static duk_ret_t js_wifi_setDNS(duk_context *ctx) {
 }
 
 
+/*
+ * Set and start using an SNTP time server.
+ * [0] - IP address as a string
+ */
+static duk_ret_t js_wifi_setTimeServer(duk_context *ctx) {
+	const char *ipAddressString = duk_get_string(ctx, -1);
+	ip_addr_t addr;
+	sntp_setoperatingmode(SNTP_OPMODE_POLL);
+	inet_pton(AF_INET, ipAddressString, &addr);
+	sntp_setserver(0, &addr);
+	sntp_init();
+	return 0;
+} // js_wifi_setTimeServer
+
+
 static duk_ret_t js_wifi_start(duk_context *ctx) {
 	LOGD(">> js_wifi_start");
 	esp_err_t errRc = esp_wifi_start();
@@ -800,15 +816,16 @@ void ModuleWIFI(duk_context *ctx) {
 	// [0] - Global object
 	// [1] - New object
 
-	ADD_FUNCTION("connect",    js_wifi_connect,    2);
-	ADD_FUNCTION("disconnect", js_wifi_disconnect, 0);
-	ADD_FUNCTION("getDNS",     js_wifi_getDNS,     0);
-	ADD_FUNCTION("getState",   js_wifi_getState,   0);
-	ADD_FUNCTION("listen",     js_wifi_listen,     2);
-	ADD_FUNCTION("scan",       js_wifi_scan,       1);
-	ADD_FUNCTION("setDNS",     js_wifi_setDNS,     1);
-	ADD_FUNCTION("start",      js_wifi_start,      0);
-	ADD_FUNCTION("stop",       js_wifi_stop,       0);
+	ADD_FUNCTION("connect",       js_wifi_connect,       2);
+	ADD_FUNCTION("disconnect",    js_wifi_disconnect,    0);
+	ADD_FUNCTION("getDNS",        js_wifi_getDNS,        0);
+	ADD_FUNCTION("getState",      js_wifi_getState,      0);
+	ADD_FUNCTION("listen",        js_wifi_listen,        2);
+	ADD_FUNCTION("scan",          js_wifi_scan,          1);
+	ADD_FUNCTION("setDNS",        js_wifi_setDNS,        1);
+	ADD_FUNCTION("setTimeServer", js_wifi_setTimeServer, 1);
+	ADD_FUNCTION("start",         js_wifi_start,         0);
+	ADD_FUNCTION("stop",          js_wifi_stop,          0);
 
 	duk_put_prop_string(ctx, 0, "WIFI"); // Add WIFI to global
 	// [0] - Global object
