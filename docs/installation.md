@@ -69,7 +69,7 @@ the submit button, the data will be saved in your ESP32 which will then automati
 reboot itself after a few seconds.
 
 Now, when you reboot your ESP32, it will connect to the network using the information
-you provided.  If the 
+you provided.  If the
 network connection fails (because you are now somewhere else or you change your password),
 then the ESP32 will again reset to being an access point.
 
@@ -133,8 +133,8 @@ Here is a summary of a set of common steps to download, install and run ESP32-Du
 
 1. `mkdir duktape`
 2. `cd duktape`
-3. `wget http://www.neilkolban.com/esp32/downloads/esp32-duktape-2016-12-24.tar.gz`
-4. `tar -xvzf esp32-duktape-2016-12-24.tar.gz`
+3. `wget http://www.neilkolban.com/esp32/downloads/esp32-duktape-2017-01-20.tar.gz`
+4. `tar -xvzf esp32-duktape-2017-01-20.tar.gz`
 5. `git clone --recursive https://github.com/espressif/esp-idf.git`
 6. `export IDF_PATH=$(pwd)/esp-idf`
 7. `./install_binaries.sh`
