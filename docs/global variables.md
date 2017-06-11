@@ -1,4 +1,4 @@
-#Global variables
+# Global variables
 ESP32-Duktape needs to maintain state.  Since the ESP32-Duktape framework is primarily written
 in JavaScript, this state is maintained in global variables.  We have tried to choose the names
 of these variables such that they are unlikely to occur in user written code.  Later on we will
@@ -6,10 +6,10 @@ work to hide these variables so that they can't be touched.
 
 Here is a list and quick description of each one.
 
-##_dukf_callbackStash
+## _dukf_callbackStash
 To be written.
 
-##_isr_gpio
+## _isr_gpio
 An object that contains callbacks to be invoked when an ISR is detected on a GPIO.  This object
 is keyed by pin number each value is of the form:
 ```
@@ -18,7 +18,7 @@ is keyed by pin number each value is of the form:
 }
 ```
 
-##_sockets
+## _sockets
 To be written.
 
 

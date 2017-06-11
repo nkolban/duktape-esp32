@@ -67,7 +67,7 @@ var net = {
 					}
 					return sendRc;
 				}
-			},
+			}, // write
 			//
 			// on - Register events.
 			//

@@ -3,9 +3,10 @@
  * The command to be executed is supplied in the HTTP header in the
  * X-Command header property.  The supported values are:
  * 
- * * RUN - Run the body as a script.
+ * * RUN  - Run the body as a script.
  * * SAVE - Save the body as a file.
  * * LIST - List the files on the file systems.
+ * * DISABLESTART - Disable the auto start of the module.
  * 
  * The serial port access is provided by the serial class.
  */
@@ -59,6 +60,7 @@
 						serialPort.write(JSON.stringify(fileList));
 						serialPort.write("\r\n");
 					} // End of List
+					
 					if (command == "DISABLESTART") {
 						var NVS = require("nvs");
 						var esp32duktapeNS = NVS.open("esp32duktape", "readwrite");
@@ -75,11 +77,12 @@
 	
 	var HTTPParser = require("httpparser");
 	var PORT = 2;
+	var BAUD = 19200;
 	var Serial = require("Serial");
 	serialPort = new Serial(PORT);
 	serialPort.configure({
 		//baud: 115200,
-		baud: 19200,
+		baud: BAUD,
 		rxBufferSize: 1024,
 		rxPin: 16,
 		txPin: 17
@@ -90,7 +93,7 @@
 	serialPort.on("data", function(data) {
 		parserStreamWriter.write(data);
 	});
-	log("UART command processor listening on UART " + PORT);
+	log("UART command processor listening on UART " + PORT + "at a baud of " + BAUD);
 })();
 
 // Nothing to export.  This module runs and sets itself up to execute in the

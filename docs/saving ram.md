@@ -1,4 +1,4 @@
-#Saving RAM
+# Saving RAM
 While the ESP32 has a whopping 512K RAM, apparently a maximum on about 380K can be used as data ram (heap) and experience
 is showing that we start with about 150K.  Take away that needed by basic Duktape and other goodies and we are left
 with only about 70K for our apps ... and this dwindles fast.  As such, we need to look at ways in which we
@@ -9,7 +9,7 @@ An excellent paper on Duktape and RAM utilization can be found here
 [https://github.com/svaarala/duktape/blob/master/doc/low-memory.rst](https://github.com/svaarala/duktape/blob/master/doc/low-memory.rst)
 
 
-##Optional modules
+## Optional modules
 In order to save RAM, we can choose to include or exclude Duktape components.  If we had unlimited RAM, we would likely
 enable all components and all performance optimizations ... but they come at the cost of RAM so we must trade-off reduced
 function or less optimal run-time implementations in favor of reduced RAM.  Some of the options we can switch on or off

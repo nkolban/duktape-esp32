@@ -1,4 +1,4 @@
-#Browser based JavaScript editor
+# Browser based JavaScript editor
 When ESP32-Duktape starts we can point a browser at it and we will be presented with
 a JavaScript editor in which we can enter and run JavaScript programs.  Here is what the browser
 environment looks like:
@@ -15,7 +15,7 @@ The button bar at the bottom provides the following:
 * Settings - Open a settings dialog to supply configuration settings.
 
 
-##WebSocket console response
+## WebSocket console response
 As scripts run within the environment, we want the console messages to be sent back to the user so that
 they can see the results.  This is best achieved with WebSockets.  When the browser based IDE loads, it
 can form a WebSocket connection back to the ESP32.  This will be understood by the ESP32 as the 

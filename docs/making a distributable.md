@@ -1,4 +1,4 @@
-#Making a distributable
+# Making a distributable
 After you have built ESP32-Duktape from source, you may want to create a distributable
 which is a packaged version of the resulting binaries.  The Makefile contained in the
 root of the project has a target called `ship`.  We run that using:

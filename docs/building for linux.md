@@ -1,4 +1,4 @@
-#Building for Linux
+# Building for Linux
 There may be times when you want to play with Duktape outside of the ESP32 environment.
 Here is a recipe:
 

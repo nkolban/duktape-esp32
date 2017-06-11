@@ -1,4 +1,4 @@
-#Event processing
+# Event processing
 Within ESP32-Duktape, there is a primary JavaScript loop which runs code.  In addition there
 are a variety of asynchronous tasks running thanks to FreeRTOS, Interrupt Service Routines (ISRs) and
 WiFi/network activity.  It is vital that these asynchronous routines NOT attempt to work with the JS environment
@@ -28,7 +28,7 @@ In Duktape, to prevent an object from being garbage collected, it must be access
 means we need to keep a "path" to it.  In addition, we will need some form of correlator to correlate a
 request, an async response and the actual callback/data for THAT response.
 
-#Callback processing
+# Callback processing
 Imagine that we ask the C environment to watch for something at the C level and asynchronously call a function
 when it sees what it is looking for.  As a concrete example, imagine the sockets `accept()` call.  This is blocking
 call that waits for a new client connection.  If we wanted to implement this in JS, we couldn't simply call:

@@ -1,4 +1,4 @@
-#Design for modules
+# Design for modules
 Duktape has built in support for modules via the `requires()` function.  The idea here is
 that a JS programmer can code:
 
@@ -28,6 +28,6 @@ The return from the function should be a string that contains the JavaScript tha
 
 
 
-##See also
+## See also
 
 * [Duktape Modules](https://github.com/svaarala/duktape/blob/master/doc/modules.rst)

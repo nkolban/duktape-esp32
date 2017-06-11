@@ -1,4 +1,4 @@
-##Creating an array
+## Creating an array
 To create an empty array, we call:
 
 ```
@@ -20,7 +20,7 @@ To create a new empty object w call:
 duk_idx_t duk_push_object(ctx)
 ```
 
-##Setting a property on an object
+## Setting a property on an object
 To set a property on an object we assume that the object is on the value stack at 
 stack index `objIdx`. Next we push the value we wish to set onto the end of the stack.
 Finally we call:
@@ -31,7 +31,7 @@ duk_put_prop_string(ctx, objIdx, keyString);
 
 The value is removed from the stack and is now part of the object keyed by `keyString`.
 
-##Getting a property off an object
+## Getting a property off an object
 To get a property of an object we assume that the object is on the value stack at
 stack index `objIdx`.  Now we call:
 
@@ -42,7 +42,7 @@ duk_get_prop_string(ctx, objIdx, keyString);
 The property with the name `keyString` is now at the top of the stack.
 
 
-##Removing a property off an object
+## Removing a property off an object
 To remove a property from an object, we assumed that the object is on the value stack
 at stack index `objIdx`.  Now we call:
 
@@ -50,7 +50,7 @@ at stack index `objIdx`.  Now we call:
 duk_del_prop_string(ctx, objIfx, keyString);
 ```
 
-##Stack manipulation
+## Stack manipulation
 To get the number of items on the stack, call:
 ```
 duk_idx_t count = duk_get_top(ctx);
@@ -90,7 +90,7 @@ To remove an element from the stack we can call:
 duk_remove(ctx, idx);
 ```
 
-##Getting the data and size of a Buffer
+## Getting the data and size of a Buffer
 We can use `duk_get_buffer()` to retrieve the data and size of the buffer.
 ```
 void *duk_get_buffer_data(ctx, index, &size)
@@ -99,7 +99,7 @@ void *duk_get_buffer_data(ctx, index, &size)
 Returns NULL on a problem.
 
 
-##Creating and populating a buffer
+## Creating and populating a buffer
 Imagine we have some data where we know its size and want to return this from C to JS
 as a Buffer.
 
@@ -109,7 +109,7 @@ memcpy(data, original, size);
 duk_push_buffer_object(ctx, -1, 0, size, DUK_BUFOBJ_NODEJS_BUFFER);
 ```
 
-##Throwing an error from C
+## Throwing an error from C
 ```
 duk_error(ctx, code, fmtString, ...);
 ```

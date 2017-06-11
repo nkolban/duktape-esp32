@@ -6,6 +6,7 @@
  * o sda_pin
  * o scl_pin
  * o clk_speed
+ * The majority of the I2C code is implemented in C in the file module_i2c.c.
  */
 
 /* globals ESP32, log, module, require */
@@ -19,7 +20,7 @@ if (moduleI2C === null) {
 }
 
 var internalI2C = {};
-moduleI2C(internalI2C);
+moduleI2C(internalI2C); // Populate internalI2C with the C functions.
 
 var i2c_func = function(options) {
 	log("options: " + JSON.stringify(options));
@@ -32,6 +33,8 @@ var i2c_func = function(options) {
 	return {
 		//
 		// beginTransaction
+		// address - I2C slave address
+		// isWrite - Is this a write request (true) or a read request (false)
 		//
 		beginTransaction: function(address, isWrite) {
 			if (isWrite === undefined || isWrite === null) {

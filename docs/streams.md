@@ -1,4 +1,4 @@
-#Streams
+# Streams
 A writer can have data written to it.
 A writer can be told that the writes have completed.
 

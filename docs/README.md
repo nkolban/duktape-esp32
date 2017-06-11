@@ -1,14 +1,14 @@
-#ESP32-Duktape - Documentation
+# ESP32-Duktape - Documentation
 This folder contains the documentation and project notes for the ESP32-Duktape project.
 
-##Status
+## Status
 The project was started in November 2016 and hence is still extremely new.  Experience and feedback with it and upon
 it is very light.  Any comments should be emailed to kolban1@kolban.com.
 
-##Binary install
+## Binary install
 Instructions for downloading and installing a binary version of ESP23-Duktape can be found [here](installation.md).
 
-##Running ESP32-Duktape
+## Running ESP32-Duktape
 After flashing your ESP32 with the images, reboot the device.  At this point the device will start and
 begin running ESP32-Duktape.  Since this is the first time it has started, it will not know how to connect
 to your WiFi environment.  Because network connection is required to attach a terminal to it, there is some

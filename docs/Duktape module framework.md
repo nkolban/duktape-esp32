@@ -1,4 +1,4 @@
-#Modules
+# Modules
 At the highest level, we load a module using:
 `var mod = require("<mod name>");`
 
@@ -12,7 +12,7 @@ the "exports" variable is now part of "module" as in "module.exports".
 Using the require() function also appears to cache data.  So if we perform a `require("x")` and a subsequent
 `require("x")` we don't load it twice but rather the previous load is re-used.
 
-##Loading modules
+## Loading modules
 To allow Duktape to find modules, we must provide a function called `Duktape.modSearch`.  This function takes as 
 a parameter the name of the module to locate and returns the source code of the module.  The full signature for
 Duktape.modSearch is
@@ -43,7 +43,7 @@ Duktape.modSearch = function(id, require, exports, module) {
 ```
 
 
-##References
+## References
 * Duktape guide - [Modules](http://duktape.org/guide.html#modules)
 * Detauils on modules - [modules.rst](https://github.com/svaarala/duktape/blob/master/doc/modules.rst)
 * [CommonJS modules](http://wiki.commonjs.org/wiki/Modules/1.1.1)

@@ -81,16 +81,32 @@ and if ESP32-Duktape can parse this, we have input.
 
 To enable serial access, we need to set a flag in Non Volatile Storage.  The flag can be found at
 `esp32duktape.useSerial` and is an integer.  If set to `1` then at boot time, the ESP32 will be processing serial
-commands received on UART1.  A set of tools can be found in the tools folder for working with the serial interface.
+commands received on UART1.  A set of tools can be found in the `tools` folder for working with the serial interface.
+The USB->UART pins are mapped as:
 
-##uartDisableStart
+* TX -> 17
+* RX -> 16
+
+###uartDisableStart
 Disable an application that was previously flagged as bootable at ESP32 startup from starting.
 
-##uartFileList
+###uartFileList
 List the files that are contained on the file system inside the ESP32.
 
-##uartFileSave
+###uartFileSave
 Read a file from the PC file system and save it as a file inside the ESP32 file system.
 
-##uartScriptRinner
+###uartScriptRunner
 Read a file containing JavaScript from the PC file system and send it to the ESP32 for execution.
+
+```
+node uartScriptRunner -f <fileName.js>
+```
+
+###Architecture
+The serial command processor is written in JavaScript and can be found in the module called `uart_processor.js`.
+The module is launched merely by loading it.  For example:
+
+```
+require("uart_processor");
+```

@@ -114,6 +114,8 @@ static duk_ret_t js_i2c_master_cmd_begin(duk_context *ctx) {
  * [1] - Data buffer
  * [2] - ack or no ack
  *
+ * Note that the ack/no-ack value expected by ESP-IDF is reverse from what we
+ * might think.  Supplying "1" means no-ack while "0" means an "ack".
  * Return:
  * N/A
  */
@@ -127,7 +129,7 @@ static duk_ret_t js_i2c_master_read(duk_context *ctx) {
 // Note: This API does not ACTUALLY read the data from I2C ... it only
 // queues the request to subsequently read the data.  We can't use the data
 // until after the command has been executed with cmd_begin().
-	esp_err_t errRc = i2c_master_read(cmd_handle, data, data_len, ack);
+	esp_err_t errRc = i2c_master_read(cmd_handle, data, data_len, !ack);
 	if (errRc != ESP_OK) {
 		LOGE("i2c_master_read: %s", esp32_errToString(errRc));
 	}

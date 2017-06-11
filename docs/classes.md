@@ -1,4 +1,4 @@
-#Modules
+# Modules
 Built into the solution are a variety of Modules.
 
 * [Globals](#globals)
@@ -33,7 +33,7 @@ Built into the solution are a variety of Modules.
 * [WiFi](#wifi)
 
 
-##Globals
+## Globals
 These are functions that are in the global environment.
 
 ###cancelInterval
@@ -44,7 +44,7 @@ Syntax:
 The `id` is a value returned from a previous call to `setInterval()`.  The function associated with the timer will
 no longer be fired.  It may not even fire once if the initial interval since it was started is not reached.
 
-###cancelTimeout
+### cancelTimeout
 Cancel a timer created by a call to `setTimeout()`.
 Syntax:
 `cancelTimeout(id)`
@@ -52,7 +52,7 @@ Syntax:
 The `id` is a value returned from a previous call to `setTimeout()`.  If the timer has not expired, the function
 associated with the timer will not be called.
  
-###setInterval
+### setInterval
 Set a repeating timer to call a function periodically.
 
 Syntax:
@@ -71,7 +71,7 @@ var id = setInterval(function() {
 }, 1000);
 ```
 
-###setTimeout
+### setTimeout
 Fire a single shot timer.
 
 Syntax:
@@ -84,10 +84,10 @@ The `function` is a function which will be invoked after the delay interval.
 `setTimeout` returns an id which can used through a call to `cancelTimeout()` to cancel a timer before
 it has fired.
 
-##ADC
+## ADC
 The ADC is the analog to digital converter.
 
-###getValue
+### getValue
 Return the value found on the given ADC channel.
 
 Syntax:
@@ -106,7 +106,7 @@ The attenuation may be one of:
 * `ATTEN_6DB`		
 * `ATTEN_11DB`	
 
-###setResolution
+### setResolution
 Set the resolution of the conversion.
 
 Syntax:
@@ -119,8 +119,8 @@ The resolution value may be one of:
 * `WIDTH_11BIT`
 * `WIDTH_12BIT`
 
-##console
-###handler
+## console
+### handler
 This property (if set) should be a function with the signature:
 ```
 function(message)
@@ -128,36 +128,36 @@ function(message)
 
 It is called to write a console message in place of the default function.
 
-###log
+### log
 Log a text string to the console.
 
 Syntax:
 `console.log(string)`
 
-##DUKF
+## DUKF
 A general handler for  DUKF related functions.
 
-###debug
+### debug
 Attach the debugger.
 
-###FILE_SYSTEM_ROOT
+### FILE_SYSTEM_ROOT
 This is a string property that is the `local` file system root.
 
-###gc
+### gc
 Perform a garbage collection.
 
 Syntax:
 `gc()`
 
 
-###global
+### global
 Retrieve the global object
 
 Syntax:
 `global()`
 
 
-###loadFile
+### loadFile
 Load a text file from the local file system.  If the file can not be found or read
 then the result is `null`.
 
@@ -172,27 +172,27 @@ var text = DUKF.loadFile("/index.html");
 log("About to send: " + text);
 ```
 
-###OS
+### OS
 A string property that defines the platform we are running upon.  Values are:
 
 * `ESP32`
 * `Linux`
 
 
-###runFile
+### runFile
 Run a script loaded from the named file.
 
 Syntax:
 `runFile(path)`
 
 
-###setStartFile
+### setStartFile
 Set the file that is to be flagged as the one to be run at startup.
 
 Syntax:
 `setStartFile(fileName)`
 
-###sleep
+### sleep
 Sleep for the specified number of milliseconds.
 
 Syntax:
@@ -201,10 +201,10 @@ Syntax:
 The `delay` is the number of milliseconds to sleep for.
 
 
-##ESP32
+## ESP32
 
 
-###dumpESPFS
+### dumpESPFS
 Dump the files contained in the ESPFS to the log.
 
 Syntax:
@@ -213,7 +213,7 @@ Syntax:
 
 
 
-###getNativeFunction
+### getNativeFunction
 Retrieve a built-in native function by name.
 
 Syntax:
@@ -222,7 +222,7 @@ Syntax:
 
 Returns a function reference or null if not found.
 
-###getState
+### getState
 Retrieve the state of the ESP32 device.
 
 Syntax:
@@ -246,7 +246,7 @@ setInterval(function() {
 ```
 
 
-###loadFileESPFS
+### loadFileESPFS
 Load a text file from the ESPFS file system.  If the file can not be found or read
 then the result is `null`.
 
@@ -260,14 +260,14 @@ var text = ESP32.loadFileESPFS("index.html");
 log("About to send: " + text);
 ```
 
-###reset
+### reset
 Reset the state of the JavaScript environment.
 
 Syntax:
 
 `reset()`
 
-###setLogLevel
+### setLogLevel
 Set the log level for messages in the JavaScript environment.
 
 Syntax:
@@ -289,7 +289,7 @@ For example:
 ESP32.setLogLevel("*", "verbose");
 ```
 
-##FS
+## FS
 
 Example:
 ```
@@ -302,13 +302,13 @@ console.log("We read " + i + " bytes: \"" + buf.toString("ascii", 0, i) + "\"");
 FS.closeSync(fd);
 ```
 
-###closeSync
+### closeSync
 Closes a previously opened file.
 
 Syntax:
 `closeSync(fileDescriptor)`
 
-###createWithContent
+### createWithContent
 Create a file with supplied content.
 
 Syntax:
@@ -317,7 +317,7 @@ Syntax:
 Create the named file and populate it with the supplied content which may be
 either a string or a buffer.
 
-###dump
+### dump
 Dumps a listing of the file system to debug.
 
 Syntax:
@@ -336,7 +336,7 @@ The return is an object that contains details of the file:
 }
 ```
 
-###loadFile
+### loadFile
 Load the complete contents of a named file and return a Buffer that contains that content.
 
 Syntax:
@@ -345,7 +345,7 @@ Syntax:
 The `path` is the posix path to the file to be read.  On return, a Buffer is returned that contains the
 content of the file.  If the file did not exist or could not be read, then `null` is returned.
 
-###openSync
+### openSync
 Open a file for access.  The return is an integer file descriptor.
 
 Syntax:
@@ -370,7 +370,7 @@ var fd = openSync("/spiffs/index.html", "r");
 closeSync(fd);
 ```
 
-###readSync
+### readSync
 Read data from a file.
 
 Syntax:
@@ -400,7 +400,7 @@ while(1) {
 FS.closeSync(fd);
  ```
  
-###spiffsDir
+### spiffsDir
 Returns an array of SPIFFS file system files.
 
 Syntax:
@@ -414,7 +414,7 @@ The result is an array where each element of the array contains:
 }
 ```
 
-###statSync
+### statSync
 Retrieve details about the file.
 
 Syntax:
@@ -428,7 +428,7 @@ The return is an object that contains details of the file:
 }
 ```
 
-###unlink
+### unlink
 Unlink (remove) a file.
 
 Syntax:
@@ -437,7 +437,7 @@ Syntax:
 The `path` is the file path to the file to be removed.
 
 
-###writeSync
+### writeSync
 Write data into a file.
 
 Syntax:
@@ -449,7 +449,7 @@ write starting at the offset within the buffer.  If `length` is specified, then 
 of bytes of the buffer into the file.
 
 
-##GPIO
+## GPIO
 Own the interface to GPIO.  We construct a new instance of a GPIO to represent the operations
 and state of a GPIO pin.  For example:
 
@@ -460,7 +460,7 @@ pin12.setDirection(GPIO.OUTPUT);
 pin12.setLevel(GPIO.HIGH);
 ```
 
-###getLevel
+### getLevel
 Read the signal level present as input on the pin. 
 
 Syntax:
@@ -468,21 +468,21 @@ Syntax:
 
 Return the signal level of the GPIO.
 
-###HIGH
+### HIGH
 A constant property that defines the signal level of `high`.
 
-###INPUT
+### INPUT
 A constant property that defines the direction as INPUT of a GPIO as used by the
 `setDirection()` function.  
 
-###LOW
+### LOW
 A constant property that defines the signal level of `low`.
 
-###OUTPUT
+### OUTPUT
 A constant property that defines the direction as OUTPUT of a GPIO as used by the
 `setDirection()` function. 
 
-###setDirection
+### setDirection
 Set the direction of the pin.  Either `DIRECTION_INPUT` or `DIRECTION_OUTPUT`.
 
 Syntax:
@@ -517,14 +517,14 @@ pin.setInterruptHandler(GPIO.INTR_POSEDGE, function(pin) {
 });
 ```
 
-###setLevel
+### setLevel
 Set the signal level present as output on the pin.  The choices should be either
 `HIGH` or `LOW`.
 
 Syntax:
 `setLevel(level)` 
 
-###setPullMode
+### setPullMode
 Set the pull-up/pull-down characteristics of the pin.
 
 Syntax:
@@ -536,10 +536,10 @@ The mode may be one of:
 * `GPIO.PULLUP_PULLDOWN`
 * `GPIO.FLOATING`
 
-##HTTP
+## HTTP
 This class provides the HTTP module.
 
-###request
+### request
 Make an HTTP request.
 
 Syntax:
@@ -599,7 +599,7 @@ http_test1();
 
 ```
 
-###createServer
+### createServer
 Create an HTTP server.
 Syntax:
 `createServer(requestHandler)`
@@ -629,7 +629,7 @@ var server = HTTP.createServer(requestHandler);
 server.listen(80);
 ```
 
-##HTTPClientResponse
+## HTTPClientResponse
 The HTTPClientResponse object is not created directly.  Instead, it is returned by a call to
 `HTTP.request()` and represents access to the response sent by that request.
 
@@ -639,18 +639,18 @@ On the event callbacks registered with the `on()` method, properties will be pre
 * `httpStatus` - The HTTP status code returned from the HTTP request.
 * `headers` - An object with name/value properties corresponding to the returned header items.
 
-###on
+### on
 Register callback handlers for events.  The event types that can be registered include:
 
 * `data` - Any data that may have been sent by the responder.
 * `end` - The response has been fully retrieved.
 
 
-##HTTPServerRequest
+## HTTPServerRequest
 The HTTPServerRequest object is not created directly.  Instead it is passed as the first parameter
 to an HTTP request handler.  Its purpose is to provide the data supplied by the HTTP requester.
 
-###getHeader
+### getHeader
 Return the value of a given named header if it is present.
 
 Syntax:
@@ -658,7 +658,7 @@ Syntax:
 
 Returns the String value of the named header or `null` if it is not present.
 
-###getSocket
+### getSocket
 Return the raw, underlying socket object that represents the incoming connection from the partner.
 This is not expected to be commonly used.  In fact, the only known consumer of this is HTTP WebSockets
 where an HTTP request is "converted" to a socket connection.  Use with great care and only if you know
@@ -667,18 +667,18 @@ what you are doing.
 Syntax:
 `getSocket()`
 
-###headers
+### headers
 A property object that contains the headers supplied by the requester.  One would normally use `getHeader()` to obtain
 the current value of a header property.
 
-###method
+### method
 A property describing the method supplied by the requester.  Common examples are:
 * `GET`
 * `POST`
 * `PUT`
 * `DELETE`
 
-###on
+### on
 A callback event registration handler.
 Syntax:
 `on(eventType, callback)`
@@ -688,10 +688,10 @@ The eventType can be one of:
 * `end` - An indication that the request has arrived in total.
 
 
-###path
+### path
 The Path part of the incoming request.
 
-###query
+### query
 The query part of the incoming request.  Remember that this may need to be decode from a
 URL string.  We can also use the URL package to parse the content.  For example:
 
@@ -713,19 +713,19 @@ response.write("Hello world!");
 response.end();
 ```
 
-###end
+### end
 Indicate that the response data is finalized.
 
 Syntax:
 `end()`
 
-###write
+### write
 Write data to the partner.  We can supply either a String or a buffer.
 
 Syntax:
 `write(data)`
 
-###writeHead
+### writeHead
 Write the HTTP headers sent in the response.
 
 Syntax:
@@ -782,7 +782,7 @@ var parserStreamWriter = new HTTPParser(HTTPParser.REQUEST, function(parserStrea
 });
 ```
 
-##I2C
+## I2C
 ```
 var I2C = require("i2c");
 var i2cDevice = new I2C({
@@ -794,7 +794,7 @@ i2cDevice.write();
 i2cDevice.endTransaction();
 ```
 
-##I2CDevice
+## I2CDevice
 This object is not created directly but is instead the return from a new I2C() object.  The
 constructor takes as input an object with the following properties:
 
@@ -808,7 +808,7 @@ constructor takes as input an object with the following properties:
 }
 ```
 
-###beginTransaction
+### beginTransaction
 Begin a transaction.
 
 Syntax:
@@ -818,7 +818,7 @@ The `address` is the I2C slave address that we are going to communicate with.
 The `isWrite` is true if we are going to write to the slave and false otherwise.
 This is an optional parameter and defaults to `true` indicating a write request.
 
-###endTransaction
+### endTransaction
 Complete the transaction and perform the queued I2C requests.
 
 Syntax:
@@ -828,7 +828,7 @@ Following a call to this function, no further read or write requests should be a
 without first performing a `beginTransaction()` request.
 
 
-###read
+### read
 read data from the I2C device.
 Syntax:
 `read(data [, ack])`
@@ -836,7 +836,7 @@ Syntax:
 Read a sequence of bytes into the `data` buffer.  The size of the buffer defines
 how many bytes we should read.
 
-###write
+### write
 Write a sequence of bytes through I2C.
 Syntax:
 `write(data [, ack])`
@@ -845,11 +845,11 @@ The `data` is either a number representing a byte value or a Buffer.
 The `ack` is whether or not we should expect an ACK after writing.
 This is an optional parameter defaulting to `true` to indicate that we do we wish an ack.
 
-##LEDC
+## LEDC
 The LEDC/PWM class provides access to the PWM functions of the ESP32.  To use this class one must
 study the ESP32 PWM functions and understand the notions of timers and channels.
 
-###configureChannel
+### configureChannel
 Configure a channel.
 
 Syntax:
@@ -862,7 +862,7 @@ The `options` object contains the following:
 * `gpio` - The GPIO pin on which the signal should appear.
 * `timer` - The associated timer.  A value between 0 and 3.
 
-###configureTimer
+### configureTimer
 Configure a timer.
 
 Syntax:
@@ -874,7 +874,7 @@ The `options` object contains the following:
 * `freq` - The frequency of the period in Hz.
 * `timer` - The timer being configured.  A value between 0 and 3.
 
-###setDuty
+### setDuty
 Set the duty value of a channel.
 Syntax:
 `setDuty(channel, value)`
@@ -885,7 +885,7 @@ when the channel was configured.
 ## net
 The net module owns the lowest level networking components.
 
-###Socket
+### Socket
 Create a new socket.
 Syntax:
 `new net.Socket([options])`
@@ -907,8 +907,9 @@ The creation of a new object is an object with methods:
 * `write(data)` - Write data to a target.
 * `end([data])` - End the connection optionally sending some final data.
 
-###createServer
-Returns a `SocketServer` object instance.
+### createServer
+Returns a `SocketServer` object instance.  The socket is not yet listening and won't until a call to the `listen()`
+function is performed.
 
 Syntax:
 `createServer(connectionListener)`
@@ -932,7 +933,7 @@ var server = net.createServer(connectionListener);
 server.listen(8888);
 ```
 
-###connect
+### connect
 Connect to a partner socket server.
 
 Syntax:
@@ -965,7 +966,7 @@ sock.on("end", function() {
 });
 ```
 
-###getByName
+### getByName
 Retrieve the IP address for the supplied DNS address.
 
 Syntax:
@@ -973,7 +974,7 @@ Syntax:
 
 The name may also be supplied as a dotted decimal value.  The value `null` is returned on error.
 
-###SocketServer
+### SocketServer
 This class is returned from createServer.  It is responsible for owning a server socket that is listening for
 new incoming connection requests.  It has the following methods:
 
@@ -1008,7 +1009,7 @@ nvsNamespace.close();
 ```
 
 
-###open
+### open
 Open the given namespace.
 
 Syntax:
@@ -1019,33 +1020,33 @@ The mode can be either:
 * `readonly`
 * `readwrite`
 
-##nvsNamespace
+## nvsNamespace
 
-###close
+### close
 Close a previously opened namespace.
 
 Syntax:
 `close()`
 
-###commit
+### commit
 Commit changes made to the store.
 
 Syntax:
 `commit()`
 
-###erase
+### erase
 Erase a named key.
 
 Syntax:
 `erase(key)`
 
-###easeAll
+### easeAll
 Erase all keys.
 
 Syntax:
 `eraseAll()`
 
-###get
+### get
 Get the value of a given key.
 
 Syntax:
@@ -1065,7 +1066,7 @@ var value = namespace.get("name", "string");
 
 If a key with the given name does not exist, then `null` is returned.
 
-###set
+### set
 Set the value of a given key to a value.
 
 Syntax:
@@ -1084,9 +1085,9 @@ bootWiFi_ns.set("ssid", formObj.ssid, "string");
 bootWiFi_ns.close();
 ```
 
-##OS
+## OS
 
-###accept
+### accept
 Accept a connection from an incoming client request.
 
 Syntax:
@@ -1109,7 +1110,7 @@ The return is a an object that contains:
 
 ```
 
-###bind
+### bind
 Bind a socket to a local address.  The return is the return code of the underlying bind.  This will
 be zero on success.
 
@@ -1126,7 +1127,7 @@ The `options` is an object that contains:
 
 ```
 
-###close
+### close
 Close a socket.
 
 Syntax:
@@ -1144,7 +1145,7 @@ The `options` is an object that contains:
 There is no return code from this function.
 
 
-###connect
+### connect
 Connect to a remote network partner.
 
 Syntax:
@@ -1161,7 +1162,7 @@ The `options` is an object that contains:
 
 ```
 
-###getaddrinfo
+### getaddrinfo
 Return a string representation of an IP address given a hostname.
 
 Syntax:
@@ -1171,14 +1172,14 @@ The return is a string representation of an IP address of the given hostname.  A
 lookup is performed.  If the input is already a dotted decimal IP address, that is the IP
 address that will be returned.
 
-###gethostbyname
-###gpioGetLevel
-###gpioInit
-###gpioSetDirection
-###gpioSetLevel
+### gethostbyname
+### gpioGetLevel
+### gpioInit
+### gpioSetDirection
+### gpioSetLevel
 
 
-###listen
+### listen
 Listen on a server socket for incoming client requests.
 
 Syntax:
@@ -1193,7 +1194,7 @@ The `options` is an object that contains:
 
 ```
 
-###recv
+### recv
 Receive data from a socket.
 
 Syntax:
@@ -1211,7 +1212,7 @@ The `options` is an object that contains:
 The return is the length of the data actually received.
 
 
-###select
+### select
 Select readiness of an array of sockets.
 
 Syntax:
@@ -1236,7 +1237,7 @@ The return is an object that contains:
 }
 ``` 
 
-###send
+### send
 Send data down a socket.
 
 Syntax:
@@ -1254,7 +1255,7 @@ The `options` is an object that contains:
 The return is the response code from `send()` at the OS level.
 
 
-###socket
+### socket
 Create a new socket.
 
 Syntax:
@@ -1267,10 +1268,10 @@ Create a new socket.  The return is an object which contains:
 }
 ```
 
-##PARTITIONS
+## PARTITIONS
 The `PARTITIONS` object provides access to the ESP32 partition table.
 
-###list
+### list
 Retrieve the details of a partition table type.
 
 Syntax:
@@ -1290,7 +1291,7 @@ is an array of object where each object contains:
 ``` 
 
 
-##RMT
+## RMT
 The RMT module must be loaded with:
 
 ```
@@ -1326,7 +1327,7 @@ An object is returned which contains the state of the channel as understood by t
 }
 ```
 
-###txConfig
+### txConfig
 Configure a RMT channel for transmission.
 
 Syntax:
@@ -1356,7 +1357,7 @@ The `options` is an object with the following properties:
  
  The maximum we can use would be to set channel 0 to have all 8 data blocks.  This would be 1024 (8 x 128) data items.
  
-###write
+### write
 Write items into the output stream.  We wait until the output has completed.
 
 Syntax:
@@ -1372,7 +1373,7 @@ The `arrayOfItems` is an array of item objects where each item object contains
 ```
 
 
-##Serial
+## Serial
 The Serial class provides access to the ESP32 serial ports of which there are three.  This class
 is loaded with:
 
@@ -1388,11 +1389,11 @@ var serialPort = new SerialPort(<portNumber>);
 
 where the `portNumber` can be 0, 1 or 2.
 
-##SerialPort
+## SerialPort
 Instance of this class are not created explicitly but are instead returned from calls to
 `new Serial(<portNumber>)`.
 
-###configure
+### configure
 Configure a serial port.  Any port must be configured before use.
 
 Syntax:
@@ -1410,7 +1411,7 @@ The options is an object that provides configuration data.
 }
 ```
 
-###on
+### on
 Register an event processing callback.
 
 Syntax:
@@ -1421,7 +1422,7 @@ The event types available are:
 parameter passed to the callback is a `Buffer` containing the newly received data.
 If the callback function passed in is `null` then the callback handler is removed.
 
-###read
+### read
 Read data from the serial port.
 
 Syntax:
@@ -1431,7 +1432,7 @@ This function should not be called if there is currently an asynchronous event h
 registered via `on("data", ...)` as the data will already have been consumed and
 passed to the event processor.
 
-###write
+### write
 Write data to the serial port.
 
 Syntax:
@@ -1440,7 +1441,7 @@ Syntax:
 
 The data is either a string or a buffer.
 
-##Socket
+## Socket
 Create a new socket.
 
 Syntax:
@@ -1455,7 +1456,7 @@ The optional `options` object can contain:
 
 The creation of a new object is an object with methods:
 
-###connect
+### connect
 Perform a connection on the socket.
 
 Syntax:
@@ -1466,7 +1467,7 @@ The options object contains:
 * `port` - number - The port number at the target to which we wish to connect.
 * `useSSL` - boolean - optional ... if true, then we are going to use SSL for encryption.
 
-###end
+### end
 Terminate the connection.
 
 Syntax:
@@ -1474,7 +1475,7 @@ Syntax:
 
 End the connection optionally sending some final data.
 
-###getFD
+### getFD
 Return the underlying file descriptor.
 
 Syntax:
@@ -1484,7 +1485,7 @@ TCP/IP sockets have an underlying file descriptor.  The purpose of this class is
 as much of the low level details as possible but there are times when we want to get our hands
 on the file descriptor.
 
-###on
+### on
 Register an event handler.
 
 Syntax:
@@ -1496,7 +1497,7 @@ The event types are"
 * `data` - Called when data arrives.  Parameter is a Buffer of new data.
 * `end` - Called when all the data has been received.
 
-###write
+### write
 Write data down the socket.
 
 Syntax:
@@ -1504,7 +1505,7 @@ Syntax:
 
 Write data to a partner.
 
-##SPI
+## SPI
 SPI is a bus based protocol for communicating with external devices.  It is assumed that you
 are familiar with the principles of SPI that can be found well documented elsewhere.
 
@@ -1530,7 +1531,7 @@ device.transmit(data);
 SPI.free();
 ```
 
-###addDevice
+### addDevice
 Define a device and get back an SPIDevice object.
 Syntax:
 `addDevice(options)`
@@ -1545,7 +1546,7 @@ The `options` object contains the following:
 }
 ```
 
-###free
+### free
 Release a bus.
 
 Syntax:
@@ -1553,7 +1554,7 @@ Syntax:
 
 This function releases any previously allocated resources associated with the bus.
 
-###initialize
+### initialize
 Initialize our SPI environment.
 
 Syntax:
@@ -1573,11 +1574,11 @@ for interaction with a bus which has neither inputs nor outputs.  The `clk` is m
 always have a clock signal.  The `host` can be one of `SPI_HOST`,  `HSPI_HOST` or `VSPI_HOST`
 and defaults to `HSPI_HOST`.
 
-##SPIDevice
+## SPIDevice
 This object is not created directly but is instead returned from a call to `addDevice()`.  This
 object encapsulates access to the desired SPI device.
 
-###remove
+### remove
 Remove the device releasing resources.
 
 Syntax:
@@ -1587,7 +1588,7 @@ This call can be made to release knowledge of the SPI device and free up any res
 against it.  No further calls to `transmit()` should be made after this call.
 
 
-###transmit
+### transmit
 Transmit and receive data with the external device.
 
 Syntax:
@@ -1597,7 +1598,7 @@ The `data` is a Buffer of data to be transmitted and received.  On return, the d
 overwritten with the corresponding response data.
 
 
-##Stream
+## Stream
 A stream is a pair of object where one acts as a stream writer and the other as a stream reader.  When
 data is writer into the stream writer it is available at the stream reader.  The stream can also
 buffer data such that if the writer wants to write data but the reader isn't ready, the data can
@@ -1616,11 +1617,11 @@ looks like:
 ```
 
 
-##StreamReader
+## StreamReader
 This object can not be manually created but is instead created as a result of creating a new
 Stream instance.  The object provides a source of input data.
 
-###on
+### on
 Register an event handler.  The events that can be registered are:
 * data - Called when new data is available.  The signature of the callback function is `function(data)` where `data` is a `Buffer`.
 * end - Called when the stream has ended and no further data will be received.
@@ -1628,17 +1629,17 @@ Register an event handler.  The events that can be registered are:
 Syntax:
 `on(eventType, callback)`
 
-###read
+### read
 Read data if data is available otherwise just return.
 
 Syntax:
 `read()`
   
-##StreamWriter
+## StreamWriter
 This object can not be manually created but is instead created as a result of creating a new
 Stream instance.  The object provides a target of output data.
 
-###end
+### end
 Marks the stream as complete.
 
 Syntax:
@@ -1646,7 +1647,7 @@ Syntax:
 
 The `data` is optional and is any final data that should be written before closing the stream.
 
-###write
+### write
 Write data down the stream.
 
 Syntax:
@@ -1654,14 +1655,14 @@ Syntax:
 
 The `data` is the data to be written down the stream.  It may be a `Buffer` or a `String`. 
 
-##URL
+## URL
 This is a module which provides URL processing.  It must be required,
 
 ```
 var URL = require("url");
 ```
 
-###parse
+### parse
 Parse a URL string into its constituent pieces.
 
 Syntax:
@@ -1682,7 +1683,7 @@ The return is an object:
 }
 ```	 
 
-###queryParse
+### queryParse
 Parse a URL query part of the form:
 `name=value&name=value&...&name=value`
 
@@ -1692,7 +1693,7 @@ Syntax:
 `queryParse(queryString)`
 
 
-##WS
+## WS
 This module provides WebSocket support.
 
 For example:
@@ -1713,7 +1714,7 @@ webSocketServer.listen(PORT);
 log("Being a WebSocket server on port " + PORT);
 ```
 
-###Server
+### Server
 Create a web socket server instance.
 
 Syntax:
@@ -1721,16 +1722,16 @@ Syntax:
 
 The return from the function is a WebSocket server instance.
 
-##WebSocketConnection
+## WebSocketConnection
 This object is not created manually but is instead passed to a WebSocketServer
 `on("connection")` handler.
 
-###close
+### close
 Close the connection to the partner.
 Syntax:
 `close()`
 
-###on
+### on
 Register an event handler.  The event handlers are:
 * `close` - Called when the connection is closed.
 * `message` - A frame received from a WebSocket partner.
@@ -1742,32 +1743,32 @@ connection.on("close", function() {
 });
 ```
 
-###path
+### path
 The path of the websocket connection.
 
-###send
+### send
 Send a message to the partner.
 
 Syntax:
 `send(data)`
 
-##WebSocketServer
+## WebSocketServer
 This object is not created manually but is instead created by calling
 `WS.Server()`.
 
-###listen
+### listen
 Start listening on a given port number.
 
 Syntax:
 `listen(port)`
 
-###on
+### on
 Register an event handler.  The event handlers are:
 
 * `connection` - Called when there is a new connection from a 
 WebSocket client.  A WebSocketConnection object is passed.
 
-##WIFI
+## WIFI
 Thus module provides WiFi processing.  It is built in and should not be explicitly required.
 
 * connect - Connect to an access point.
@@ -1777,7 +1778,7 @@ Thus module provides WiFi processing.  It is built in and should not be explicit
 * listen - Start being an access point.
 * scan - Scan for access points.
 
-###connect
+### connect
 Connect to an access point.
 
 Syntax:
@@ -1820,7 +1821,7 @@ WIFI.connect({
 ```
 
 
-###disconnect
+### disconnect
 Disconnect from the currently connected access point when we are connected as a station.
 
 Syntax:
@@ -1828,7 +1829,7 @@ Syntax:
 `disconnect()`
 
 
-###getDNS
+### getDNS
 Retrieve an array of the IP addresses (as strings) that represent the DNS servers that we may know about.
 
 Syntax:
@@ -1836,7 +1837,7 @@ Syntax:
 `getDNS()`
 
 
-###getState
+### getState
 Retrieve the current state of the WiFi environment.
 
 Syntax:
@@ -1856,7 +1857,7 @@ This returns an object which contains:
 ```
 
 
-###listen
+### listen
 Start being an access point.
 
 Syntax:
@@ -1880,7 +1881,7 @@ The `auth` must be one of:
 * wap_wpa2
 
 
-###scan
+### scan
 Perform an access point scan and invoke a callback when complete.
 
 Syntax:
@@ -1907,7 +1908,7 @@ wifi.scan(function(list) {
 });
 ```
 
-###setDNS
+### setDNS
 Set the DNS servers.
 
 Syntax:
@@ -1915,7 +1916,7 @@ Syntax:
 
 The `servers` is an array of IP address strings.
 
-###setTimeServer
+### setTimeServer
 Set the SNTP time server to use.
 
 Syntax:
@@ -1924,13 +1925,13 @@ Syntax:
 The `serverIPAddress` is an IP address representing the location of a network time server.  Calling
 this function instructs the environment to use that time server as the source of network based time.
 
-###start
+### start
 Perform a start of the WiFi subsystem.
 
 Syntax:
 `start()`
 
-##stop
+## stop
 Perform a stop of the WiFi subsystem.
 
 Syntax:

@@ -1,4 +1,4 @@
-#Interval and timeout processing
+# Interval and timeout processing
 Consider the JavaScript functions `setInterval()` and `setTimeout()`.  Surprisingly to many folks, these are
 not in fact part of the JavaScript language but are instead environmentally provided.
 

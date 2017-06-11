@@ -1,8 +1,8 @@
-#BADLY OUT OF DATE
+# BADLY OUT OF DATE
 
 ----
 
-#Working with HTTP
+# Working with HTTP
 ```
 function handleRequest(request, response) {
 	// The request contains details of the incoming request.

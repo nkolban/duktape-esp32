@@ -1,4 +1,4 @@
-#File systems
+# File systems
 ESP32-Duktape is heavily dependent on file systems being available on the ESP32.  Not only
 is it "nice" to have a file system that your own JavaScript applications can read and write,
 the project is mostly written in JavaScript itself.  The framework that provides networking

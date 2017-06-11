@@ -1,4 +1,4 @@
-#Debugger
+# Debugger
 Duktape has built in debugging technology.
 
 To enable we need to switch on:

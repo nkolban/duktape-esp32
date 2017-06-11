@@ -1,4 +1,4 @@
-#Date and time
+# Date and time
 Since date and time are OS specific concepts, Duktape wants the provider to map to the
 underlying technology to be used.  This is achieved by creating a function in C that returns
 the current milliseconds since the epoch (Jan 1, 1970).  The signature of the function is:

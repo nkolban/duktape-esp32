@@ -1,4 +1,4 @@
-#ESP32-Duktape installation
+# ESP32-Duktape installation
 This guide assumes that you have obtained (or built) the binary files ready to flash
 into your ESP32.
 
@@ -45,7 +45,7 @@ $ python $IDF_PATH/components/esptool_py/esptool/esptool.py \
 
 When all is complete, the ESP32 can be rebooted and we are ready to go.
 
-#First boot
+# First boot
 In order to use the ESP32-Duktape program, we need to be WiFi connected (at least
 initially).  However, in order for an application to connect to *your* WiFi access point
 we need to know its name (SSID) and the password you use to connect to it.  That means
@@ -76,7 +76,7 @@ then the ESP32 will again reset to being an access point.
 It is strongly recommend that you keep the console log up while the ESP32 is running
 so that you can see the messages being written.
 
-#Opening up the IDE
+# Opening up the IDE
 Once the ESP32 is up and running and executing the JavaScript environment, you can start
 to run and write your scripts.  From your desktop PC, open a browser and point it to your
 ESP32 at the IDE URL.  For example:
@@ -87,7 +87,7 @@ This will load the IDE into the browser.  The result will look like:
 
 ![editor2](images/editor2.jpg)
 
-#Using the IDE
+# Using the IDE
 In the top portion of the browser there is a JavaScript aware editor into which you can
 enter your JavaScript code.  Pressing the `Run` button, causes that script to execute on
 ESP32.  Any console output as written by `console.log()` statements will appear in the
@@ -110,7 +110,7 @@ basis and re-flashing resets the content of the files in the flash memory and an
 you manually created or changed will be lost.
 
 
-##Speeding up ESP32-Duktape
+## Speeding up ESP32-Duktape
 You may find that the ESP32-Duktape program feels a little sluggish.  The reason for this
 is that at this early stage, a *lot* of debugging is still enabled and this is logged to
 the ESP32 console ... which means that we are logging a lot of text at 115200 baud through
@@ -128,7 +128,7 @@ the log output again, run:
 ESP32.setLogLevel("*", "debug");
 ```
 
-##Installation cheat-sheet
+## Installation cheat-sheet
 Here is a summary of a set of common steps to download, install and run ESP32-Duktape:
 
 1. `mkdir duktape`

@@ -1,4 +1,4 @@
-#Building duktape from Github
+# Building duktape from Github
 To use the latest versions of Duktape, we will want to build our own version from the
 source contained on Github.  Here is the recipe.
 

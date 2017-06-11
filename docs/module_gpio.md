@@ -1,7 +1,7 @@
 # GPIO module
 This module provides access to the GPIO functions.
 
-##Example - Blinky
+## Example - Blinky
 In this example, we connect an LED to GPIO 18 and blink it once a second.
 
 ```
