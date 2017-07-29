@@ -3,3 +3,4 @@ build/
 *.gz
 sdkconfig.old
 *.img
+components/*

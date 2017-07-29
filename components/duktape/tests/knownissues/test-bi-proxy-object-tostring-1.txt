@@ -1,3 +1,0 @@
-summary: Object class handling for Proxy objects is incomplete
----
-[object Object]

@@ -1,4 +1,0 @@
-summary: requires DUK_USE_LIGHTFUNC_BUILTINS
----
-false
-lfunc finalizer
