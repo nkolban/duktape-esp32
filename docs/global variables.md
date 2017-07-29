@@ -22,7 +22,7 @@ is keyed by pin number each value is of the form:
 To be written.
 
 
-##_timers
+## _timers
 Holds the state of all the active timers in the environment.  A timer is created with calls to
 `setInterval()` or `setTimeout()`.  The structure of the object is:
 

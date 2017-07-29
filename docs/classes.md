@@ -36,8 +36,9 @@ Built into the solution are a variety of Modules.
 ## Globals
 These are functions that are in the global environment.
 
-###cancelInterval
+### cancelInterval
 Cancel an interval timer created by a call to `setInterval()`.
+
 Syntax:
 `cancelInterval(id)`
 
@@ -93,7 +94,7 @@ Return the value found on the given ADC channel.
 Syntax:
 `getValue(channel)`
 
-###setAttenuation
+### setAttenuation
 Research needed
 
 Syntax:
@@ -488,7 +489,7 @@ Set the direction of the pin.  Either `DIRECTION_INPUT` or `DIRECTION_OUTPUT`.
 Syntax:
 `setDirection(direction)`
 
-###setInterruptHandler
+### setInterruptHandler
 Set an interrupt handler on the pin.
 Syntax:
 `setInterrupHandler(interruptType, callback)`
@@ -982,7 +983,7 @@ new incoming connection requests.  It has the following methods:
 
 
 
-##NVS
+## NVS
 
 For example:
 
@@ -1308,7 +1309,7 @@ and THAT is the core of RMT.  We can supply a sequence train of pulse durations 
 that then manifest themselves as GPIO outputs.  Since this is all done at the hardware level as opposed to
 the software level, it can be achieved at rates far faster than software control.
 
-###getState
+### getState
 Retrieve the state of a give channel.
 
 Syntax:

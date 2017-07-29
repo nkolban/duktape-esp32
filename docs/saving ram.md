@@ -26,7 +26,7 @@ To enable or disable these settings, edit the file called `./data/duktape/ESP32-
 `make duktape_configure` and then rebuilding ESP32-Duktape.
 
 
-##Running Duktape from flash
+## Running Duktape from flash
 One of the possibilities for RAM improvements is the ability to run compiled Duktape applications
 from flash memory.
 

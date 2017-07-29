@@ -1,4 +1,4 @@
-#ESP32-Duktape
+# ESP32-Duktape
 The ESP32 is a WiFi and Bluetooth enabled MCU from Espressif.  It is a dual core
 processor with 512K of RAM and commonly 4M of flash.  Each processor runs at
 240MHz.  It has built in WiFi and Bluetooth as well as a rich assortment of

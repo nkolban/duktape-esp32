@@ -1,12 +1,12 @@
 #include <freertos/FreeRTOS.h>
-#include <freertos/heap_regions.h>
+//#include <freertos/heap_regions.h>
 #include <freertos/task.h>
 #include <esp_event.h>
 #include <esp_event_loop.h>
 #include <esp_log.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
-#include <heap_alloc_caps.h>
+//#include <heap_alloc_caps.h>
 #include <nvs_flash.h>
 
 #include "duktape_task.h"
@@ -97,7 +97,7 @@ static void init() {
 void app_main(void)
 {
 	LOGD("Free heap at start: %d", esp_get_free_heap_size());
-	LOGD("Free IRAM: %d",  xPortGetFreeHeapSizeTagged(MALLOC_CAP_32BIT));
+	//LOGD("Free IRAM: %d",  xPortGetFreeHeapSizeTagged(MALLOC_CAP_32BIT));
 	// Boot the WiFi environment and once WiFi is ready, call init().
 	nvs_flash_init();
 	tcpip_adapter_init();

@@ -1,4 +1,4 @@
-#Serial access
+# Serial access
 The ESP32 has three exposed serial (UART) ports called 0, 1 and 2.  A class called `Serial` has been provided to access these ports.
 The ESP32 is highly configurable on its pin mappings but defaults are provided.
 
@@ -28,7 +28,7 @@ timer.  Each timer the timer fires, it tries to read more data from the port and
 invokes the callback.  This may be a sub-optimal implementation and alternatives could use either
 UART interrupt handling or the FreeRTOS Queue technology built into ESP-IDF.
 
-##Serial command processor
+## Serial command processor
 With the addition of serial support to ESP32-Duktape, we have the opportunity to add a serial command
 processor.  What this will be is the ESP32 explicitly watching a serial input for incoming "commands"
 and honoring those commands.  So what might a command be?  Possibilities include:
@@ -87,23 +87,23 @@ The USB->UART pins are mapped as:
 * TX -> 17
 * RX -> 16
 
-###uartDisableStart
+### uartDisableStart
 Disable an application that was previously flagged as bootable at ESP32 startup from starting.
 
-###uartFileList
+### uartFileList
 List the files that are contained on the file system inside the ESP32.
 
-###uartFileSave
+### uartFileSave
 Read a file from the PC file system and save it as a file inside the ESP32 file system.
 
-###uartScriptRunner
+### uartScriptRunner
 Read a file containing JavaScript from the PC file system and send it to the ESP32 for execution.
 
 ```
 node uartScriptRunner -f <fileName.js>
 ```
 
-###Architecture
+### Architecture
 The serial command processor is written in JavaScript and can be found in the module called `uart_processor.js`.
 The module is launched merely by loading it.  For example:
 
