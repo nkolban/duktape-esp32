@@ -130,13 +130,14 @@ void duktape_init_environment() {
  * This routine is the function which processes a single event.  The event types we
  * have defined so far are:
  *
- * * ESP32_DUKTAPE_EVENT_COMMAND_LINE - A new user entered text line for processing.
+ * * ESP32_DUKTAPE_EVENT_COMMAND_LINE       - A new user entered text line for processing.
  * * ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED - A request to run a callback has been received.
  */
 
 void processEvent(esp32_duktape_event_t *pEvent) {
 	duk_int_t callRc;
 	LOGV(">> processEvent: eventType=%s", event_eventTypeToString(pEvent->type));
+
 	switch(pEvent->type) {
 		// Handle a new command line submitted to us.
 		case ESP32_DUKTAPE_EVENT_COMMAND_LINE: {
@@ -226,7 +227,7 @@ void processEvent(esp32_duktape_event_t *pEvent) {
  * a call to readLine() which insulates us from the actual source of
  * the line.
  */
-void duktape_task(void *ignore) {
+void duktape_task(void* ignore) {
 	esp32_duktape_event_t esp32_duktape_event;
 	int rc;
 
@@ -282,6 +283,7 @@ void duktape_task(void *ignore) {
 		// We have ended the loop routine.
 
 
+		// Process any events.  A return code other than 0 indicates we have an event.
 		rc = esp32_duktape_waitForEvent(&esp32_duktape_event);
 		if (rc != 0) {
 			processEvent(&esp32_duktape_event);
@@ -304,12 +306,6 @@ void duktape_task(void *ignore) {
 #if defined(ESP_PLATFORM)
 		//taskYIELD();
 		vTaskDelay(1);
-/*
-		uint32_t heapSize = esp_get_free_heap_size();
-		if (heapSize < 10000) {
-			LOGV("heap: %d",heapSize);
-		}
-*/
 #endif /* ESP_PLATFORM */
 
 	} // End while loop.

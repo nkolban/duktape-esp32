@@ -69,7 +69,8 @@ module.exports = {
 		var i;
 		for (i=0; i<parts.length; i++) {
 			var nameValue = parts[i].split("=");
-			result[nameValue[0]] = nameValue[1];
+			// We need to decode the values
+			result[nameValue[0]] = decodeURIComponent(nameValue[1]);
 		}
 		return result;
 	} // queryParse

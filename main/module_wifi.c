@@ -180,11 +180,11 @@ static esp_err_t esp32_wifi_eventHandler(void *param_ctx, system_event_t *event)
  *  - netmask
  * [1] - callback: a callback function
  */
-static duk_ret_t js_wifi_connect(duk_context *ctx) {
+static duk_ret_t js_wifi_connect(duk_context* ctx) {
 	esp_err_t errRc;
 
 	LOGD(">> js_wifi_connect");
-	char *password = ""; // Default password is none.
+	char* password = ""; // Default password is none.
   tcpip_adapter_ip_info_t ipInfo;
   duk_idx_t optionsIdx = 0;
 
@@ -253,8 +253,8 @@ static duk_ret_t js_wifi_connect(duk_context *ctx) {
 
 		// We now try and get network IP information but check that it is good first
 	  if (inet_pton(AF_INET, ipString, &ipInfo.ip) == 1 &&
-	  inet_pton(AF_INET, gwString, &ipInfo.gw) == 1 &&
-	  inet_pton(AF_INET, netmaskString, &ipInfo.netmask)) {
+	     inet_pton(AF_INET, gwString, &ipInfo.gw) == 1 &&
+	     inet_pton(AF_INET, netmaskString, &ipInfo.netmask)) {
 			LOGD(" - Using specific network info: ip: %s, gw: %s, netmask: %s",
 				ipString, gwString, netmaskString);
 			tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA); // Don't run a DHCP client

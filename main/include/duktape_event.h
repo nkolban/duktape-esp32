@@ -28,7 +28,7 @@ enum {
  * The signature of a data provide function.  When called it will place 0 or more
  * values on the callstack and return how many were added.
  */
-typedef int (*esp32_duktape_callback_dataprovider)(duk_context *ctx, void *context);
+typedef int (*esp32_duktape_callback_dataprovider)(duk_context* ctx, void* context);
 
 // !!! IMPORTANT !!!
 // All event types MUST start with an int type
@@ -36,19 +36,19 @@ typedef union {
 	int type;
 	// ESP32_DUKTAPE_EVENT_COMMAND_LINE
 	struct {
-		int type;
+		int   type;
 		// Command line parts
-		char *commandLine;
-		int commandLineLength;
-		int fromKeyboard;
+		char* commandLine;
+		int   commandLineLength;
+		int   fromKeyboard;
 	} commandLine;
 
 	// ESP32_DUKTAPE_EVENT_HTTPSERVER_REQUEST
 	struct {
-		int type;
+		int   type;
 		// HTTP parts
-		char *uri;
-		char *method;
+		char* uri;
+		char* method;
 	} httpServerRequest;
 
 	// ESP32_DUKTAPE_EVENT_TIMER_FIRED
@@ -60,25 +60,25 @@ typedef union {
 
 	// ESP32_DUKTAPE_EVENT_CALLBACK_REQUESTED
 	struct {
-		int type;
-		uint32_t callbackType;
-		uint32_t stashKey;
+		int                                 type;
+		uint32_t                            callbackType;
+		uint32_t                            stashKey;
 		esp32_duktape_callback_dataprovider dataProvider; // A C function to be called that will push values onto the call stack
-		void *context; // Context data to add to be passed to the dataProvider
+		void*                               context; // Context data to add to be passed to the dataProvider
 	} callbackRequested;
 } esp32_duktape_event_t;
 
-void  event_newISREvent(int isrType, void *data);
-void  esp32_duktape_freeEvent(duk_context *ctx, esp32_duktape_event_t *pEvent);
+void  event_newISREvent(int isrType, void* data);
+void  esp32_duktape_freeEvent(duk_context* ctx, esp32_duktape_event_t* pEvent);
 void  esp32_duktape_initEvents();
 int   esp32_duktape_waitForEvent();
-char *event_eventTypeToString(int eventType);
+char* event_eventTypeToString(int eventType);
 void  event_newCallbackRequestedEvent(
 	uint32_t callbackType,
 	uint32_t stashKey,
 	esp32_duktape_callback_dataprovider dataProvider,
-	void *contextData);
-void  event_newCommandLineEvent(char *commandData, size_t commandLength, int fromKeyboard);
+	void* contextData);
+void  event_newCommandLineEvent(char* commandData, size_t commandLength, int fromKeyboard);
 //void  event_newHTTPServerRequestEvent(char *uri, char *method);
 //void  event_newTimerAddedEvent(unsigned long);
 //void  event_newTimerClearedEvent(unsigned long id);

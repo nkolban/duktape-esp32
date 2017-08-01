@@ -34,6 +34,11 @@ at the top of the file as ESP32 doesn't support the `poll()` system call.
 ESP-IDF build systems wants to compile ALL files in a directory ... and this means that files we don't
 want (such as Windows support) will also be compiled by default.
 
+
+### Optional
+The following step may be of use if you are attempting to run on the WROOM.  I strongly recommend not doing that
+but instead run on the WROVER ESP32 module.
+
 4. Now we configure our version of duktape to use the low memory profile:
 
 ```
@@ -49,6 +54,6 @@ ESP32-Duktape uses two distinct file systems.  One called "SPIFFS" and the other
 and tools for these are:
 
 * [spiffs](https://github.com/whitecatboard/Lua-RTOS-ESP32/tree/master/components)
-* [espfs] (https://github.com/Spritetm/libesphttpd/tree/master/espfs)
+* [espfs](https://github.com/Spritetm/libesphttpd/tree/master/espfs)
 
 However the tools needed to build them are supplied in the `./bin` directory.

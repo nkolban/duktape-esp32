@@ -50,8 +50,8 @@ function startWebServer() {
 	   // Handle the end of the receipt of the HTTP request.
 	   request.on("end", function() {
 	      log("HTTP request received:");
-	      log("- path: " + request.path);
-	      log("- method: " + request.method);
+	      log("- path: "    + request.path);
+	      log("- method: "  + request.method);
 	      log("- headers: " + JSON.stringify(request.headers));
 	      // Return the web page for data entry.
 	      if (request.path == "/") {
@@ -119,15 +119,20 @@ function becomeAccessPoint() {
 } // becomeAccessPoint()
 
 
+/**
+ * 
+ * @param bootedCallback
+ * @returns
+ */
 function bootwifi(bootedCallback) {
 	var bootWiFi_ns = NVS.open("bootwifi", "readwrite");
 	
 	// Retrieve any saved NVS values.
-	var ssid     = bootWiFi_ns.get("ssid", "string");
+	var ssid     = bootWiFi_ns.get("ssid",     "string");
 	var password = bootWiFi_ns.get("password", "string");
-	var ip       = bootWiFi_ns.get("ip", "string");
-	var gw       = bootWiFi_ns.get("gw", "string");
-	var netmask  = bootWiFi_ns.get("netmask", "string");
+	var ip       = bootWiFi_ns.get("ip",       "string");
+	var gw       = bootWiFi_ns.get("gw",       "string");
+	var netmask  = bootWiFi_ns.get("netmask",  "string");
 	
 	bootWiFi_ns.close();
 	

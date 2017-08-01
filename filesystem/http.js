@@ -36,11 +36,11 @@ var http = {
 	// interested in receiving the response and parse the response assuming it is an
 	// HTTP message.
 	request: function(options, httpRequestCallback) {
-		var path = options.path;
-		var port = options.port;
-		var host = options.host;
-		var useSSL = options.useSSL === true;
-		var method = options.method;
+		var path        = options.path;
+		var port        = options.port;
+		var host        = options.host;
+		var useSSL      = options.useSSL === true;
+		var method      = options.method;
 		var payloadData = options.data;
 		
 		// validate inputs and set defaults for unset properties.

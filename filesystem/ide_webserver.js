@@ -1,6 +1,6 @@
 /**
  * Provide a built-in WebServer used to service Duktape commands.  Primarily
- * a REST service provided.  The following are exposed:
+ * a REST service provider.  The following are exposed:
  * 
  * POST /run - Execute the JavaScript code supplied in the POST data.
  * GET  /run/<name> - Execute the contents of the file named.
@@ -13,8 +13,7 @@
 /* globals require, FS, Buffer, log, DUKF, module*/
 
 var http = require("http");
-//var ws = require("ws");
-var ws = null;
+var ws = require("ws");
 var FS = require("fs");
 
 
@@ -25,9 +24,9 @@ var FS = require("fs");
  * @returns 0 on ok, non 0 on an error.
  */
 function streamFile(fileName, response) {
-	log("FS.openSync1");
+	//log("FS.openSync1");
 	var fd = FS.openSync(fileName, "r");
-	log("FS.openSync2");
+	//log("FS.openSync2");
    var buffer = new Buffer(128);
    while(1) {
    	var sizeRead = FS.readSync(fd, buffer, 0, buffer.length, null);
@@ -59,10 +58,12 @@ function requestHandler(request, response) {
    log("IDE_WebServer: We have received a new HTTP client request!");
    DUKF.logHeap("requestHandler");
    var postData = "";
+   
    request.on("data", function(data) {
       log("HTTP Request on(data) passed: " + data);
       postData += data;
    }); // on("data")
+   
    request.on("end", function() {
    	function sendFile(fileToSend) {
 	      try {
@@ -140,6 +141,11 @@ function requestHandler(request, response) {
    }); // on("end")
 } // requestHandler
 
+
+/**
+ * Start being an IDE
+ * @returns N/A
+ */
 function startIde() {
 
 	var WEBSERVER_PORT = 8000;
