@@ -1,8 +1,8 @@
 # Building duktape from Github
-To use the latest versions of Duktape, we will want to build our own version from a release ofthe
+To use the latest versions of Duktape, we will want to build our own version from a release of the
 source contained on Github.  Here is the recipe.
 
-1. Visit the release/build site for Dukatpe found here
+1. Visit the release/build site for Duktape found here
 
 [https://github.com/svaarala/duktape/releases]
 
