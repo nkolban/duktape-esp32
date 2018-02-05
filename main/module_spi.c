@@ -234,8 +234,8 @@ static duk_ret_t js_spi_device_transmit(duk_context *ctx) {
 
 	spi_transaction_t trans_desc;
 	trans_desc.flags     = 0;
-	trans_desc.command   = 0;
-	trans_desc.address   = 0;
+	trans_desc.cmd       = 0;
+	trans_desc.addr      = 0;
 	trans_desc.length    = size * 8; // The length property is size in bits.
 	trans_desc.rxlength  = 0;
 	trans_desc.user      = NULL;

@@ -419,24 +419,7 @@ static duk_ret_t js_wifi_getState(duk_context *ctx) {
 
 	wifi_country_t country;
 	ESP_ERROR_CHECK(esp_wifi_get_country(&country));
-	char *countryString;
-	switch(country) {
-	case WIFI_COUNTRY_CN:
-		countryString = "CN";
-		break;
-	case WIFI_COUNTRY_EU:
-		countryString = "EU";
-		break;
-	case WIFI_COUNTRY_JP:
-		countryString = "JP";
-		break;
-	case WIFI_COUNTRY_US:
-		countryString = "US";
-		break;
-	default:
-		countryString = "Unknown";
-		break;
-	}
+	char *countryString = country.cc;
 
 	tcpip_adapter_ip_info_t staIpInfo;
 	char staIpString[20];
