@@ -359,7 +359,7 @@ static void spiffs_registerVFS(char *mountPoint, spiffs *fs) {
 	esp_vfs_t vfs;
 	esp_err_t err;
 
-	vfs.fd_offset = 0;
+//	vfs.fd_offset = 0;
 	vfs.flags = ESP_VFS_FLAG_CONTEXT_PTR;
 	vfs.write_p  = vfs_write;
 	vfs.lseek_p  = vfs_lseek;

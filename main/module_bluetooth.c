@@ -1,7 +1,10 @@
 #include "sdkconfig.h"
 #if defined(CONFIG_BT_ENABLED)
 
-#include <bt.h>
+//#include <bt.h>
+#include <freertos/FreeRTOSConfig.h>
+#include <esp_bt.h>
+#include <esp_task.h>
 #include <duktape.h>
 #include <esp_bt_main.h>
 #include <esp_gap_ble_api.h>
@@ -26,7 +29,9 @@ static void gap_event_handler(
 static duk_ret_t js_bluetooth_init(duk_context *ctx) {
 	LOGD(">> init_bluetooth");
 	int errRc;
-	esp_bt_controller_init();
+	esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+
+	esp_bt_controller_init(&bt_cfg);
 	esp_bluedroid_init();
 	esp_bluedroid_enable();
 	errRc = esp_ble_gap_register_callback(gap_event_handler);
