@@ -64,13 +64,12 @@ module.exports = {
 	 * use a RegExp.
 	 */
 	queryParse: function(queryString) {
-		var parts = decodeURIComponent(queryString).split("&");
+		var parts = decodeURIComponent(queryString.replace(/\+/g, '%20')).split("&");
 		var result = {};
 		var i;
 		for (i=0; i<parts.length; i++) {
 			var nameValue = parts[i].split("=");
-			// We need to decode the values
-			result[nameValue[0]] = decodeURIComponent(nameValue[1]);
+			result[nameValue[0]] = nameValue[1];
 		}
 		return result;
 	} // queryParse
