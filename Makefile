@@ -46,7 +46,7 @@ images:
 	echo "+---------------------+"
 	echo "| Building spiffs.img |"
 	echo "+---------------------+"
-	./bin/mkspiffs -c filesystem -b 65536 -p 256 -s 524288 build/spiffs.img
+	./bin/mkspiffs -c filesystem -b 4096 -p 256 -s 0x80000 build/spiffs.img
 	
 #
 #  Perform a clean install of duktape.

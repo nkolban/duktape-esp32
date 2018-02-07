@@ -10,7 +10,6 @@
 #include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <spiffs.h>
 
 #include "duktape_spiffs.h"
 #include "esp32_specific.h"
