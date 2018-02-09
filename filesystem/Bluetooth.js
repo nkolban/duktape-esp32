@@ -14,7 +14,7 @@ if (moduleBluetooth === null) {
 
 var internalBluetooth = {};
 moduleBluetooth(internalBluetooth);
-interalBluetooth.init();
+internalBluetooth.init();
 
 
 module.exports = null;
