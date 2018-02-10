@@ -55,6 +55,7 @@ if (DUKF.OS == "ESP32") {
 	var useSerial = esp32duktapeNS.get("useSerial", "uint8");
 	log("useSerial: " + useSerial);
 	esp32duktapeNS.close();
+useSerial=1;
 	if (useSerial === 1) {
 	//if (useSerial === 1 || useSerial === null) {
 		log("+----------------+");
