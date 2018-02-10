@@ -90,7 +90,7 @@ void esp32_duktape_spiffs_mount() {
       .base_path = DUKTAPE_SPIFFS_MOUNTPOINT,
       .partition_label = NULL,
       .max_files = 5,
-      .format_if_mount_failed = true
+      .format_if_mount_failed = false
     };
 
     esp_err_t ret = esp_vfs_spiffs_register(&conf);
