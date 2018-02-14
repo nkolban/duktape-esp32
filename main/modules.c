@@ -85,7 +85,7 @@ typedef struct {
 functionTableEntry_t functionTable[] = {
 #if defined(ESP_PLATFORM)
 	{ "ModuleADC",        ModuleADC,        1},
-#if defined(ESP32_DUKTAPE_USE_BLUETOOTH)
+#if defined(CONFIG_BT_ENABLED)
 	{ "ModuleBluetooth",  ModuleBluetooth,  1},
 #endif
 	{ "ModuleFS",         ModuleFS,         1},

@@ -110,7 +110,7 @@ static duk_ret_t js_nvs_get(duk_context *ctx) {
 	//
 	// uint8
 	//
-	if (strcmp(type, "uint8") == 0) {
+	else if (strcmp(type, "uint8") == 0) {
 		uint8_t u8Val;
 		esp_err_t rc = nvs_get_u8(handle, key, &u8Val);
 		if (rc == ESP_ERR_NVS_NOT_FOUND) {
@@ -253,7 +253,7 @@ static duk_ret_t js_nvs_set(duk_context *ctx) {
 	//
 	// u8
 	//
-	if (strcmp(type, "uint8") == 0) {
+	else if (strcmp(type, "uint8") == 0) {
 		uint8_t u8Val = (uint8_t)duk_get_int(ctx, -2);
 		LOGD("Setting nvs %s to %d", key, u8Val);
 		esp_err_t rc = nvs_set_u8(handle, key, u8Val);
