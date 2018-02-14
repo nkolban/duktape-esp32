@@ -2,9 +2,6 @@
 # This is a project Makefile. It is assumed the directory this Makefile resides in is a
 # project subdirectory.
 #
-CFLAGS=-DUSE_SELECT
-#V=1
-#SINGLETHREAD=1
 
 PROJECT_NAME := esp32-duktape
 
