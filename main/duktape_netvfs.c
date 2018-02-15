@@ -14,11 +14,11 @@ LOG_TAG("duktape_netvfs");
 static int myfs_open(const char *path, int flags, int mode)
 {
 	LOGI("open %s", path);
-	return -1;
+	return 0;
 }
 static int myfs_close(int fd)
 {
-	LOGI("close");
+	LOGI("close %d", fd);
 	return 0;
 }
 static ssize_t myfs_write(int fd, const void * data, size_t size)
