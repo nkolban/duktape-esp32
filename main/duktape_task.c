@@ -12,7 +12,6 @@
 #include <freertos/task.h>
 
 #include "duktape_spiffs.h"
-#include "duktape_netvfs.h"
 #include "esp32_specific.h"
 #include "sdkconfig.h"
 
@@ -245,7 +244,6 @@ void duktape_task(void* ignore) {
 	// Mount the SPIFFS file system.
 #if defined(ESP_PLATFORM)
 	esp32_duktape_spiffs_mount();
-	esp32_duktape_netvfs_mount();
 #endif /* ESP_PLATFORM */
 
 
