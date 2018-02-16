@@ -4,7 +4,7 @@
 var net = require('net');
 var fs = require('fs');
 
-process.chdir('/ram');
+process.chdir('../filesystem/app');
 
 function dostat(o) {
 	var size = -1;
