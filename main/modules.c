@@ -37,6 +37,7 @@
 #include "module_spi.h"
 #include "module_ssl.h"
 #include "module_wifi.h"
+#include "module_netvfs.h"
 
 LOG_TAG("modules");
 
@@ -99,6 +100,7 @@ functionTableEntry_t functionTable[] = {
 	{ "ModuleSerial",     ModuleSerial,     1},
 	{ "ModuleSPI",        ModuleSPI,        1},
 	{ "ModuleSSL",        ModuleSSL,        1},
+	{ "ModuleNetVFS",     ModuleNetVFS,     1},
 #endif // ESP_PLATFORM
 	// Must be last entry
 	{NULL, NULL, 0 } // *** DO NOT DELETE *** - MUST BE LAST ENTRY.

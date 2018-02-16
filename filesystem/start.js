@@ -52,10 +52,29 @@ if (DUKF.OS == "ESP32") {
 	// Check to see if we are booting serial ...
 	var NVS = require("nvs");
 	var esp32duktapeNS = NVS.open("esp32duktape", "readwrite");
+	var NetVFS_on = esp32duktapeNS.get("NetVFS_on", "uint8");
+	log("NetVFS_on: " + NetVFS_on);
 	var useSerial = esp32duktapeNS.get("useSerial", "uint8");
 	log("useSerial: " + useSerial);
-	esp32duktapeNS.close();
-	if (useSerial === 1) {
+	if(NetVFS_on) {
+		log('NetVFS boot');
+		var NetVFS_addr = esp32duktapeNS.get("NetVFS_addr", "string");
+		var NetVFS_port = esp32duktapeNS.get("NetVFS_port", "int");
+		var dir = 'app';
+		var bootwifi = require("bootwifi.js");
+		bootwifi(function () {
+			log('wifidone!');
+			if(NetVFS_addr) {
+				ESP32.NetVFSDir = dir;
+				var ttt = ESP32.getNativeFunction("ModuleNetVFS");
+				var internalNetVFS = {};
+				ttt(internalNetVFS);
+				internalNetVFS.init({mount: '/' + dir, server:NetVFS_addr, port:NetVFS_port});
+			}
+			require(dir + '/main.js');
+			log('NetVFS done');
+		});
+	} else if (useSerial === 1) {
 	//if (useSerial === 1 || useSerial === null) {
 		log("+----------------+");
 		log("| uart_processor |");
@@ -66,6 +85,7 @@ if (DUKF.OS == "ESP32") {
 		var bootwifi = require("bootwifi.js");
 		bootwifi(startIDE);
 	}
+	esp32duktapeNS.close();
 } else {
 	startIDE();
 }

@@ -49,6 +49,9 @@ Duktape.modSearch = function(id, require, exports, module) {
 	}
 	*/
 	module.filename = name;
+	var dir = ESP32.NetVFSDir;
+	if(dir && name.slice(0,dir.length+1) == dir + '/')
+		return ESP32.loadFile('/' + name);
 	return DUKF.loadFile(name);
 	//var data = DUKF.loadFile(name);
 	//log(data);
