@@ -19,7 +19,7 @@ Currently there is a placeholder main.js that shows how the configuration settin
 
 Finally main.js requires('./test.js') which is inside filesystem/app and this is how the app can grow in complexity by bringing in other modules from the NetVFS tree.
 
-When development is done the filesystem can be written to flash. We'd want to run app/main.js but that isn't automatically triggered at the moment.
+When development is done the filesystem can be written to flash. We'd want to run app/main.js from flash, and we can trigger this by programming in a "" string for NetVFS_addr.
 
 The code that triggers all this is in filesystem/start.js
 
