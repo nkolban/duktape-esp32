@@ -61,14 +61,16 @@ if (DUKF.OS == "ESP32") {
 		var NetVFS_addr = esp32duktapeNS.get("NetVFS_addr", "string");
 		var NetVFS_port = esp32duktapeNS.get("NetVFS_port", "int");
 		var dir = 'app';
-		ESP32.NetVFSDir = dir;
 		var bootwifi = require("bootwifi.js");
 		bootwifi(function () {
 			log('wifidone!');
-			var ttt = ESP32.getNativeFunction("ModuleNetVFS");
-			var internalNetVFS = {};
-			ttt(internalNetVFS);
-			internalNetVFS.init({mount: '/' + dir, server:NetVFS_addr, port:NetVFS_port});
+			if(NetVFS_addr) {
+				ESP32.NetVFSDir = dir;
+				var ttt = ESP32.getNativeFunction("ModuleNetVFS");
+				var internalNetVFS = {};
+				ttt(internalNetVFS);
+				internalNetVFS.init({mount: '/' + dir, server:NetVFS_addr, port:NetVFS_port});
+			}
 			require(dir + '/main.js');
 			log('NetVFS done');
 		});
