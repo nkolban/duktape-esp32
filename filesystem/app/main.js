@@ -16,7 +16,6 @@ log('NetVFS_addr = ' + NetVFS_addr);
 log('NetVFS_port = ' + NetVFS_port);
 esp32duktapeNS.close();
 
-
 var Serial = require("Serial");
 var serialPort = new Serial(1);
 serialPort.configure({
@@ -24,7 +23,21 @@ serialPort.configure({
 	rxPin: 16,
 	txPin: 17
 });
-serialPort.write("app/main.c: Hello World, hit any key to reboot.\r\n");
-serialPort.on('data', function(d) {log('Reboot');ESP32.reboot();});
+var w = function(x) {serialPort.write(x + '\r\n')};
+w(module.filename + ': Keys:');
+w('  space = run test.js');
+w('  r     = reboot');
 
-var test = require('./test.js');
+function processkeys(d)
+{
+	while(d.length>0)
+	{
+		var c = d.slice(0,1);
+		d = d.slice(1);
+		if(c==' ') eval(ESP32.loadFile('/app/test.js'));
+		else if(c=='r') ESP32.reboot();
+	}
+}
+
+serialPort.on('data', processkeys);
+
