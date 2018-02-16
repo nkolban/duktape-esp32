@@ -92,6 +92,32 @@ static int get_response(unsigned char *put, int len)
 	return res<len ? res : len;
 }
 
+struct lowst {
+	int size;
+};
+
+static int low_stat(const char *path, struct lowst *lowst)
+{
+	memset(lowst, 0, sizeof(*lowst));
+	duk_push_object(ctxsave);
+	duk_push_string(ctxsave, path);
+	duk_put_prop_string(ctxsave, -2, "path");
+	duk_push_string(ctxsave, "stat");
+	duk_put_prop_string(ctxsave, -2, "cmd");
+	send_request();
+	unsigned char statbuff[16];
+	int got = get_response(statbuff, sizeof(statbuff));
+	LOGI("got = %d", got);
+	unsigned short le2(unsigned char *p) {return p[0] | (p[1]<<8);}
+	unsigned int le4(unsigned char *p) {return le2(p) | (le2(p+2)<<16);}
+	if(got>=4)
+	{
+		lowst->size = le4(statbuff);
+		return 0;
+	}
+	return -1;
+}
+
 static int myfs_open(const char *path, int flags, int mode)
 {
 	LOGI("open %s", path);
@@ -107,26 +133,12 @@ static int myfs_open(const char *path, int flags, int mode)
 		return -1;
 	}
 	struct f_d *f = files + i;
-
-	duk_push_object(ctxsave);
-	duk_push_string(ctxsave, path);
-	duk_put_prop_string(ctxsave, -2, "path");
-	duk_push_string(ctxsave, "stat");
-	duk_put_prop_string(ctxsave, -2, "cmd");
-	send_request();
-	unsigned char statbuff[16];
-	int got = get_response(statbuff, sizeof(statbuff));
-	LOGI("got = %d", got);
-	unsigned short le2(unsigned char *p) {return p[0] | (p[1]<<8);}
-	unsigned int le4(unsigned char *p) {return le2(p) | (le2(p+2)<<16);}
-	int size = -1;
-	if(got>=4)
-		size = le4(statbuff);
-	if(size>=0)
+	struct lowst lowst;
+	if(low_stat(path, &lowst) == 0)
 	{
 		memset(f, 0, sizeof(*f));
 		snprintf(f->name, sizeof(f->name), "%s", path);
-		f->size = size;
+		f->size = lowst.size;
 	} else
 		return -1;
 	return i;
@@ -182,6 +194,22 @@ static int myfs_fstat(int fd, struct stat *st)
 	return 0;
 }
 
+static int myfs_stat(const char *path, struct stat *st)
+{
+	LOGI("stat %s", path);
+	struct lowst lowst;
+	if(low_stat(path, &lowst) == 0)
+	{
+		st->st_size = lowst.size;
+		st->st_mode = S_IRWXU | S_IRWXG | S_IRWXO | S_IFREG;
+		st->st_mtime = 0;
+		st->st_atime = 0;
+		st->st_ctime = 0;
+		return 0;
+	}
+	return -1;
+}
+
 void esp32_duktape_netvfs_mount() {
 	LOGI("mount");
 }
@@ -194,6 +222,7 @@ static duk_ret_t js_netvfs_init(duk_context *ctx) {
 	    .write = &myfs_write,
 	    .open = &myfs_open,
 	    .fstat = &myfs_fstat,
+	    .stat = &myfs_stat,
 	    .close = &myfs_close,
 	    .read = &myfs_read,
 	};
