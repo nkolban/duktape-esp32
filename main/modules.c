@@ -28,17 +28,17 @@
 #include "module_fs.h"
 #include "module_i2c.h"
 #include "module_ledc.h"
+#include "module_netvfs.h"
 #include "module_nvs.h"
 #include "module_os.h"
 #include "module_partitions.h"
 #include "module_rmt.h"
 #include "module_rtos.h"
 #include "module_serial.h"
+#include "module_serialvfs.h"
 #include "module_spi.h"
 #include "module_ssl.h"
 #include "module_wifi.h"
-#include "module_netvfs.h"
-
 LOG_TAG("modules");
 
 /**
@@ -93,14 +93,15 @@ functionTableEntry_t functionTable[] = {
 	{ "ModuleGPIO",       ModuleGPIO,       1},
 	{ "ModuleI2C",        ModuleI2C,        1},
 	{ "ModuleLEDC",       ModuleLEDC,       1},
+	{ "ModuleNetVFS",     ModuleNetVFS,     1},
 	{ "ModuleNVS",        ModuleNVS,        1},
 	{ "ModulePartitions", ModulePartitions, 1},
 	{ "ModuleRMT",        ModuleRMT,        1},
 	{ "ModuleRTOS",       ModuleRTOS,       1},
 	{ "ModuleSerial",     ModuleSerial,     1},
+	{ "ModuleSerialVFS",  ModuleSerialVFS,  1},
 	{ "ModuleSPI",        ModuleSPI,        1},
 	{ "ModuleSSL",        ModuleSSL,        1},
-	{ "ModuleNetVFS",     ModuleNetVFS,     1},
 #endif // ESP_PLATFORM
 	// Must be last entry
 	{NULL, NULL, 0 } // *** DO NOT DELETE *** - MUST BE LAST ENTRY.
