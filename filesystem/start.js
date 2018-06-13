@@ -72,8 +72,8 @@ if (DUKF.OS == "ESP32") {
 		ttt(internalSerialVFS);
 		internalSerialVFS.init({mount: '/' + dir, serial: num});
 		ESP32.NetVFSDir = dir;
-		require(dir + '/main.js');
 		log('SerialVFS done');
+		setTimeout(function() {require(dir + '/main.js');}, 10);
 	} else if(NetVFS_on) {
 		log('NetVFS boot');
 		var NetVFS_addr = esp32duktapeNS.get("NetVFS_addr", "string");
