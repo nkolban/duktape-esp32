@@ -22,6 +22,7 @@
 #include "logging.h"
 #include "modules.h"
 #include "module_adc.h"
+#include "module_aes.h"
 #include "module_bluetooth.h"
 #include "module_dukf.h"
 #include "module_gpio.h"
@@ -86,6 +87,7 @@ typedef struct {
 functionTableEntry_t functionTable[] = {
 #if defined(ESP_PLATFORM)
 	{ "ModuleADC",        ModuleADC,        1},
+	{ "ModuleAES",        ModuleAES,        1},
 #if defined(CONFIG_BT_ENABLED)
 	{ "ModuleBluetooth",  ModuleBluetooth,  1},
 #endif
