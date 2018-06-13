@@ -61,9 +61,10 @@ if (DUKF.OS == "ESP32") {
 		var num = 2;
 		var sport = new Serial(num);
 		sport.configure({
-			baud: 115200,
-			rxPin: 13, // GPIO13 for WROVER
-			txPin: 14  // GPIO14 for WROVER
+			baud: 115200*2,
+			rxPin: 4, // GPIO4 for WROVER
+			txPin: 5, // GPIO5 for WROVER
+			rxBufferSize: 1024
 		});
 		var dir = 'app';
 		var ttt = ESP32.getNativeFunction("ModuleSerialVFS");
