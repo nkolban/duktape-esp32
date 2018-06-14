@@ -100,7 +100,7 @@ static int low_stat(const char *path, struct lowst *lowst)
 	send_request();
 	unsigned char statbuff[16];
 	int got = get_response(statbuff, sizeof(statbuff));
-	LOGI("got = %d", got);
+//	LOGI("got = %d", got);
 	unsigned short le2(unsigned char *p) {return p[0] | (p[1]<<8);}
 	unsigned int le4(unsigned char *p) {return le2(p) | (le2(p+2)<<16);}
 	if(got>=4)
@@ -113,7 +113,7 @@ static int low_stat(const char *path, struct lowst *lowst)
 
 static int myfs_open(const char *path, int flags, int mode)
 {
-	LOGI("open %s", path);
+//	LOGI("open %s", path);
 	int i;
 	for(i=0;i<MAX_OPEN_FILES;++i)
 	{
@@ -139,7 +139,7 @@ static int myfs_open(const char *path, int flags, int mode)
 
 static int myfs_close(int fd)
 {
-	LOGI("close %d", fd);
+//	LOGI("close %d", fd);
 	struct f_d *f = recover_f(fd);
 	if(!f) return -1;
 	if(f->name[0] == 0) return -1;
@@ -148,13 +148,13 @@ static int myfs_close(int fd)
 }
 static ssize_t myfs_write(int fd, const void * data, size_t size)
 {
-	LOGI("write %d", fd);
+//	LOGI("write %d", fd);
 	return 0;
 }
 
 static ssize_t myfs_read(int fd, void * data, size_t size)
 {
-	LOGI("read %d", fd);
+//	LOGI("read %d", fd);
 	struct f_d *f = recover_f(fd);
 	if(!f) return -1;
 	if(f->name[0] == 0) return -1;
@@ -176,7 +176,7 @@ static ssize_t myfs_read(int fd, void * data, size_t size)
 
 static int myfs_fstat(int fd, struct stat *st)
 {
-	LOGI("fstat %d", fd);
+//	LOGI("fstat %d", fd);
 	struct f_d *f = recover_f(fd);
 	if(f->name[0] == 0) return -1;
 	st->st_size = f->size;
@@ -189,7 +189,7 @@ static int myfs_fstat(int fd, struct stat *st)
 
 static int myfs_stat(const char *path, struct stat *st)
 {
-	LOGI("stat %s", path);
+//	LOGI("stat %s", path);
 	struct lowst lowst;
 	if(low_stat(path, &lowst) == 0)
 	{
@@ -242,7 +242,7 @@ static duk_ret_t js_serialvfs_init(duk_context *ctx) {
 
 
 
-// use main/module_os.c as guide
+// used main/module_os.c as guide (dashxdr was here 20180614)
 
 	ret = esp_vfs_register(mount, &myfs, NULL);
 	if(ret != ESP_OK)
@@ -250,7 +250,7 @@ static duk_ret_t js_serialvfs_init(duk_context *ctx) {
 		LOGE("Failed to register netvfs");
 		return 0;
 	}
-	LOGI("Connected to server and directory mounted");
+	LOGI("Directory mounted");
 	ctxsave = ctx;
 	return 0;
 } // init_netvfs
