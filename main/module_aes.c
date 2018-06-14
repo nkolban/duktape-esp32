@@ -2,8 +2,6 @@
 //#if defined(CONFIG_AES_ENABLED)
 
 #include <freertos/FreeRTOSConfig.h>
-#include <esp_bt.h>
-#include <esp_task.h>
 #include <duktape.h>
 #include <esp_log.h>
 #include <stdio.h>

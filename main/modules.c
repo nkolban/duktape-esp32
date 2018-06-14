@@ -29,6 +29,7 @@
 #include "module_fs.h"
 #include "module_i2c.h"
 #include "module_ledc.h"
+#include "module_linenoise.h"
 #include "module_netvfs.h"
 #include "module_nvs.h"
 #include "module_os.h"
@@ -95,6 +96,7 @@ functionTableEntry_t functionTable[] = {
 	{ "ModuleGPIO",       ModuleGPIO,       1},
 	{ "ModuleI2C",        ModuleI2C,        1},
 	{ "ModuleLEDC",       ModuleLEDC,       1},
+	{ "ModuleLinenoise",  ModuleLinenoise,  1},
 	{ "ModuleNetVFS",     ModuleNetVFS,     1},
 	{ "ModuleNVS",        ModuleNVS,        1},
 	{ "ModulePartitions", ModulePartitions, 1},
