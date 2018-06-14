@@ -4,8 +4,11 @@
 var sport = require('serialport');
 var fs = require('fs');
 var mylog = console.log;
+var dir = '../filesystem/app';
 
-process.chdir('../filesystem/app');
+if(process.argv.length>2) dir=process.argv[2];
+mylog('chdir to directory ' + dir);
+process.chdir(dir);
 
 function dostat(o) {
 	var size = -1;
@@ -30,7 +33,8 @@ var port = false;
 
 if(true) {
 	var data = '';
-	port = new sport('/dev/ttyUSB1', {baudRate: 115200, rtscts: false});
+	var cleart = false;
+	port = new sport('/dev/ttyUSB1', {baudRate: 115200*2, rtscts: false});
 	port.on('open', function () {
 		mylog('Serial port opened');
 	});
@@ -41,6 +45,19 @@ if(true) {
 		mylog('Serial port closed');
 	});
 	port.on('data', function(d) {
+		if(cleart) {
+			clearTimeout(cleart);
+			cleart = false;
+		}
+		cleart = setTimeout(function() {
+			if(data) {
+				mylog('Cleared out some stale data...' + data.length);
+				mylog(data);
+				data = '';
+			}
+			cleart = false;
+		}, 1000);
+
 		data += d;
 		if(data.indexOf('\0') > 0)
 		{
