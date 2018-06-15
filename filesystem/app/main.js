@@ -20,8 +20,8 @@ var Serial = require("Serial");
 var serialPort = new Serial(1);
 serialPort.configure({
 	baud: 115200,
-	rxPin: 16,
-	txPin: 17
+	rxPin: 18, // GPIO18 for WROVER, GPIO16 for WROOM
+	txPin: 19 // GPIO19 for WROVER, GPIO17 for WROOM
 });
 var w = function(x) {serialPort.write(x + '\r\n')};
 w(module.filename + ': Keys:');

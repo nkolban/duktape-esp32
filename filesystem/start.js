@@ -56,7 +56,25 @@ if (DUKF.OS == "ESP32") {
 	log("NetVFS_on: " + NetVFS_on);
 	var useSerial = esp32duktapeNS.get("useSerial", "uint8");
 	log("useSerial: " + useSerial);
-	if(NetVFS_on) {
+	if(false) { // serial VFS filesystem (use tools/SerialVFSServer.js)
+		var Serial = require("Serial");
+		var num = 2;
+		var sport = new Serial(num);
+		sport.configure({
+			baud: 115200*2,
+			rxPin: 4, // GPIO4 for WROVER
+			txPin: 5, // GPIO5 for WROVER
+			rxBufferSize: 1024
+		});
+		var dir = 'app';
+		var ttt = ESP32.getNativeFunction("ModuleSerialVFS");
+		var internalSerialVFS = {};
+		ttt(internalSerialVFS);
+		internalSerialVFS.init({mount: '/' + dir, serial: num});
+		ESP32.NetVFSDir = dir;
+		log('SerialVFS done');
+		setTimeout(function() {require(dir + '/main.js');}, 10);
+	} else if(NetVFS_on) {
 		log('NetVFS boot');
 		var NetVFS_addr = esp32duktapeNS.get("NetVFS_addr", "string");
 		var NetVFS_port = esp32duktapeNS.get("NetVFS_port", "int");
