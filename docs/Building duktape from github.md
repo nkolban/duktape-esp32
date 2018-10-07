@@ -49,8 +49,8 @@ but instead run on the WROVER ESP32 module.
 python tools/configure.py \
     --config-metadata config/ \
     --source-directory src-input \
-    --option-file components/duktape/config/examples/low_memory.yaml \
-    --option-file data/duktape/ESP32-Duktape.yaml \
+    --option-file config/examples/low_memory.yaml \
+    --option-file ../../data/duktape/ESP32-Duktape.yaml \
     --output-directory src
 ```
 
