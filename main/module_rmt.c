@@ -168,7 +168,7 @@ static duk_ret_t js_rmt_write(duk_context *ctx) {
 
 		LOGD("Length of RMT data item array is %d", dataItemCount);
 		if (dataItemCount == 0) {
-			LOGD("<< jms_rmt_write - length of items is 0")
+			LOGD("<< jms_rmt_write - length of items is 0");
 			return 0;
 		}
 
