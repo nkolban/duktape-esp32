@@ -180,7 +180,7 @@ static duk_ret_t js_fast_aes_wrap(duk_context *ctx) {
 	for (i = 1; i <= n; i++) {
 			os_memcpy(b, a, 8);
 			os_memcpy(b + 8, r, 8);
-			mbedtls_aes_encrypt(&aes_ctx, b, b);
+			esp_internal_aes_encrypt(&aes_ctx, b, b);
 			os_memcpy(a, b, 8);
 			a[7] ^= n * j + i;
 			os_memcpy(r, b + 8, 8);
@@ -249,7 +249,7 @@ static duk_ret_t js_fast_aes_unwrap(duk_context *ctx) {
 			os_memcpy(b, a, 8);
 			b[7] ^= n * j + i;
 			os_memcpy(b + 8, r, 8);
-			mbedtls_aes_decrypt(&aes_ctx, b, b);
+			esp_internal_aes_decrypt(&aes_ctx, b, b);
 			os_memcpy(a, b, 8);
 			os_memcpy(r, b + 8, 8);
 			r -= 8;

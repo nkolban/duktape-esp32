@@ -142,7 +142,7 @@ EspFsFile *espFsOpen(const char *fileName) {
 			flashAddress += 4-((int)flashAddress & 3); //align to next 32bit val
 		}
 	}
-	ESP_LOGD(tag, "<< espFsOpen")
+	ESP_LOGD(tag, "<< espFsOpen");
 } // espFsOpen
 
 //Read len bytes from the given file into buff. Returns the actual amount of bytes read.
