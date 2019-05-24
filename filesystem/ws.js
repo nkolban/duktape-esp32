@@ -230,12 +230,12 @@ function parseFrame(data) {
 	var payloadLen = (data[1] & 0x7f); // 0b0111 1111
 	var maskStart = 2;
 	if (payloadLen == 126) {
-		payloadLen = data[2] * 1<<8 + data[3];
+		payloadLen = (data[2] * 1<<8) + data[3];
 		maskStart = 4;
 	}
 	if (payloadLen == 127) {
-		payloadLen = data[2] * 1<<56 + data[3] * 1<<48 + data[4] * 1<< 40 + data[5] * 1<<32 +
-		data[6] * 1<<24 + data[7] * 1<<16 + data[8] * 1<<8 + data[9];
+		payloadLen = (data[2] * 1<<56) + (data[3] * 1<<48) + (data[4] * 1<< 40) + (data[5] * 1<<32) +
+		(data[6] * 1<<24) + (data[7] * 1<<16) + (data[8] * 1<<8) + data[9];
 		maskStart = 10;
 	}
 	var maskValue;

@@ -487,7 +487,7 @@ void esp32_duktape_unstash_object(duk_context *ctx, uint32_t key) {
 	// [1] - CALLBACK_STASH_OBJECT_NAME object
 	// [2] - key
 
-	if (duk_get_prop(ctx, -1) == 0) {
+	if (duk_get_prop(ctx, -2) == 0) {
 		// [0] - Global object
 		// [1] - CALLBACK_STASH_OBJECT_NAME object
 		// [2] - Undefined
